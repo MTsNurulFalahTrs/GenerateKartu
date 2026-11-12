@@ -74,15 +74,17 @@ export async function inspectWorkbook(bytes: ArrayBuffer, name: string) {
 }
 
 export function readSheet(bytes: ArrayBuffer, name: string): WorkbookRows {
-  const sheet = read(bytes, { type: 'array', sheets: name, cellFormula: false, dateNF: 'yyyy-mm-dd' }).Sheets[name];
+  const sheet = read(bytes, { type: 'array', sheets: name, cellFormula: false, nodim: true, dateNF: 'yyyy-mm-dd' }).Sheets[name];
   if (!sheet?.['!ref']) throw new Error('Sheet kosong. Isi header dan minimal satu baris.');
   const range = utils.decode_range(sheet['!ref']);
   const width = range.e.c - range.s.c + 1;
   if (width > maxColumns || range.e.r - range.s.r > maxParticipants) throw new Error('Batas 1.000 baris peserta dan 64 kolom per sheet.');
   function cellsAt(r: number) {
     return Array.from({ length: width }, (_, index) => {
-      const cell = sheet[utils.encode_cell({ r, c: range.s.c + index })];
-      if (!cell || cell.t === 'e') return '';
+      const address = utils.encode_cell({ r, c: range.s.c + index });
+      const cell = sheet[address];
+      if (!cell) return '';
+      if (cell.t === 'e') throw new Error(`Sel ${address} berisi galat Excel. Perbaiki sel sebelum mengimpor.`);
       const text = utils.format_cell(cell);
       if (text.length > 32767) throw new Error('Salah satu sel melampaui batas Excel.');
       return text;
