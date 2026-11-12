@@ -1,0 +1,163 @@
+{
+  "mode": "node-vm-with-dom-doubles",
+  "blob": "b1877096e7aba8f56a61fda60fda45cf30812dfb",
+  "sheetJS": "0.18.5",
+  "jszip": "3.10.1",
+  "cases": [
+    {
+      "id": "xlsx",
+      "count": 2,
+      "title": "Data Berhasil Dimuat",
+      "level": "success"
+    },
+    {
+      "id": "xls",
+      "count": 2,
+      "title": "Data Berhasil Dimuat",
+      "level": "success"
+    },
+    {
+      "id": "kapitalisasi",
+      "count": 2,
+      "title": "Data Berhasil Dimuat",
+      "level": "success"
+    },
+    {
+      "id": "header-hilang",
+      "count": 0,
+      "title": "Format Tidak Sesuai",
+      "level": "error"
+    },
+    {
+      "id": "kosong",
+      "count": 0,
+      "title": "Data Kosong",
+      "level": "error"
+    },
+    {
+      "id": "id-duplikat",
+      "count": 2,
+      "title": "Data Dimuat dengan Peringatan",
+      "level": "warning"
+    },
+    {
+      "id": "field-kosong",
+      "count": 1,
+      "title": "Data Dimuat dengan Peringatan",
+      "level": "warning"
+    },
+    {
+      "id": "nisn-angka",
+      "count": 1,
+      "title": "Data Berhasil Dimuat",
+      "level": "success"
+    },
+    {
+      "id": "workbook-rusak",
+      "count": 0,
+      "title": "Gagal Membaca File",
+      "level": "error",
+      "errors": [
+        {
+          "label": "prosesExcel error:",
+          "message": "Unsupported ZIP file"
+        }
+      ]
+    },
+    {
+      "id": "ekstensi-salah",
+      "count": 0,
+      "title": "Format File Tidak Didukung",
+      "level": "error"
+    },
+    {
+      "id": "cetak-1",
+      "count": 1,
+      "title": "Data Berhasil Dimuat",
+      "level": "success"
+    },
+    {
+      "id": "cetak-9",
+      "count": 9,
+      "title": "Data Berhasil Dimuat",
+      "level": "success"
+    },
+    {
+      "id": "cetak-10",
+      "count": 10,
+      "title": "Data Berhasil Dimuat",
+      "level": "success"
+    },
+    {
+      "id": "cetak-60",
+      "count": 60,
+      "title": "Data Berhasil Dimuat",
+      "level": "success"
+    },
+    {
+      "id": "cetak-132",
+      "count": 132,
+      "title": "Data Berhasil Dimuat",
+      "level": "success"
+    },
+    {
+      "id": "cetak-500",
+      "count": 500,
+      "title": "Data Berhasil Dimuat",
+      "level": "success"
+    },
+    {
+      "id": "jadwal-lengkap",
+      "count": 1,
+      "notices": [
+        {
+          "title": "Jadwal Diimport",
+          "level": "success"
+        }
+      ]
+    },
+    {
+      "id": "jadwal-parsial",
+      "count": 1,
+      "notices": [
+        {
+          "title": "Sebagian Kolom Tidak Cocok",
+          "level": "warning"
+        },
+        {
+          "title": "Jadwal Diimport",
+          "level": "success"
+        }
+      ]
+    },
+    {
+      "id": "jadwal-header-salah",
+      "count": 0,
+      "notices": [
+        {
+          "title": "Header Tidak Cocok",
+          "level": "error"
+        }
+      ]
+    },
+    {
+      "id": "zip-cocok-dan-asing",
+      "title": "Ekstrak Berhasil",
+      "level": "warning",
+      "keys": [
+        "UJI-0001",
+        "UJI-9999"
+      ],
+      "imageDecoding": "forced-error-double",
+      "previousPhotosRetained": false
+    },
+    {
+      "id": "zip-rusak",
+      "title": "File ZIP Tidak Valid",
+      "level": "error",
+      "keys": [],
+      "imageDecoding": "forced-error-double",
+      "previousPhotosRetained": false
+    }
+  ]
+}
