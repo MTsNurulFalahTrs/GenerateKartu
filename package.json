@@ -18,7 +18,7 @@
     "next": "16.4.3",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+    "xlsx": "https://raw.githubusercontent.com/sheetxl/vendor-xlsx/4ffbd44d59452385b09171776c7ed3ea31d4cda1/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@sparticuz/chromium": "153.0.0",
