@@ -1,11 +1,12 @@
 # Master Roadmap Pembuatan dan Pengembangan Generate Kartu
 
-> **Versi:** 1.0  
+> **Versi:** 1.1  
 > **Tanggal penyusunan:** 12 November 2026  
 > **Repositori utama:** https://github.com/MTsNurulFalahTrs/GenerateKartu  
 > **Referensi sumber aplikasi lama:** https://github.com/r4nd1pr4t4m4-arch/generatorkartu  
 > **Acuan metodologi investigasi:** https://github.com/morluto/rea (Reverse Engineer Anything / REA)  
 > **Target deployment:** Vercel  
+> **Keputusan desain yang disahkan:** Opsi B — **Visual Parity + Modernisasi Terkontrol** (wajib; tidak boleh diubah sepihak)  
 > **Status dokumen:** Rencana pelaksanaan, bukan bukti bahwa tahapan implementasi telah selesai.
 
 ## 1. Tujuan dan keputusan dasar
@@ -17,11 +18,64 @@ Generate Kartu dibangun ulang sebagai aplikasi web modern untuk membuat, mengatu
 1. Gunakan `MTsNurulFalahTrs/GenerateKartu` sebagai satu-satunya repositori tujuan untuk pengembangan baru. Jangan mendorong kode ke repositori aplikasi lama.
 2. Sumber lama adalah aplikasi Google Apps Script dengan `Code.gs` dan `Index.html`. Jangan menganggap kode lama sudah menggunakan Next.js.
 3. REA dipakai sebagai **metodologi berbasis bukti**: inventarisasi perilaku, jejak sumber, fixture, *reconstruction obligation ledger*, perbandingan output, dan gerbang penerimaan. Jangan mengklaim REA MCP atau pengamatan runtime sudah dijalankan jika belum.
-4. Target teknis: **Next.js App Router, React, TypeScript, Tailwind CSS, UI responsif**, dengan penguncian versi dependensi berdasarkan kompatibilitas yang benar-benar teruji. Utamakan pustaka stabil dan aksesibel; komponen dapat menggunakan shadcn/ui bila diperlukan.
+4. Target teknis: **Next.js App Router, React, TypeScript, Tailwind CSS, UI responsif**, dengan penguncian versi dependensi berdasarkan kompatibilitas yang benar-benar teruji. Utamakan pustaka stabil dan aksesibel; komponen dapat menggunakan shadcn/ui bila diperlukan. **Pilihan framework/komponen tidak boleh menjadi alasan untuk mengubah desain asli secara sepihak.**
 5. Proses impor Excel, ZIP foto, pembuatan QR, pratinjau, dan rendering cetak dilakukan di browser bila memungkinkan. Jangan mengirim data siswa/foto ke server tanpa kebutuhan, dasar, dan persetujuan yang jelas.
 6. **Supabase bersifat opsional** bagi fungsi inti cetak kartu; dipertimbangkan untuk akun, penyimpanan tersinkron, format komunitas, dan moderasi. Gunakan RLS dan kebijakan akses paling sedikit jika diaktifkan.
 7. Setiap fase memakai **gate**. Fase berikutnya dimulai setelah pekerjaan, verifikasi, dan dokumentasi fase sebelumnya diterima; pekerjaan yang tidak lulus dicatat sebagai blocker.
 8. Perubahan kode menggunakan cabang fitur dan Pull Request (PR), kecuali pembuatan dokumen awal pada repositori yang masih kosong. Deployment produksi dilakukan setelah gate rilis terpenuhi, bukan otomatis karena PR di-merge.
+9. **Standar desain wajib:** pertahankan UI/UX, styling, dan identitas visual aplikasi asli melalui pendekatan **Visual Parity + Modernisasi Terkontrol**. Perubahan visual signifikan atau perubahan alur utama memerlukan **persetujuan eksplisit pengguna sebelum implementasi**.
+
+
+### 1.1 Kebijakan desain wajib — Opsi B (Visual Parity + Modernisasi Terkontrol)
+
+**Status keputusan: DISETUJUI PENGGUNA. Berlaku lintas semua fase, termasuk bila ada migrasi komponen ke Tailwind CSS, shadcn/ui, atau teknologi baru.** Aplikasi hasil rekonstruksi harus tetap mudah dikenali sebagai Generate Kartu asli, bukan aplikasi baru dengan desain yang diganti total.
+
+#### A. Elemen yang wajib dipertahankan sebagai baseline
+
+- **Identitas visual:** palet warna, gaya tipografi, ikon, bentuk/sudut komponen, kepadatan layout, hierarki, jarak, bayangan, border dan konsistensi styling khas aplikasi lama.
+- **Struktur tampilan:** header, sidebar/navbar, tab/stepper, panel/editor, kartu, tabel, tombol, input, dropdown, modal, notifikasi, tata letak pratinjau dan urutan informasi.
+- **Interaksi dan alur kerja:** perjalanan pengguna dari pilih format → isi/impor data → atur aset/opsi → preview → cetak/PDF; status aktif, toggle, expand/collapse, respons tombol, validasi dan perilaku yang masih relevan.
+- **Desain keluaran kartu:** ketujuh format bawaan dan format kustom, kop, foto, teks, logo, QR, jadwal, tanda tangan, dimensi fisik kartu, margin, serta tata letak multi-halaman—kecuali perbedaan disengaja yang disetujui atau perbaikan bug yang terdokumentasi.
+- **Pengalaman desktop dan mobile:** identitas yang sama pada kedua perangkat, bukan desain desktop dipaksakan pada layar kecil.
+
+#### B. Modernisasi yang diizinkan tanpa persetujuan redesain terpisah
+
+- Memperbaiki bug, perilaku tidak konsisten, overflow, pemotongan teks, z-index, focus trap, navigasi keyboard, kontras yang tidak aksesibel dan kegagalan pada perangkat mobile.
+- Merapikan alignment, spacing yang tidak konsisten, touch target, label/feedback, empty/loading/error state serta performa, **selama tidak mengubah identitas visual dan alur utama**.
+- Mengganti implementasi internal dengan komponen React/Tailwind tanpa mengganti tampilan yang terlihat pengguna.
+- Memperbaiki kesalahan cetak/PDF dan menjamin hasil kartu tidak terpotong atau hilang, dengan catatan alasan dan bukti perbandingan.
+
+Perubahan yang tampak berbeda tetapi kecil wajib dicatat sebagai `UX_DELTA` dalam ledger, dengan sebab, sebelum/sesudah, dampak dan hasil uji. Jangan menggunakan istilah 'modernisasi' sebagai izin untuk redesain total.
+
+#### C. Perubahan yang wajib memperoleh persetujuan pengguna terlebih dahulu
+
+- Mengganti branding, palet warna utama, font utama, gaya ikon global, bentuk kartu, gaya navigasi atau tata letak mayor.
+- Menghapus/memindahkan kelompok fitur, mengubah urutan langkah, mengganti modal menjadi halaman baru atau merombak pola interaksi utama.
+- Mengganti desain atau struktur informasi kartu peserta secara signifikan, mengubah ukuran fisik default, atau mengubah output cetak di luar perbaikan bug.
+- Mengadopsi template/desain sistem baru (misalnya preset shadcn/ui/DaisyUI) yang mengubah karakter visual aplikasi.
+
+**Mekanisme:** siapkan usulan visual sebelum/sesudah + alasan + dampak dan alternatif → minta persetujuan eksplisit → catat `DESIGN_DECISION` → baru implementasi. **Tanpa persetujuan, pertahankan baseline asli.**
+
+#### D. Bukti visual yang wajib dikumpulkan dan diverifikasi
+
+1. Kunci commit/versi legacy dan identifikasi URL/lingkungan aplikasi lama yang digunakan sebagai acuan. Tangkapan layar yang belum diperoleh tidak boleh dianggap ada.
+2. Ambil baseline **desktop dan mobile** untuk halaman, langkah editor, setiap tab/panel, modal/dropdown penting, keadaan kosong/terisi/error, pratinjau dan 7 format kartu; gunakan data sintetis.
+3. Rekam viewport, device pixel ratio bila relevan, browser, zoom, state, seed data, dan versi acuan untuk perbandingan yang dapat diulang.
+4. Ambil screenshot hasil rekonstruksi dalam kondisi sama; lakukan perbandingan visual manual dan otomatis (bila tersedia). Bedakan selisih karena font/rendering browser dari perubahan desain nyata.
+5. Buat **Visual Parity Matrix**: `screen/komponen | baseline | hasil | jenis perbedaan | alasan | approval | status`.
+6. Lakukan uji interaksi/perilaku dan hasil cetak fisik/PDF secara terpisah; screenshot UI saja bukan bukti kesetaraan fungsi.
+7. Jika UI legacy tidak dapat diakses, tandai `BASELINE_UNVERIFIED` dan **blokir klaim visual-parity accepted** sampai ada bukti atau keputusan pengecualian eksplisit.
+
+#### E. Gate desain global (G-UI)
+
+**G-UI berlaku pada G2, G3, G5, G7, G8, G9, G12, G13 dan G14.** Gate ini dinyatakan lulus jika:
+- Baseline visual/interaksi untuk area yang diuji tersedia atau pengecualian tertulis telah disetujui.
+- Tidak ada perubahan visual mayor/identitas/alur utama tanpa persetujuan pengguna.
+- Perbedaan minor yang disengaja tercatat di `UX_DELTA` dan memiliki bukti manfaat serta uji regresi.
+- Desain kartu dan hasil cetak mempertahankan struktur acuan, kecuali perbaikan yang disetujui.
+- UI tetap responsif, aksesibel, dan tidak kehilangan fungsi.
+
+**NO-GO:** redesain tanpa izin, perbedaan signifikan yang tidak terjelaskan, atau baseline tidak tersedia tetapi hasil diklaim 'identik/lulus visual parity'.
 
 ## 2. Kondisi awal dan batas fakta
 
@@ -38,7 +92,7 @@ Sumber aplikasi lama pernah diinventarisasi memiliki format kartu bawaan 1–7, 
 | Lapisan | Pilihan / prinsip | Alasan |
 |---|---|---|
 | Frontend | Next.js App Router + React + TypeScript | Komponen modular, typing, routing, dan dukungan Vercel |
-| Styling | Tailwind CSS + komponen UI aksesibel + CSS cetak khusus | UI konsisten dan kontrol dimensi fisik cetak |
+| Styling | Tailwind CSS + komponen UI aksesibel + CSS cetak khusus | Implementasi baru **harus mereproduksi visual asli**, bukan memakai estetika bawaan library; CSS khusus mengatur dimensi fisik cetak |
 | Validasi | Zod + validasi file/ukuran/tipe | Validasi masukan dan struktur data |
 | Excel | SheetJS / alternatif teruji | Baca `.xlsx` dan `.xls`, ekspor templat |
 | Foto ZIP | JSZip / alternatif teruji; pembatasan ukuran dan jumlah | Ekstraksi foto pada sisi klien |
@@ -101,13 +155,14 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 - [ ] Inventaris fungsi, konstanta, DOM, event, state, storage, panggilan Apps Script, dependency, dan titik ekspor.
 - [ ] Petakan alur input → transformasi → preview → print/PDF dan format komunitas.
 - [ ] Dokumentasikan keterkaitan fungsi terhadap elemen UI dan output.
+- [ ] Inventarisasi design token dan gaya aktual: warna, font, spacing, ikon, header, navigasi, form, modal, tabel, panel, template kartu, serta CSS responsif asli.
 - [ ] Susun *reconstruction obligation ledger* dengan ID unik, sumber, input, output, status, dan pengujiannya.
 - [ ] Audit potensi rahasia, PIN, kredensial dalam QR, *unsafe HTML*, dan dependensi eksternal.
 - [ ] Pastikan lisensi dan hak penggunaan kode/aset sumber ditinjau sebelum pemindahan literal.
 
 **Keluaran:** `docs/LEGACY_INVENTORY.md`, `docs/RECONSTRUCTION_LEDGER.md`, `docs/SECURITY_FINDINGS.md`.
 
-**Gate G1:** semua fitur legacy yang ditemukan memiliki ID, bukti statis, dan keputusan 'rekonstruksi/ubah/pensiunkan'.
+**Gate G1:** semua fitur legacy yang ditemukan memiliki ID, bukti statis, dan keputusan 'rekonstruksi/ubah/pensiunkan'; inventaris visual awal dan komponen kritis telah didaftarkan.
 
 ### Fase 2 — Eksplorasi perilaku aplikasi lama berbasis REA
 
@@ -117,6 +172,8 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 - [ ] Siapkan lingkungan atau URL aplikasi lama yang sah untuk diamati.
 - [ ] Jalankan skenario positif, negatif, kosong, dan input rusak untuk fitur utama.
 - [ ] Rekam tampilan desktop/mobile, alur klik, validasi, pesan gagal, konsol dan jaringan tanpa mengungkap data rahasia.
+- [ ] Ambil screenshot baseline visual desktop/mobile lengkap dengan viewport, browser, state, dan seed data sintetis; rekam navigasi, modal, dropdown, stepper, bentuk tombol, ikon, warna, dan styling.
+- [ ] Buat Visual Parity Matrix awal untuk seluruh layar dan ketujuh format, serta tandai area yang belum dapat diamati sebagai `BASELINE_UNVERIFIED`.
 - [ ] Ambil sampel hasil cetak/PDF dari 1, 9, 10, 60, 132, dan 500 peserta sintetis.
 - [ ] Amati Excel `.xlsx`/`.xls`, nama kolom berbeda, ID duplikat, ZIP foto, gambar gagal, dan jadwal.
 - [ ] Catat ukuran kertas, dimensi kartu, margin, halaman, pemotongan elemen, logo dan tanda tangan.
@@ -124,7 +181,7 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 
 **Keluaran:** `docs/BEHAVIOR_SPEC.md`, fixture sintetis, matriks perbandingan, bukti screenshot dan cetak.
 
-**Gate G2:** jalur kritis memiliki baseline observasi atau pengecualian eksplisit yang disetujui.
+**Gate G2:** jalur kritis memiliki baseline observasi atau pengecualian eksplisit yang disetujui; baseline UI/UX visual telah diarsipkan dan **G-UI** terpenuhi.
 
 ### Fase 3 — Spesifikasi produk, ruang lingkup dan desain UX
 
@@ -136,12 +193,13 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 - [ ] Definisikan model data peserta, metadata institusi, jadwal, format, aset dan pengaturan.
 - [ ] Tetapkan kebijakan QR: data minimal yang diperlukan; **jangan** memasukkan password atau rahasia.
 - [ ] Tentukan pilihan penyimpanan dan retensi untuk data siswa, foto, logo serta tanda tangan.
-- [ ] Susun wireframe responsif, state kosong/loading/error, alur keyboard dan aksesibilitas.
+- [ ] Susun wireframe responsif **turunan desain aplikasi asli**, state kosong/loading/error, alur keyboard dan aksesibilitas.
+- [ ] Sahkan dokumen `docs/VISUAL_PARITY_SPEC.md` berisi inventaris komponen, token, screenshot acuan, dan daftar perbaikan terkontrol. Semua proposal perubahan besar wajib melalui mekanisme persetujuan pada §1.1.
 - [ ] Tetapkan tujuan cetak yang bisa diukur (kecocokan dimensi fisik dan jumlah kartu).
 
 **Keluaran:** `docs/PRD.md`, `docs/DATA_CONTRACTS.md`, `docs/UX_SPEC.md`, `docs/ACCEPTANCE_MATRIX.md`.
 
-**Gate G3:** cakupan MVP, acceptance criteria dan perbedaan disengaja dari legacy disetujui.
+**Gate G3:** cakupan MVP, acceptance criteria dan perbedaan disengaja dari legacy disetujui; seluruh perubahan visual mayor telah disetujui pengguna atau dibatalkan, dan **G-UI** terpenuhi.
 
 ### Fase 4 — Desain teknis, keamanan dan kontrak integrasi
 
@@ -149,6 +207,7 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 
 **Pekerjaan:**
 - [ ] Struktur modul `app/`, `components/`, `lib/`, `tests/`, `docs/`.
+- [ ] Rancang pemetaan komponen visual legacy ke React dan token styling Tailwind **tanpa mengganti identitas visual**; cegah pemakaian tema default yang merombak tampilan.
 - [ ] Tentukan batas Server Component, Client Component, API Route, dan browser-only dynamic import.
 - [ ] Definisikan tipe TypeScript, skema Zod, kontrak file, error taxonomy, dan limit sumber daya.
 - [ ] Rancang print engine deterministik, ukuran mm, grid A4, pemecahan halaman, dan fallback font.
@@ -168,7 +227,8 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 **Pekerjaan:**
 - [ ] Inisialisasi Next.js App Router + React + TypeScript + Tailwind CSS.
 - [ ] Pilih dan pin versi dependensi setelah pemeriksaan kompatibilitas; commit lockfile.
-- [ ] Bangun layout, navigasi, stepper, tema, halaman bantuan dan desain responsif.
+- [ ] Bangun layout, navigasi, stepper, tema, halaman bantuan dan desain responsif **mengacu pada screenshot dan alur asli**, bukan template generik.
+- [ ] Implementasikan token styling, komponen dasar, dan fixture visual untuk perbandingan baseline desktop/mobile.
 - [ ] Siapkan global error/not-found/loading, metadata, favicon, dan batas viewport.
 - [ ] Aktifkan ESLint, TypeScript strict, test runner, CI, dan `npm ci`/build.
 - [ ] Buat Vercel Preview untuk PR, tanpa langsung mempublikasikan produksi.
@@ -176,7 +236,7 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 
 **Keluaran:** skeleton aplikasi, konfigurasi Vercel dan pipeline CI aktif.
 
-**Gate G5:** lint, typecheck, unit minimal, build produksi dan Preview smoke test semuanya lulus.
+**Gate G5:** lint, typecheck, unit minimal, build produksi dan Preview smoke test semuanya lulus; baseline komponen dasar telah dibandingkan, dan **G-UI** terpenuhi.
 
 ### Fase 6 — Mesin data peserta dan impor/ekspor Excel
 
@@ -205,12 +265,13 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 - [ ] Koreksi orientasi EXIF jika diperlukan; resize/kompresi tanpa merusak keterbacaan.
 - [ ] Input dan pratinjau kop, logo kiri/kanan, identitas institusi dan tanda tangan.
 - [ ] Bangun 7 format bawaan berdasarkan ledger serta builder format kustom.
+- [ ] Cocokkan tata letak, warna, tipografi, urutan field, kop/foto/QR, dan dimensi tiap format dengan baseline visual legacy; catat perbedaan di Visual Parity Matrix.
 - [ ] Pengaturan warna/BW, dimensi, font, posisi teks, QR, foto, jadwal, serta visibilitas field.
 - [ ] Validasi kombinasi setting dan lindungi dari markup berbahaya.
 
 **Keluaran:** editor format dan asset pipeline.
 
-**Gate G7:** semua format MVP dirender untuk fixture normal/ekstrem, tanpa kolom hilang atau kebocoran data QR.
+**Gate G7:** semua format MVP dirender untuk fixture normal/ekstrem, tanpa kolom hilang atau kebocoran data QR; tampilan tiap format dibandingkan dengan sumber asli dan **G-UI** terpenuhi.
 
 ### Fase 8 — Preview real-time, layout dan navigasi editor
 
@@ -221,12 +282,13 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 - [ ] Pembaruan real-time ketika data, template, kop, foto, ukuran dan opsi berubah.
 - [ ] Pagination/virtualisasi preview bila jumlah peserta besar; cegah UI freeze.
 - [ ] Filter data yang dipratinjau dan opsi 'semua vs terpilih' yang eksplisit.
-- [ ] Desain mobile/tablet/desktop, navigasi keyboard, fokus, modal, toast dan empty state.
+- [ ] Perbaiki mobile/tablet/desktop, navigasi keyboard, fokus, modal, toast dan empty state **tanpa mengubah pola navigasi dan identitas styling asli**.
+- [ ] Bandingkan ulang screenshot UI dan alur edit real-time setiap layar kritis; dokumentasikan semua `UX_DELTA`.
 - [ ] Perbaiki overflow, z-index, scroll dan tampilan mode terang/gelap.
 
 **Keluaran:** editor dan preview terpadu.
 
-**Gate G8:** tidak ada overflow tak terkontrol, UI stabil pada data kosong/banyak, dan preview cocok dengan model render final.
+**Gate G8:** tidak ada overflow tak terkontrol, UI stabil pada data kosong/banyak, preview cocok dengan model render final, dan **G-UI** terpenuhi.
 
 ### Fase 9 — Pencetakan multi-halaman dan PDF
 
@@ -240,11 +302,12 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 - [ ] Ekspor PDF untuk seluruh halaman, tunggu font/gambar/QR siap, dan berikan error yang jelas.
 - [ ] Pastikan 1/9/10/60/132/500 kartu menghasilkan jumlah kartu tepat, termasuk halaman terakhir.
 - [ ] Verifikasi ukuran PDF, urutan peserta, hasil QR scan, cetak hitam-putih dan printer berbeda.
+- [ ] Bandingkan tampilan fisik kartu dan halaman cetak dengan baseline legacy; perubahan struktur/dimensi tanpa persetujuan = NO-GO.
 - [ ] Cegah klaim 'berhasil' jika ada kartu atau halaman gagal dirender.
 
 **Keluaran:** mesin cetak/PDF dan suite regression multipage.
 
-**Gate G9:** seluruh halaman dan seluruh kartu masuk cetak/PDF, ukuran fisik diterima, bukti uji tersimpan.
+**Gate G9:** seluruh halaman dan seluruh kartu masuk cetak/PDF, ukuran fisik diterima, bukti uji tersimpan; visual kartu telah diperbandingkan dan **G-UI** terpenuhi.
 
 ### Fase 10 — Pengaturan, persistensi, backup dan pemulihan
 
@@ -285,7 +348,8 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 
 **Pekerjaan:**
 - [ ] Audit seluruh komponen, form, tombol, filter, tabel, modal, drawer, interaksi dan error state.
-- [ ] Konsistenkan hierarki visual, spacing, tipografi, ikon, ukuran target sentuh dan feedback.
+- [ ] Rapikan hierarki visual, spacing, tipografi, ikon, ukuran target sentuh dan feedback **hanya dalam batas modernisasi terkontrol; jangan mengganti gaya global atau redesain layout**.
+- [ ] Terapkan audit diff visual desktop/mobile dan daftar perubahan sebelum/sesudah. Ajukan perubahan mayor kepada pengguna terlebih dahulu, bukan sesudah implementasi.
 - [ ] Optimalkan layar ponsel, tablet, desktop, resize dan orientasi.
 - [ ] Tambahkan label, navigasi keyboard, fokus terlihat, semantic HTML dan kontras memadai.
 - [ ] Ukur rendering 60/132/500 peserta, impor foto ZIP, memori dan latensi print/PDF.
@@ -293,7 +357,7 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 
 **Keluaran:** audit UI/UX dan performa sebelum rilis.
 
-**Gate G12:** tidak ada bug UI kritis, alur utama aksesibel, sasaran performa yang disetujui tercapai.
+**Gate G12:** tidak ada bug UI kritis, alur utama aksesibel, sasaran performa yang disetujui tercapai, perubahan minor terdokumentasi, dan **G-UI** terpenuhi.
 
 ### Fase 13 — Uji menyeluruh, rekonsiliasi REA dan hardening keamanan
 
@@ -302,6 +366,7 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 **Pekerjaan:**
 - [ ] Tuntaskan semua obligation berstatus wajib melalui bukti pass atau keputusan pensiun fitur.
 - [ ] Jalankan unit, integration, E2E Playwright dan screenshot regression.
+- [ ] Audit Visual Parity Matrix untuk semua layar penting, tujuh format dan output cetak; setiap perbedaan mayor wajib punya keputusan persetujuan eksplisit, bukan diasumsikan telah disetujui.
 - [ ] Uji responsif desktop/tablet/mobile, browser utama, data kosong/banyak dan input rusak.
 - [ ] Audit file-upload, ZIP bomb, XSS, auth/RLS jika ada, dependency vulnerabilities dan secrets.
 - [ ] Uji cetak/PDF multi-halaman dengan parser PDF, bukan semata inspeksi halaman pertama.
@@ -311,7 +376,7 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 
 **Keluaran:** `docs/UAT_REPORT.md`, matriks parity, security report, hasil CI/E2E.
 
-**Gate G13:** tidak ada bug P0/P1 terbuka; obligation wajib accepted; hasil cetak dan data akurat.
+**Gate G13:** tidak ada bug P0/P1 terbuka; obligation wajib accepted; hasil cetak dan data akurat; **G-UI** lulus dengan bukti visual parity dan daftar `UX_DELTA`.
 
 ### Fase 14 — Staging Vercel, produksi dan penerimaan
 
@@ -321,6 +386,7 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 - [ ] Periksa kembali repo dan konfigurasi proyek Vercel yang benar.
 - [ ] Pastikan domain, framework, root directory, Node runtime, lockfile dan environment variables valid.
 - [ ] Preview/staging dari commit spesifik; jalankan smoke, UAT peran operator, dan cetak nyata.
+- [ ] Lakukan UAT visual bersama acuan asli untuk desktop/mobile dan seluruh format kartu; pastikan tidak ada perubahan desain besar tanpa persetujuan.
 - [ ] Jika menggunakan Supabase, aplikasikan migration terotorisasi dan uji RLS, backup/rollback.
 - [ ] Review keamanan headers, rate-limit endpoint, observability dan pengelolaan PII.
 - [ ] Lakukan release checklist dan catat commit SHA, build ID, URL, hasil uji.
@@ -329,7 +395,7 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 
 **Keluaran:** aplikasi produksi, release notes, SOP, bukti deployment dan rollback.
 
-**Gate G14:** produksi dapat diakses, semua jalur kritis lolos smoke, rollback siap, pengesahan rilis tercatat.
+**Gate G14:** produksi dapat diakses, semua jalur kritis lolos smoke, rollback siap, pengesahan rilis tercatat, dan **G-UI** telah diverifikasi.
 
 ### Fase 15 — Operasional, pemeliharaan dan iterasi fitur lanjutan
 
@@ -375,6 +441,7 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 | Penyimpanan | Backup valid/rusak, TTL, refresh, reset | State konsisten; data sensitif tidak tersimpan berlebihan |
 | Komunitas opsional | Anonymous, contributor, moderator, admin | RLS/permission benar; tidak bisa delete ilegal |
 | UI/UX | Ponsel/tablet/desktop, portrait/landscape, keyboard | Interaksi jelas dan tanpa overflow kritis |
+| **Visual parity (wajib)** | Screenshot kondisi setara pada desktop/mobile, komponen dan 7 template dibandingkan dengan legacy | Identitas dan alur utama tetap dikenali; perbedaan minor terdokumentasi; **perbedaan mayor wajib persetujuan pengguna** |
 | Vercel | npm ci, typecheck, lint, test, build, Preview, produksi | Rilis dapat direproduksi dari commit |
 
 Gunakan data siswa **sintetis** dalam semua CI, screenshot, PR, dan laporan yang dibagikan.
@@ -427,6 +494,7 @@ Sebuah fase dinyatakan **NO-GO** bila:
 2. Output cetak/PDF kehilangan peserta atau halaman tanpa pesan kesalahan.
 3. Data pribadi siswa terunggah/terpublikasi di tempat yang tidak disetujui.
 4. Ada kerentanan kritis pada jalur yang akan dirilis.
+4a. Ada perubahan besar pada warna, tipografi, ikon global, navigasi, layout utama atau desain kartu **tanpa persetujuan pengguna**, atau klaim visual parity tanpa bukti perbandingan.
 5. Database atau deployment menunjuk proyek/lingkungan yang belum diverifikasi.
 6. Fitur wajib masih OPEN/PARTIAL tanpa keputusan pengurangan scope yang eksplisit.
 
@@ -452,9 +520,11 @@ Sebuah fase dinyatakan **NO-GO** bila:
 - `docs/DATA_CONTRACTS.md` — skema input/output.
 - `docs/SECURITY_FINDINGS.md` dan `docs/THREAT_MODEL.md`.
 - `docs/UX_SPEC.md`, `docs/ACCEPTANCE_MATRIX.md`, `docs/UAT_REPORT.md`.
+- `docs/VISUAL_PARITY_SPEC.md` — standar visual asli, screenshot baseline, token desain dan Visual Parity Matrix.
+- `docs/UX_DELTA.md` — perbaikan UI/UX terkontrol (sebelum/sesudah, alasan, dampak, pengujian dan status persetujuan).
 - `docs/DEPLOYMENT.md`, `docs/RUNBOOK.md`, `docs/DECISION_LOG.md`.
 - `docs/evidence/fase-XX/` — bukti uji non-sensitif.
 
 ---
 
-**Prinsip akhir:** setiap tahap harus menghasilkan artefak yang dapat diperiksa, setiap klaim kesetaraan harus didukung bukti, dan setiap rilis harus dapat diuji serta dipulihkan. Dokumen ini akan diperbarui seiring kemajuan implementasi yang benar-benar tervalidasi.
+**Prinsip akhir:** setiap tahap harus menghasilkan artefak yang dapat diperiksa, setiap klaim kesetaraan harus didukung bukti, dan setiap rilis harus dapat diuji serta dipulihkan. **Keputusan Opsi B—Visual Parity + Modernisasi Terkontrol adalah syarat wajib lintas fase, bukan saran opsional.** Dokumen ini akan diperbarui seiring kemajuan implementasi yang benar-benar tervalidasi.
