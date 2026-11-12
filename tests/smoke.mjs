@@ -73,13 +73,15 @@ try {
         await page.select('#participant-sheet', 'Peserta');
         await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('Pratinjau impor · 2 baris'));
         if (file === valid) {
-          await page.locator('button::-p-text(Terapkan impor)').click();
+          await page.waitForSelector('#apply-participant-import:enabled');
+          await page.focus('#apply-participant-import');
+          await page.keyboard.press('Space');
           await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('2 terpilih'));
           await page.locator('input[placeholder="Nama atau ID"]').fill('0002');
           await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('1 cocok'));
         } else {
           await page.waitForFunction(() => document.querySelector('[role="alert"]')?.textContent.includes('Gunakan ID unik'));
-          assert.equal(await page.locator('button::-p-text(Ganti data peserta)').map((button) => button.disabled).wait(), true);
+          assert.equal(await page.$eval('#apply-participant-import', (button) => button.disabled), true);
           assert.match(await page.$eval('#panel-1', (panel) => panel.textContent), /2 peserta/);
         }
       }

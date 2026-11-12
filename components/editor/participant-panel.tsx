@@ -207,7 +207,7 @@ export function ParticipantPanel({ format, onSelection }: {
               <ul>{validation.issues.slice(0, 10).map((issue, index) => <li key={index}>Baris {issue.row}, {issue.column}. {issue.message}</li>)}</ul>
               <button className="action" type="button" onClick={() => downloadIssues(validation.issues)}>Unduh laporan kesalahan</button>
             </div>}
-            <button className="action justify-self-start" type="button" disabled={busy || !!validation.issues.length} onClick={applyImport}>
+            <button id="apply-participant-import" className="action justify-self-start" type="button" disabled={busy || !!validation.issues.length} onClick={applyImport}>
               {dataset ? 'Ganti data peserta' : 'Terapkan impor'}
             </button>
           </div>
