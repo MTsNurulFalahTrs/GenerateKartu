@@ -1,3 +1,4 @@
+import { notify } from '../../lib/ui/notify';
 import { communityIcons, validIco } from '../../lib/cards/community-icons';
 import type { CommunityIcon } from '../../lib/cards/community-icons';
 import { useEffect, useRef, useState } from 'react';
@@ -6,10 +7,9 @@ import { cleanContributorInput, properContributorName } from '../../lib/cards/co
 import type { CommunityAttribution } from '../../lib/cards/community';
 import { EditorIcon } from './editor-icon';
 
-export function CommunityShareDialog({ formatName, busy, error, onCancel, onConfirm }: {
+export function CommunityShareDialog({ formatName, busy, onCancel, onConfirm }: {
   formatName: string;
   busy: boolean;
-  error: string;
   onCancel: () => void;
   onConfirm: (contributor: CommunityAttribution) => void;
 }) {
@@ -19,7 +19,6 @@ export function CommunityShareDialog({ formatName, busy, error, onCancel, onConf
   const [iconPreset, setIconPreset] = useState<CommunityIcon>('users');
   const [iconIco, setIconIco] = useState<string>();
   const [reading, setReading] = useState(false);
-  const [validation, setValidation] = useState('');
 
   useEffect(() => { dialog.current?.showModal(); }, []);
 
@@ -29,10 +28,10 @@ export function CommunityShareDialog({ formatName, busy, error, onCancel, onConf
     const contributorName = properContributorName(name.trim());
     if (!anonymous && (!contributorName || contributorName.length > 60 ||
       !/^\p{L}+(?: \p{L}+)*$/u.test(contributorName))) {
-      setValidation('Nama atau inisial hanya boleh menggunakan huruf dan spasi, atau pilih anonim.');
+      notify('error', 'Nama atau inisial hanya boleh menggunakan huruf dan spasi, atau pilih anonim.');
       return;
     }
-    setValidation('');
+
     onConfirm({ anonymous, contributorName: anonymous ? 'Anonim' : contributorName, iconPreset, ...(iconIco ? { iconIco } : {}) });
   }
 
@@ -64,11 +63,11 @@ export function CommunityShareDialog({ formatName, busy, error, onCancel, onConf
         </label>
         <input id="community-contributor-name" autoFocus maxLength={60} disabled={anonymous || busy}
           placeholder="Masukkan nama atau inisial Anda" value={name}
-          onChange={(event) => { setName(cleanContributorInput(event.currentTarget.value)); setValidation(''); }}
-          aria-invalid={!!validation && !anonymous} />
+          onChange={(event) => { setName(cleanContributorInput(event.currentTarget.value)); }}
+          />
         <label className="community-share-anonymous">
           <input type="checkbox" checked={anonymous} disabled={busy}
-            onChange={(event) => { setAnonymous(event.currentTarget.checked); setValidation(''); }} />
+            onChange={(event) => { setAnonymous(event.currentTarget.checked); }} />
           <span><strong>Bagikan secara Anonim</strong>
             <small>Nama Anda tidak akan ditampilkan — kontribusi tetap tercatat sebagai &quot;Anonim&quot;.</small>
           </span>
@@ -77,7 +76,7 @@ export function CommunityShareDialog({ formatName, busy, error, onCancel, onConf
           <legend>Ikon format</legend>
           <div>{Object.entries(communityIcons).map(([key, label]) =>
             <button key={key} type="button" className="action" aria-pressed={!iconIco && iconPreset === key}
-              onClick={() => { setIconPreset(key as CommunityIcon); setIconIco(undefined); setValidation(''); }}>
+              onClick={() => { setIconPreset(key as CommunityIcon); setIconIco(undefined); }}>
               <EditorIcon name={key as CommunityIcon} /> {label}
             </button>)}</div>
           <label>Unggah ikon sendiri (.ico, 10–250 KB)
@@ -86,7 +85,7 @@ export function CommunityShareDialog({ formatName, busy, error, onCancel, onConf
               event.currentTarget.value = '';
               if (!file) return;
               setReading(true);
-              setValidation('');
+
               try {
                 if (!/\.ico$/i.test(file.name) || file.size < 10240 || file.size > 256000) throw new Error();
                 const bytes = new Uint8Array(await file.arrayBuffer());
@@ -94,15 +93,15 @@ export function CommunityShareDialog({ formatName, busy, error, onCancel, onConf
                 let binary = '';
                 for (const byte of bytes) binary += String.fromCharCode(byte);
                 setIconIco(btoa(binary));
+                notify('success', 'Ikon unggahan dipilih.');
               } catch {
                 setIconIco(undefined);
-                setValidation('Pilih berkas .ico yang valid berukuran 10–250 KB.');
+                notify('error', 'Pilih berkas .ico yang valid berukuran 10–250 KB.');
               } finally { setReading(false); }
             }} />
           </label>
-          {iconIco && <span role="status">Ikon unggahan dipilih</span>}
+          {iconIco && <small>Ikon unggahan dipilih</small>}
         </fieldset>
-        {(validation || error) && <p className="community-share-error" role="alert">{validation || error}</p>}
       </div>
       <footer className="community-share-footer">
         <button type="button" className="action community-share-cancel" disabled={busy} onClick={onCancel}>Batal</button>

@@ -1,5 +1,6 @@
 'use client';
 
+import { notify } from '../../lib/ui/notify';
 import { CommunityDeleteDialog } from './community-delete-dialog';
 import { HelpContent } from './help-content';
 import { AppBrand, PageHeading } from './page-chrome';
@@ -71,7 +72,6 @@ export function CardEditor() {
   const [deletingCommunity, setDeletingCommunity] = useState<CatalogFormat>();
   const deleteTrigger = useRef<HTMLButtonElement>(null);
   const [communityPreview, setCommunityPreview] = useState<CatalogFormat>();
-  const [published, setPublished] = useState('');
   const [editingCustom, setEditingCustom] = useState(false);
   const previewDialog = useRef<HTMLDialogElement>(null);
   const previewTrigger = useRef<HTMLButtonElement>(null);
@@ -93,12 +93,10 @@ export function CardEditor() {
   const [revision, setRevision] = useState(0);
   const [ready, setReady] = useState(false);
   const [savedSettings, setSavedSettings] = useState<{ snapshot: string; assets: InstitutionAssets }>();
-  const [storageMessage, setStorageMessage] = useState('');
   const [savedUntil, setSavedUntil] = useState<number>();
   const [sessionRemaining, setSessionRemaining] = useState(0);
   const [dismissedDeadline, setDismissedDeadline] = useState<number>();
   const warningDialog = useRef<HTMLDialogElement>(null);
-  const [sessionMessage, setSessionMessage] = useState('');
   const options = pickOptions(card);
   const preferences: Preferences = { schemaVersion: 1, dark, format, custom, customAppearance, hidden, settings: options };
   const serialized = JSON.stringify(preferences);
@@ -117,10 +115,10 @@ export function CardEditor() {
       setSavedUntil(now + idleLimit);
       setSessionRemaining(idleLimit);
       setSavedSettings({ snapshot: settingsSnapshot, assets });
-      setStorageMessage('Pengaturan berhasil disimpan. Preferensi tetap tersedia di browser; KOP dan jadwal dipulihkan selama sesi tab aktif (maks. 1 jam). Foto, logo, dan tanda tangan tidak disimpan.');
+      notify('success', 'Pengaturan berhasil disimpan. Preferensi tetap tersedia di browser; KOP dan jadwal dipulihkan selama sesi tab aktif (maks. 1 jam). Foto, logo, dan tanda tangan tidak disimpan.');
     } catch (cause) {
       setSavedSettings(undefined);
-      setStorageMessage(cause instanceof Error && cause.message.startsWith('Perbaiki')
+      notify('error', cause instanceof Error && cause.message.startsWith('Perbaiki')
         ? cause.message : 'Gagal menyimpan pengaturan. Periksa akses penyimpanan browser dan coba lagi.');
     }
   }
@@ -153,13 +151,13 @@ export function CardEditor() {
     setSavedSettings(undefined);
     restore({ schemaVersion: 1, dark: false, format: 0, custom: defaultCustom, hidden: [], settings: pickOptions(defaultCard) });
     setSetting(0);
-    setStorageMessage('');
-    setSessionMessage('Sesi dan pengaturan telah direset.');
+
+    notify('info', 'Sesi dan pengaturan telah direset.');
     try {
       localStorage.removeItem(storageKey);
       sessionStorage.removeItem(sessionCardKey);
     } catch {
-      setStorageMessage('Penyimpanan browser tidak tersedia. Pengaturan hanya berlaku untuk tab ini.');
+      notify('error', 'Penyimpanan browser tidak tersedia. Pengaturan hanya berlaku untuk tab ini.');
     }
   }
 
@@ -180,7 +178,7 @@ export function CardEditor() {
           else sessionStorage.removeItem(sessionCardKey);
         }
       } catch {
-        setStorageMessage('Preferensi tersimpan tidak dapat dibaca. Pengaturan bawaan digunakan.');
+        notify('error', 'Preferensi tersimpan tidak dapat dibaca. Pengaturan bawaan digunakan.');
       }
       setReady(true);
     });
@@ -198,7 +196,7 @@ export function CardEditor() {
       try {
         localStorage.setItem(storageKey, serialized);
       } catch {
-        setStorageMessage('Penyimpanan browser penuh atau diblokir. Pengaturan hanya berlaku untuk tab ini.');
+        notify('error', 'Penyimpanan browser penuh atau diblokir. Pengaturan hanya berlaku untuk tab ini.');
       }
     });
     return () => cancelAnimationFrame(frame);
@@ -212,7 +210,7 @@ export function CardEditor() {
       if (remaining <= 0) {
         if (savedUntil === undefined) {
           clearSession();
-          setSessionMessage('Sesi kedaluwarsa. Data peserta dan aset sesi telah dibersihkan.');
+          notify('info', 'Sesi kedaluwarsa. Data peserta dan aset sesi telah dibersihkan.');
         }
         lastActive = Date.now();
       }
@@ -253,7 +251,7 @@ export function CardEditor() {
       const remaining = savedUntil - Date.now();
       if (remaining <= 0) {
         clearSession();
-        setSessionMessage('Sesi kedaluwarsa. Data pengaturan dan peserta telah dibersihkan.');
+        notify('info', 'Sesi kedaluwarsa. Data pengaturan dan peserta telah dibersihkan.');
       } else setSessionRemaining(remaining);
     };
     const timer = window.setInterval(tick, 1000);
@@ -280,16 +278,16 @@ export function CardEditor() {
       const now = Date.now();
       if (!raw || !unpackSessionCard(raw, now)) {
         clearSession();
-        setSessionMessage('Sesi pengaturan sudah kedaluwarsa.');
+        notify('info', 'Sesi pengaturan sudah kedaluwarsa.');
         return;
       }
       const saved = JSON.parse(raw);
       sessionStorage.setItem(sessionCardKey, JSON.stringify({ ...saved, at: now }));
       setSavedUntil(now + idleLimit);
       setSessionRemaining(idleLimit);
-      setSessionMessage('Sesi pengaturan diperpanjang satu jam.');
+      notify('success', 'Sesi pengaturan diperpanjang satu jam.');
     } catch {
-      setSessionMessage('Sesi tidak dapat diperpanjang. Periksa akses penyimpanan browser.');
+      notify('error', 'Sesi tidak dapat diperpanjang. Periksa akses penyimpanan browser.');
       setDismissedDeadline(savedUntil);
     }
   }
@@ -317,6 +315,7 @@ export function CardEditor() {
         if (!signal?.aborted) {
           setCatalog([]);
           setCatalogStatus('error');
+          notify('warning', 'Katalog komunitas belum tersedia.');
         }
         return;
       }
@@ -326,7 +325,10 @@ export function CardEditor() {
         setCatalogStatus('ready');
       }
     } catch {
-      if (!signal?.aborted) setCatalogStatus('error');
+      if (!signal?.aborted) {
+        setCatalogStatus('error');
+        notify('error', 'Katalog komunitas belum dapat dimuat. Coba lagi.');
+      }
     }
   }, []);
 
@@ -396,7 +398,6 @@ export function CardEditor() {
         </div>
       </header>
       <main className="content" id="editor-content" tabIndex={-1}>
-        {sessionMessage && <p role="status">{sessionMessage}</p>}
         {steps.map((label, index) => (
           <section key={label} id={`panel-${index}`} role="tabpanel" aria-labelledby={`step-${index}`}
             tabIndex={0} hidden={helpOpen || step !== index}>
@@ -496,9 +497,7 @@ export function CardEditor() {
                       Muat Ulang
                     </button>
                   </header>
-                  {published && <p role="status">{published}</p>}
                   {catalogStatus === 'loading' && <p role="status">Memuat format komunitas…</p>}
-                  {catalogStatus === 'error' && <p role="status">Katalog komunitas belum dapat dimuat.</p>}
                   {catalogStatus === 'ready' && !catalog.length && <p>Belum ada format yang dibagikan.</p>}
                   {catalogStatus === 'ready' && catalog.length > 0 && !visibleCommunity.length &&
                     <p role="status">Tidak ada format komunitas yang cocok dengan pencarian.</p>}
@@ -545,7 +544,7 @@ export function CardEditor() {
                                 const { name, photoKey, mono, labels, excelHeaders } = entry;
                                 activateCustom(entry.fields, { name, photoKey, mono, labels, excelHeaders });
                                 setSelectedCommunityId(entry.id);
-                                setPublished('');
+
                               }}>{active ? '✓ Format Aktif' : 'Pilih Format'}</button>
                             <button className="community-preview" type="button" aria-haspopup="dialog"
                               aria-label={'Preview ' + entry.name} onClick={(event) => {
@@ -610,9 +609,8 @@ export function CardEditor() {
                 </div>
                 <small className="kop-save-note">Preferensi disimpan di browser; teks KOP/jadwal hanya selama sesi tab aktif.
                   Foto, logo, dan tanda tangan tidak disimpan ulang.</small>
-                {storageMessage && <p className="kop-save-message" role={storageMessage.startsWith('Gagal') || storageMessage.startsWith('Perbaiki') ? 'alert' : 'status'}>{storageMessage}</p>}
                 <BackupPanel key={`backup-${revision}`} preferences={preferences} heading={heading}
-                  onRestore={restore} storageMessage={storageMessage} compact={setting !== 0} />
+                  onRestore={restore} compact={setting !== 0} />
               </div>
               <footer className="page-footer">
                 <button className="action" type="button" onClick={() => setStep(1)}>‹ Kembali</button>
@@ -656,7 +654,7 @@ export function CardEditor() {
           setDeletingCommunity(undefined);
           setCatalog((entries) => entries.filter((entry) => entry.id !== id));
           setSelectedCommunityId((selected) => selected === id ? null : selected);
-          setPublished('Format dihapus dari katalog komunitas.');
+          notify('success', 'Format dihapus dari katalog komunitas.');
           requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('#step-0')?.focus());
           void loadCatalog();
         }} />}
@@ -670,7 +668,7 @@ export function CardEditor() {
           });
         }}
         onSave={async (fields, appearance, attribution) => {
-          setPublished('');
+
           if (attribution) {
             const response = await fetch('/api/community-formats', {
               method: 'POST',
@@ -682,7 +680,7 @@ export function CardEditor() {
               const error = await response?.json().catch(() => null);
               throw new Error(error?.message ?? 'Format belum berhasil dibagikan. Coba lagi atau simpan secara lokal.');
             }
-            setPublished('Format berhasil dibagikan ke komunitas.');
+            notify('success', 'Format berhasil dibagikan ke komunitas.');
             void loadCatalog();
           }
           activateCustom(fields, appearance);

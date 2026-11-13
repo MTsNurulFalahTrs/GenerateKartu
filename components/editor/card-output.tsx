@@ -1,5 +1,6 @@
 'use client';
 
+import { notify } from '../../lib/ui/notify';
 import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { createPortal } from 'react-dom';
@@ -20,7 +21,6 @@ export function CardOutput({ participants, renderCard, pending }: {
   const [previewPage, setPreviewPage] = useState(0);
   const [job, setJob] = useState<CardRenderModel[][] | null>(null);
   const [message, setMessage] = useState('');
-  const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [columns, setColumns] = useState(1);
   const root = useRef<HTMLDivElement>(null);
@@ -39,8 +39,7 @@ export function CardOutput({ participants, renderCard, pending }: {
       setMessage('');
       previewDialog.current?.showModal();
     } catch (cause) {
-      setError(true);
-      setMessage(cause instanceof Error ? cause.message : 'Pratinjau A4 gagal dibuka.');
+      notify('error', cause instanceof Error ? cause.message : 'Pratinjau A4 gagal dibuka.');
     }
   }
 
@@ -50,7 +49,6 @@ export function CardOutput({ participants, renderCard, pending }: {
     const current = new AbortController();
     controller.current = current;
     setBusy(true);
-    setError(false);
     setMessage('Menyiapkan kartu…');
     try {
       const { settings } = cards[0];
@@ -109,7 +107,7 @@ export function CardOutput({ participants, renderCard, pending }: {
         } finally {
           document.body.classList.remove('card-print-ready');
         }
-        setMessage(`Dialog cetak ditutup · ${cards.length} kartu dalam ${pages.length} halaman.`);
+        notify('success', `Dialog cetak ditutup · ${cards.length} kartu dalam ${pages.length} halaman.`);
       } else {
         const { buildCardPdf } = await import('../../lib/cards/pdf');
         const bytes = await buildCardPdf(pages, layout.columns, width, height, current.signal,
@@ -121,11 +119,10 @@ export function CardOutput({ participants, renderCard, pending }: {
         link.download = 'kartu-peserta-ujian.pdf';
         link.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-        setMessage(`PDF berisi ${cards.length} kartu dalam ${pages.length} halaman siap diunduh.`);
+        notify('success', `PDF berisi ${cards.length} kartu dalam ${pages.length} halaman siap diunduh.`);
       }
     } catch (cause) {
-      setError(true);
-      setMessage(cause instanceof Error ? cause.message : 'Keluaran gagal dibuat.');
+      notify('error', cause instanceof Error ? cause.message : 'Keluaran gagal dibuat.');
     } finally {
       controller.current = null;
       setBusy(false);
@@ -140,7 +137,7 @@ export function CardOutput({ participants, renderCard, pending }: {
       <button id="print-cards" type="button" className="action data-next" disabled={busy || pending || !participants.length} onClick={() => void output('print')}><EditorIcon name="printer" /> Cetak ke Kertas</button>
       {busy && <button type="button" className="action" onClick={() => controller.current?.abort(new Error('Pembuatan keluaran dibatalkan.'))}>Batalkan keluaran</button>}
     </div>
-    {message && <p role={error ? 'alert' : 'status'}>{message}</p>}
+    {busy && message && <p role="status">{message}</p>}
     <dialog className="format-dialog print-a4-dialog" ref={previewDialog} aria-labelledby="print-a4-title" onClose={() => setPreview(null)}>
       <header><h2 id="print-a4-title">Pratinjau A4</h2>
         <button type="button" className="action" aria-label="Tutup pratinjau A4" onClick={() => previewDialog.current?.close()}>×</button>

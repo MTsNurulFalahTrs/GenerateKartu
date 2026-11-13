@@ -1,5 +1,6 @@
 'use client';
 
+import { notify } from '../../lib/ui/notify';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { defaultMapping, fieldsFor, photoFieldFor, validateRows } from '../../lib/participants/model';
 import type { Field, Issue, Mapping, Participant, WorkbookRows } from '../../lib/participants/model';
@@ -47,7 +48,6 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
   const worker = useRef<Worker | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
   const [names, setNames] = useState<string[]>([]);
   const [sheet, setSheet] = useState('');
   const [input, setInput] = useState<WorkbookRows | null>(null);
@@ -105,20 +105,20 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
     setBusy(true);
     timer.current = setTimeout(() => {
       stop();
-      setMessage('Waktu pemrosesan habis. Coba workbook yang lebih kecil.');
+      notify('error', 'Waktu pemrosesan habis. Coba workbook yang lebih kecil.');
     }, 60000);
     current.postMessage(request);
   }
 
   function start(request: WorkbookRequest) {
     stop();
-    setMessage('');
+
     const current = new Worker(new URL('../../lib/participants/workbook.worker.ts', import.meta.url));
     worker.current = current;
     current.onerror = () => {
       if (worker.current !== current) return;
       stop();
-      setMessage('Pemrosesan Excel gagal. Coba ulangi.');
+      notify('error', 'Pemrosesan Excel gagal. Coba ulangi.');
     };
     current.onmessage = ({ data }: MessageEvent<WorkerResult>) => {
       if (worker.current !== current) return;
@@ -126,14 +126,18 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
       timer.current = null;
       setBusy(false);
       if (data.action === 'error') {
-        setMessage(data.message);
+        notify('error', data.message);
       } else if (data.action === 'inspect') {
         setNames(data.names);
         setSheet(data.names[0]);
         send(current, { action: 'read', sheet: data.names[0], allowPasswords });
       } else if (data.action === 'read') {
-        setMapped({ schema, values: defaultMapping(data.input.headers, fields, excelHeaders, formatId === 7) });
+        const values = defaultMapping(data.input.headers, fields, excelHeaders, formatId === 7);
+        setMapped({ schema, values });
         setInput(data.input);
+        const issues = validateRows(data.input, formatId, values, custom, customPhotoKey).issues;
+        if (issues.length) notify('warning', 'Data Excel perlu diperiksa. Lihat rincian pada modal impor.');
+        else notify('success', 'Data Excel siap diimpor.');
       } else {
         download(new Blob([data.template], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `template-format-${formatId + 1}.xlsx`);
         if (request.action === 'template') stop();
@@ -147,7 +151,7 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
     setInput(null);
     setNames([]);
     setSheet('');
-    setMessage('');
+
   }
 
   function closeImport() {
@@ -162,7 +166,7 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
     setInput(null);
     if (file.size > MAX_FILE) {
       stop();
-      setMessage('Ukuran berkas maksimum 10 MiB.');
+      notify('error', 'Ukuran berkas maksimum 10 MiB.');
       return;
     }
     start({ action: 'inspect', file });
@@ -185,6 +189,7 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
     setFacets({});
     setPage(0);
     closeImport();
+    notify('success', `${imported.length} data murid berhasil diimpor.`);
   }
 
   function toggle(id: string) {
@@ -228,7 +233,6 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
           </label>
         </div>
         {!names.length && busy && <p role="status">Memproses Excel… <button type="button" onClick={clearImport}>Batalkan</button></p>}
-        {!names.length && message && <p role="alert">{message}</p>}
       </div>
       <dialog ref={importDialog} className="format-dialog import-dialog panel" aria-labelledby="participant-import-title"
         aria-describedby="participant-import-description"
@@ -252,13 +256,12 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
             File Excel hanya dibaca di perangkat Anda. Tidak ada data murid yang diunggah ke server.</p>
           {busy && <div className="import-loading" role="status"><span className="import-spinner" />
             Memproses file dan menyiapkan pratinjau…</div>}
-          {message && <p className="import-alert" role="alert">{message}</p>}
           {names.length > 0 && <label className="import-sheet-select">
             <span><strong>Sheet Excel</strong><small>Pilih lembar yang berisi data peserta.</small></span>
             <select id="participant-sheet" value={sheet} disabled={busy} onChange={(event) => {
             setSheet(event.target.value);
             setInput(null);
-            setMessage('');
+
             if (worker.current) send(worker.current, { action: 'read', sheet: event.target.value, allowPasswords });
           }}>{names.map((name) => <option key={name}>{name}</option>)}</select></label>}
           {input && validation && (

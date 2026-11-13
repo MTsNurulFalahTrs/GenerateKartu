@@ -1,5 +1,6 @@
 'use client';
 
+import { notify } from '../../lib/ui/notify';
 import { useRef, useState } from 'react';
 import type { ScheduleTable } from '../../lib/cards/settings';
 
@@ -18,32 +19,28 @@ export function ScheduleSettings({ initial, legacy, onApply }: {
   const [rowCount, setRowCount] = useState(initial?.rowCount ?? 5);
   const [rows, setRows] = useState<string[][]>(initial?.rows ?? []);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const [status, setStatus] = useState('');
   const pending = useRef(false);
   const headers = columns.map((column) => column.trim());
   const invalid = headers.some((column) => !column) || new Set(headers.map((column) => column.toLowerCase())).size !== headers.length;
 
   function edit(next: string[]) {
     setColumns(next);
-    setStatus('');
-    setError('');
+
   }
 
   async function importFile(file: File) {
     if (pending.current || invalid) return;
     pending.current = true;
     setBusy(true);
-    setError('');
-    setStatus('');
+
     try {
       const { readScheduleWorkbook } = await import('../../lib/participants/workbook');
       const imported = await readScheduleWorkbook(file, headers);
       setRows(imported);
       setRowCount(Math.max(2, imported.length));
-      setStatus(`${imported.length} baris dimuat. Terapkan konfigurasi untuk memperbarui kartu.`);
+      notify('success', `${imported.length} baris dimuat. Terapkan konfigurasi untuk memperbarui kartu.`);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'File jadwal gagal dibaca.');
+      notify('error', cause instanceof Error ? cause.message : 'File jadwal gagal dibaca.');
     } finally {
       pending.current = false;
       setBusy(false);
@@ -51,7 +48,7 @@ export function ScheduleSettings({ initial, legacy, onApply }: {
   }
 
   async function downloadTemplate() {
-    setError('');
+
     try {
       const { createScheduleTemplate } = await import('../../lib/participants/workbook');
       const url = URL.createObjectURL(new Blob([createScheduleTemplate(headers, rowCount)], {
@@ -63,7 +60,7 @@ export function ScheduleSettings({ initial, legacy, onApply }: {
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch {
-      setError('Template jadwal gagal dibuat.');
+      notify('error', 'Template jadwal gagal dibuat.');
     }
   }
 
@@ -98,7 +95,7 @@ export function ScheduleSettings({ initial, legacy, onApply }: {
       <small>Jumlah baris yang tampil di kartu (2–20), otomatis disesuaikan setelah impor.</small>
       <div className="schedule-range">
         <input id="schedule-row-count" type="range" min={2} max={20} value={rowCount} disabled={busy}
-          onChange={(event) => { setRowCount(Number(event.target.value)); setStatus(''); }} />
+          onChange={(event) => { setRowCount(Number(event.target.value)); }} />
         <output htmlFor="schedule-row-count">{rowCount}</output>
       </div>
     </section>
@@ -136,12 +133,10 @@ export function ScheduleSettings({ initial, legacy, onApply }: {
           }} />
       </label>
       {busy && <p role="status">Membaca jadwal…</p>}
-      {error && <p role="alert">{error}</p>}
     </section>
     <button className="action schedule-apply" type="button" disabled={invalid || busy} onClick={() => {
       onApply({ columns: headers, rowCount, rows });
-      setStatus('Konfigurasi jadwal diterapkan pada kartu untuk sesi ini.');
+      notify('success', 'Konfigurasi jadwal diterapkan pada kartu untuk sesi ini.');
     }}>Terapkan Konfigurasi Jadwal</button>
-    {status && <p role="status">{status}</p>}
   </div>;
 }

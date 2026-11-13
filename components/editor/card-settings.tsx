@@ -1,5 +1,6 @@
 'use client';
 
+import { notify } from '../../lib/ui/notify';
 import type { Dispatch, SetStateAction } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { normalizeImage } from '../../lib/cards/assets';
@@ -31,7 +32,6 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
   const assetJob = useRef(0);
   const assetPending = useRef(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
   useEffect(() => {
     const pending = assetJob;
     return () => { pending.current++; };
@@ -43,14 +43,17 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
     if (assetPending.current) return;
     assetPending.current = true;
     const job = ++assetJob.current;
-    setError('');
+
     setBusy(true);
     try {
       if (file.size > 2 * 1024 * 1024) throw new Error('Ukuran logo atau tanda tangan maksimum 2 MiB.');
       const blob = await normalizeImage(file);
-      if (assetJob.current === job) onAssets(name, blob);
+      if (assetJob.current === job) {
+        onAssets(name, blob);
+        notify('success', 'Aset kartu berhasil diperbarui.');
+      }
     } catch (cause) {
-      if (assetJob.current === job) setError(cause instanceof Error ? cause.message : 'Aset gagal diproses.');
+      if (assetJob.current === job) notify('error', cause instanceof Error ? cause.message : 'Aset gagal diproses.');
     } finally {
       if (assetJob.current === job) {
         assetPending.current = false;
@@ -74,7 +77,10 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
             event.currentTarget.value = '';
           }} />
         </label>
-        {assets[key] && <button type="button" className="action" disabled={busy} onClick={() => onAssets(key)}>Hapus {label.toLowerCase()}</button>}
+        {assets[key] && <button type="button" className="action" disabled={busy} onClick={() => {
+          onAssets(key);
+          notify('success', 'Aset kartu dihapus.');
+        }}>Hapus {label.toLowerCase()}</button>}
       </div>
     </div>;
   }
@@ -143,7 +149,6 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
       </div>
     </section>
     {busy && <p role="status">Memproses aset…</p>}
-    {error && <p role="alert">{error}</p>}
   </div>;
   if (section === 1) {
     const sizeKey = value.width + 'x' + value.height;

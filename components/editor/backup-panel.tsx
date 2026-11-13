@@ -1,5 +1,6 @@
 'use client';
 
+import { notify } from '../../lib/ui/notify';
 import { useEffect, useRef, useState } from 'react';
 import { maxBackupBytes, parseBackup } from '../../lib/cards/preferences';
 import type { Heading, Preferences } from '../../lib/cards/preferences';
@@ -7,16 +8,13 @@ import { EditorIcon } from './editor-icon';
 
 type ImportCandidate = { fileName: string; preferences: Preferences; heading?: Heading };
 
-export function BackupPanel({ preferences, heading, onRestore, storageMessage, compact = false }: {
+export function BackupPanel({ preferences, heading, onRestore, compact = false }: {
   preferences: Preferences;
   heading: Heading;
   onRestore: (preferences: Preferences, heading?: Heading) => void;
-  storageMessage: string;
   compact?: boolean;
 }) {
   const [includeHeading, setIncludeHeading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<ImportCandidate>();
   const generation = useRef(0);
@@ -36,8 +34,7 @@ export function BackupPanel({ preferences, heading, onRestore, storageMessage, c
   async function inspectFile(file: File) {
     const job = ++generation.current;
     setBusy(true);
-    setMessage('');
-    setFailed(false);
+
     try {
       if (file.size > maxBackupBytes) throw new Error('Ukuran backup maksimum 1 MiB.');
       const result = parseBackup(await file.text());
@@ -45,8 +42,7 @@ export function BackupPanel({ preferences, heading, onRestore, storageMessage, c
       setPending({ fileName: file.name, ...result });
     } catch (error) {
       if (job !== generation.current) return;
-      setFailed(true);
-      setMessage(error instanceof Error ? error.message : 'Berkas backup tidak dapat dibaca.');
+      notify('error', error instanceof Error ? error.message : 'Berkas backup tidak dapat dibaca.');
     } finally {
       if (job === generation.current) setBusy(false);
     }
@@ -61,12 +57,10 @@ export function BackupPanel({ preferences, heading, onRestore, storageMessage, c
     if (!pending) return;
     try {
       onRestore(pending.preferences, pending.heading);
-      setFailed(false);
-      setMessage('Pengaturan berhasil dipulihkan dari ' + pending.fileName + '.');
+      notify('success', 'Pengaturan berhasil dipulihkan dari ' + pending.fileName + '.');
       confirmation.current?.close();
     } catch (error) {
-      setFailed(true);
-      setMessage(error instanceof Error ? error.message : 'Pemulihan gagal.');
+      notify('error', error instanceof Error ? error.message : 'Pemulihan gagal.');
     }
   }
 
@@ -80,11 +74,9 @@ export function BackupPanel({ preferences, heading, onRestore, storageMessage, c
       anchor.download = 'generate-kartu-pengaturan-v1.json';
       anchor.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setFailed(false);
-      setMessage('Backup konfigurasi berhasil dibuat. Simpan berkas JSON di tempat yang aman.');
+      notify('success', 'Backup konfigurasi berhasil dibuat. Simpan berkas JSON di tempat yang aman.');
     } catch (error) {
-      setFailed(true);
-      setMessage(error instanceof Error ? error.message : 'Backup gagal dibuat.');
+      notify('error', error instanceof Error ? error.message : 'Backup gagal dibuat.');
     }
   }
 
@@ -132,8 +124,6 @@ export function BackupPanel({ preferences, heading, onRestore, storageMessage, c
             Konfirmasi diperlukan sebelum pemulihan mengganti preferensi yang sedang digunakan.</p>
         </div>
       </div>
-      {storageMessage && <p className="backup-inline-status" role="status">{storageMessage}</p>}
-      {message && <p className="backup-inline-status" role={failed ? 'alert' : 'status'} data-error={failed}>{message}</p>}
     </section>
     {pending && <dialog ref={confirmation} className="format-dialog backup-confirm-dialog"
       aria-labelledby="backup-confirm-title" aria-describedby="backup-confirm-description"

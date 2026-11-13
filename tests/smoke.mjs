@@ -207,7 +207,7 @@ try {
       await catalogPage.waitForSelector('#community-owner-pin');
       await dialogAction(catalogPage, '#community-owner-pin', 'fill', '87654321');
       await dialogAction(catalogPage, 'dialog[open] button[type="submit"]');
-      await catalogPage.waitForFunction(() => document.querySelector('dialog[open] [role="alert"]')?.textContent === 'PIN pemilik salah.');
+      await catalogPage.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('PIN pemilik salah.')));
       assert.equal(await dialogCount(catalogPage, '.community-card'), 1);
       await dialogAction(catalogPage, '#community-owner-pin', 'fill', '12345678');
       await dialogAction(catalogPage, 'dialog[open] button[type="submit"]');
@@ -294,13 +294,13 @@ try {
       const photoInput = await page.$('#panel-1 input[accept="image/png,image/jpeg"]');
       assert.ok(photoInput);
       await photoInput.uploadFile(photo);
-      await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('1 foto diterapkan'));
+      await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('1 foto diterapkan')));
       if (name === 'desktop') {
         const zipInput = await page.$('#panel-1 input[accept=".zip"]');
         assert.ok(zipInput);
         const zipStart = performance.now();
         await zipInput.uploadFile(archive);
-        await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('20 foto diterapkan'));
+        await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('20 foto diterapkan')));
         await page.waitForFunction(() => document.querySelector('.data-preview tbody')?.textContent.includes('Tersedia'));
         const heap = (await page.metrics()).JSHeapUsedSize / 1048576;
         console.log(`Impor ZIP 20 foto: ${Math.round(performance.now() - zipStart)} ms; heap JS ${heap.toFixed(1)} MiB`);
@@ -526,7 +526,7 @@ try {
       await page.waitForFunction((selector) => !!document.querySelector(selector), {}, `${customDialog} .custom-excel-duplicate`);
       assert.equal(await dialogCount(page, `${customDialog} .custom-excel-duplicate`), 2);
       await dialogAction(page, `${customDialog} .custom-save`);
-      await page.waitForFunction(() => document.querySelector('.custom-format-error')?.textContent.includes('Kolom Excel'));
+      await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('Kolom Excel')));
       await dialogAction(page, `${customDialog} [aria-label="Kolom Excel baris 4"]`, 'fill', 'NomorBangku');
       await page.waitForFunction(() => document.querySelectorAll('.custom-excel-duplicate').length === 0);
       await dialogAction(page, `${customDialog} .custom-community input`);
@@ -543,8 +543,7 @@ try {
         };
       });
       await dialogAction(page, `${customDialog} .custom-save`);
-      await page.waitForFunction((selector) => !!document.querySelector(selector), {}, `${customDialog} .custom-format-error`);
-      assert.match(await dialogValue(page, `${customDialog} .custom-format-error`), /sudah digunakan/);
+      await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('sudah digunakan')));
       await dialogAction(page, `${customDialog} .custom-format-name input`, 'fill', 'Format_Baru_2026');
       await dialogAction(page, `${customDialog} .custom-save`);
       const shareDialog = '.community-share-dialog[open]';
@@ -552,7 +551,13 @@ try {
       assert.equal(await dialogValue(page, `${shareDialog} h2`), 'Bagikan ke Komunitas?');
       assert.ok((await dialogValue(page, `${shareDialog} .community-share-notice`)).includes('Format_Baru_2026'));
       await dialogAction(page, `${shareDialog} .community-share-confirm`);
-      await page.waitForFunction((selector) => !!document.querySelector(selector), {}, `${shareDialog} [role=alert]`);
+      await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('Nama atau inisial')));
+      await page.evaluate(() => {
+        const confirm = document.querySelector('.community-share-dialog[open] .community-share-confirm');
+        for (let index = 0; index < 4; index++) confirm.click();
+      });
+      assert.equal(await page.$$eval('.app-toast-stack:popover-open .app-toast', (items) => items.length), 3);
+      await page.waitForFunction(() => !document.querySelector('.app-toast'), { timeout: 3500 });
       await dialogAction(page, '#community-contributor-name', 'fill', 'rANDY uJI123!');
       assert.equal(await dialogValue(page, '#community-contributor-name', 'value'), 'Randy Uji');
       await dialogAction(page, `${shareDialog} .community-share-anonymous input`);
@@ -564,7 +569,7 @@ try {
       await dialogAction(page, `${customDialog} .custom-save`);
       // The dialog closes asynchronously after the local save callback.
       await page.waitForFunction((selector) => {
-        const error = document.querySelector(selector + ' .custom-format-error');
+        const error = [...document.querySelectorAll('.app-toast[role=alert]')].find((toast) => toast.textContent.includes('belum berhasil disimpan'));
         if (error) throw new Error(error.textContent);
         return !document.querySelector(selector);
       }, { polling: 100, timeout: 10000 }, customDialog);
@@ -598,7 +603,7 @@ try {
         const backupFile = join(fixtureDir, 'settings.json');
         await writeFile(backupFile, '{rusak');
         await backupInput.uploadFile(backupFile);
-        await page.waitForFunction(() => document.querySelector('#panel-2 [role=alert]')?.textContent.includes('JSON rusak'));
+        await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('JSON rusak')));
         assert.equal(await page.evaluate((key) => localStorage.getItem(key), key), stored);
         await writeFile(backupFile, JSON.stringify({ ...JSON.parse(stored), format: 1, heading: { institution: 'Madrasah Pulih', exam: '', year: '' } }));
         await backupInput.uploadFile(backupFile);
@@ -607,7 +612,7 @@ try {
         await dialogAction(page, '#confirm-backup-restore');
         await page.waitForFunction(() => document.querySelector('#kop-institution')?.value === 'Madrasah Pulih');
         await page.$eval('.kop-save', (button) => button.click());
-        await page.waitForFunction(() => document.querySelector('.kop-save-message')?.textContent.includes('berhasil disimpan'));
+        await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('berhasil disimpan')));
         assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('generate-kartu:card-session:v1'))?.data?.institution), 'Madrasah Pulih');
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.$eval('#step-2', (button) => button.click());
@@ -620,19 +625,19 @@ try {
         await page.waitForSelector('dialog[open] #session-warning-title');
         await dialogAction(page, 'dialog[open] .community-share-confirm');
         await page.waitForFunction(() => !document.querySelector('dialog[open] #session-warning-title'));
-        await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('diperpanjang'));
+        await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('diperpanjang')));
         await page.evaluate(() => {
           const time = Date.now();
           Date.now = () => time + 3600001;
           window.dispatchEvent(new Event('pageshow'));
         });
-        await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('Sesi kedaluwarsa'));
+        await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('Sesi kedaluwarsa')));
         await page.waitForFunction(() => document.querySelector('#kop-institution')?.value !== 'Madrasah Pulih');
         await page.$eval('#reset-card-session', (button) => {
           window.confirm = () => true;
           button.click();
         });
-        await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('direset'));
+        await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('direset')));
       }
       await page.locator('.help-nav').click();
       await page.waitForSelector('#editor-help-panel .help-stats', { visible: true });
@@ -656,7 +661,7 @@ try {
         });
         await page.goto(origin, { waitUntil: 'domcontentloaded' });
         await page.$eval('#step-2', (button) => button.click());
-        await page.waitForFunction(() => document.querySelector('#panel-2')?.textContent.includes('Penyimpanan browser penuh atau diblokir'));
+        await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('Penyimpanan browser penuh atau diblokir')));
         await page.$eval('.theme', (button) => button.click());
         await page.waitForSelector('[data-theme=dark]');
       }
