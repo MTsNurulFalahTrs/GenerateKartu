@@ -355,3 +355,24 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 @media (max-width: 639px) { .kop-grid { grid-template-columns: minmax(0, 1fr); } }
 
 .kop-save-note { display: block; margin-top: .45rem; color: var(--muted); }
+
+.print-settings { display: grid; gap: 1.25rem; }
+.print-setting-field { display: grid; gap: .35rem; min-width: 0; }
+.print-setting-field label, .print-switch strong { font-weight: 650; }
+.print-setting-field small, .print-switch small { color: var(--muted); }
+.print-setting-field select { width: 100%; margin-top: .35rem; }
+.editor .panel label.print-switch { display: flex; justify-content: space-between; gap: 1rem; min-height: 4.5rem; padding: 1rem; border: 1px solid var(--line); border-radius: .8rem; background: var(--canvas); cursor: pointer; }
+.print-switch small { display: block; }
+.print-switch-input { appearance: none; flex: none; width: 2.75rem; height: 1.5rem; border: 1px solid transparent; border-radius: 999px; background: #69798f; cursor: pointer; }
+.print-switch-input::before { content: ''; display: block; width: 1.125rem; height: 1.125rem; margin: .125rem; border-radius: 50%; background: #fff; }
+.print-switch-input:checked { background: #047857; }
+.print-switch[data-setting="showSchedule"] input:checked { background: #b45309; }
+.print-switch[data-setting="qr"] input:checked { background: #4f46e5; }
+.print-switch-input:checked::before { transform: translateX(1.25rem); }
+.print-tips { padding: 1rem; border: 1px solid var(--line); border-radius: .8rem; background: color-mix(in srgb, var(--indigo-500) 10%, var(--surface)); color: var(--muted); font-size: .85rem; }
+.print-tips strong { color: var(--indigo-700); text-transform: uppercase; letter-spacing: .06em; }
+.print-tips ul { list-style: disc; padding-inline-start: 1.1rem; margin-top: .35rem; }
+.print-tips li + li { margin-top: .25rem; }
+.print-advanced > summary, .print-extra > summary { cursor: pointer; color: var(--indigo-700); }
+.print-advanced .kop-grid, .print-extra { margin-top: .7rem; }
+.print-extra { margin-inline: 1rem; }

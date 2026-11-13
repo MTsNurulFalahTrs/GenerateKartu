@@ -171,9 +171,15 @@ try {
       assert.equal(savedAppearance.signatureOverlap, true);
       await page.$eval('#card-settings-1', (button) => button.click());
       await page.waitForSelector('#card-settings-1[aria-pressed=true]');
+      await page.select('#print-card-size', 'custom');
+      await page.waitForSelector('.print-settings input[min="60"]', { visible: true });
+      await page.select('#print-card-size', '86x54');
+      await page.select('#print-color-mode', 'mono');
+      await page.waitForSelector('#panel-2 .exam-card[data-bw="true"]');
+      await page.select('#print-color-mode', 'color');
       await page.waitForSelector('#panel-2 img[alt="Foto peserta"]');
       await page.evaluate(() => {
-        const input = [...document.querySelectorAll('#panel-2 input[type=checkbox]')].find((element) => element.labels?.[0]?.textContent.includes('Tampilkan QR'));
+        const input = [...document.querySelectorAll('#panel-2 input[type=checkbox]')].find((element) => element.getAttribute('aria-labelledby') === 'print-qr-label');
         if (!input) throw new Error('Toggle QR hilang');
         input.click();
       });
