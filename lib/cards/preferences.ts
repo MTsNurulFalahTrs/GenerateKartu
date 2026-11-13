@@ -122,7 +122,8 @@ export function parseBackup(raw: string, allowHeading = true): { preferences: Pr
       throw new Error('Kolom buatan sendiri harus memiliki label dan header Excel.');
     }
     customAppearance = appearance as CustomAppearance;
-  } else if (!(custom as Field[]).includes('NoPeserta') || !(custom as Field[]).includes('NamaMurid')) {
+  } else if (!(custom as Field[]).includes('NoPeserta') || !(custom as Field[]).includes('NamaMurid') ||
+    (custom as Field[]).some((field) => customFieldIds.includes(field as typeof customFieldIds[number]))) {
     throw new Error('Format kustom tidak valid.');
   }
   const preferences = { schemaVersion, dark, format, custom, customAppearance, hidden, settings: { ...options, kopStyles: styles, signatureSize: appearance.signatureSize, signatureOverlap: appearance.signatureOverlap } } as Preferences;
