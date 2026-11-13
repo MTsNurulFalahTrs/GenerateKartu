@@ -50,7 +50,7 @@ export function createTemplate(format: number, custom?: readonly Field[],
   excelHeaders: Partial<Record<Field, string>> = {}) {
   const examples = {
     NamaMurid: 'Peserta Uji 0001', Kelas: 'IX-A', Sesi: 'Sesi 1', Username: 'UJI-0001',
-    NoPeserta: '0001', NISN: '0000000001', Ruang: 'Ruang 1', TglLahir: '2012-01-01', NamaSatdik: 'Madrasah Contoh',
+    NoPeserta: '0001', NISN: '0000000001', Password: 'KODE-UJI-0001', Ruang: 'Ruang 1', TglLahir: '2012-01-01', NamaSatdik: 'Madrasah Contoh',
   };
   const fields = fieldsFor(format, custom);
   const workbook = utils.book_new();

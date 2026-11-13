@@ -28,7 +28,7 @@ const sample: Participant = {
   id: 'CONTOH-001',
   cardReference: 'GK1:00000000000000000000000000000000',
   name: 'Peserta Contoh',
-  values: { NamaMurid: 'Peserta Contoh', NoPeserta: '0001', NISN: '0000000001', Kelas: 'IX-A', Ruang: '1', Sesi: 'Sesi 1', Username: 'CONTOH-001', TglLahir: '2012-01-01', NamaSatdik: 'Madrasah Contoh' },
+  values: { NamaMurid: 'Peserta Contoh', NoPeserta: '0001', NISN: '0000000001', Kelas: 'IX-A', Ruang: '1', Sesi: 'Sesi 1', Username: 'CONTOH-001', Password: 'KODE-UJI-0001', TglLahir: '2012-01-01', NamaSatdik: 'Madrasah Contoh' },
 };
 const formatFieldLabels: Record<Field, string> = {
   NamaMurid: 'Nama Murid', NoPeserta: 'No. Peserta', NISN: 'NISN', Kelas: 'Kelas',

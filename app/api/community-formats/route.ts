@@ -17,6 +17,7 @@ export async function GET(req: Request) {
   const name = new URL(req.url).searchParams.get('name');
   if (name !== null && !validCommunityName(name)) return failure('Nama format hanya boleh huruf, angka, - dan _ (maks. 60 karakter).', 400);
   if (!process.env.DATABASE_URL) {
+    if (name !== null) return failure('Katalog komunitas belum tersedia.', 503);
     return Response.json([], { headers: { 'X-Community-Unavailable': 'true', 'Cache-Control': 'no-store' } });
   }
   try {

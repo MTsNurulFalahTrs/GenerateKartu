@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import { cleanContributorInput, properContributorName } from '../../lib/cards/community';
 import type { CommunityAttribution } from '../../lib/cards/community';
 import { EditorIcon } from './editor-icon';
 
@@ -20,10 +21,10 @@ export function CommunityShareDialog({ formatName, busy, error, onCancel, onConf
   function confirm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
-    const contributorName = name.trim();
+    const contributorName = properContributorName(name.trim());
     if (!anonymous && (!contributorName || contributorName.length > 60 ||
-      /[\p{Cc}\p{Cf}]/u.test(contributorName))) {
-      setValidation('Masukkan nama atau inisial kontributor, atau pilih bagikan secara anonim.');
+      !/^\p{L}+(?: \p{L}+)*$/u.test(contributorName))) {
+      setValidation('Nama atau inisial hanya boleh menggunakan huruf dan spasi, atau pilih anonim.');
       return;
     }
     setValidation('');
@@ -54,11 +55,11 @@ export function CommunityShareDialog({ formatName, busy, error, onCancel, onConf
         <label className="community-share-name" htmlFor="community-contributor-name">
           <strong>Nama / Inisial Kontributor</strong>
           <span>Masukkan nama atau inisial Anda sebagai bentuk apresiasi atas kontribusi kepada komunitas.
-            Anda juga dapat membagikan secara anonim.</span>
+            Nama otomatis ditulis dengan huruf kapital di awal setiap kata. Anda juga dapat berbagi anonim.</span>
         </label>
         <input id="community-contributor-name" autoFocus maxLength={60} disabled={anonymous || busy}
           placeholder="Masukkan nama atau inisial Anda" value={name}
-          onChange={(event) => { setName(event.currentTarget.value); setValidation(''); }}
+          onChange={(event) => { setName(cleanContributorInput(event.currentTarget.value)); setValidation(''); }}
           aria-invalid={!!validation && !anonymous} />
         <label className="community-share-anonymous">
           <input type="checkbox" checked={anonymous} disabled={busy}

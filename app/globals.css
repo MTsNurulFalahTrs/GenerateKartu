@@ -959,3 +959,13 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
   .community-card-header { padding-inline: .65rem; }
   .community-photo-badge { font-size: .6rem; }
 }
+
+/* Validation helper: public community names are unique ASCII slugs. */
+.custom-public-name-help {
+  display: block;
+  margin-top: .3rem;
+  color: var(--muted);
+  font-size: .7rem;
+  line-height: 1.45;
+}
+.custom-format-note ul { display: grid; gap: .3rem; }
