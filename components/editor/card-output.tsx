@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { createPortal } from 'react-dom';
+import { EditorIcon } from './editor-icon';
 import { CardPreview } from './card-preview';
 import type { Participant } from '../../lib/participants/model';
 import type { CardRenderModel } from '../../lib/cards/render-model';
@@ -14,6 +15,9 @@ export function CardOutput({ participants, renderCard, pending }: {
   renderCard: (participant: Participant) => CardRenderModel;
   pending: boolean;
 }) {
+  const previewDialog = useRef<HTMLDialogElement>(null);
+  const [preview, setPreview] = useState<ReturnType<typeof cardPages<CardRenderModel>> | null>(null);
+  const [previewPage, setPreviewPage] = useState(0);
   const [job, setJob] = useState<CardRenderModel[][] | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState(false);
@@ -23,6 +27,22 @@ export function CardOutput({ participants, renderCard, pending }: {
   const controller = useRef<AbortController | null>(null);
 
   useEffect(() => () => controller.current?.abort(), []);
+
+  function openPreview() {
+    if (!participants.length) return;
+    try {
+      const cards = participants.map((participant) => renderCard(participant));
+      const { settings } = cards[0];
+      if (!validCardLayout(settings)) throw new Error('Periksa ukuran kartu dan ukuran teks di Layout & Cetak.');
+      setPreviewPage(0);
+      setPreview(cardPages(cards, settings.width, settings.height));
+      setMessage('');
+      previewDialog.current?.showModal();
+    } catch (cause) {
+      setError(true);
+      setMessage(cause instanceof Error ? cause.message : 'Pratinjau A4 gagal dibuka.');
+    }
+  }
 
   async function output(kind: 'print' | 'pdf') {
     if (!participants.length || controller.current) return;
@@ -114,12 +134,31 @@ export function CardOutput({ participants, renderCard, pending }: {
   }
 
   return <>
-    <div className="flex flex-wrap items-center gap-2">
-      <button id="print-cards" type="button" className="action" disabled={busy || pending || !participants.length} onClick={() => void output('print')}>Cetak semua hasil</button>
-      <button id="download-card-pdf" type="button" className="action" disabled={busy || pending || !participants.length} onClick={() => void output('pdf')}>Unduh PDF</button>
+    <div className="print-actions">
+      <button id="preview-a4" type="button" className="action" disabled={busy || pending || !participants.length} onClick={openPreview}><EditorIcon name="document" /> Pratinjau A4</button>
+      <button id="download-card-pdf" type="button" className="action" disabled={busy || pending || !participants.length} onClick={() => void output('pdf')}><EditorIcon name="download" /> Unduh PDF</button>
+      <button id="print-cards" type="button" className="action data-next" disabled={busy || pending || !participants.length} onClick={() => void output('print')}><EditorIcon name="printer" /> Cetak ke Kertas</button>
       {busy && <button type="button" className="action" onClick={() => controller.current?.abort(new Error('Pembuatan keluaran dibatalkan.'))}>Batalkan keluaran</button>}
     </div>
     {message && <p role={error ? 'alert' : 'status'}>{message}</p>}
+    <dialog className="format-dialog print-a4-dialog" ref={previewDialog} aria-labelledby="print-a4-title" onClose={() => setPreview(null)}>
+      <header><h2 id="print-a4-title">Pratinjau A4</h2>
+        <button type="button" className="action" aria-label="Tutup pratinjau A4" onClick={() => previewDialog.current?.close()}>×</button>
+      </header>
+      {preview && <>
+        <div className="print-a4-scroll" tabIndex={0} role="region" aria-label="Lembar A4">
+          <div className="print-sheet" style={{
+            gridTemplateColumns: `repeat(${preview.columns}, ${preview.pages[previewPage][0].settings.width}mm)`,
+            gap: `${paper.gap}mm`,
+          }}>{preview.pages[previewPage].map((card) => <CardPreview key={card.participant.id} {...card} output />)}</div>
+        </div>
+        <footer className="print-a4-controls">
+          <button type="button" className="action" disabled={previewPage === 0} onClick={() => setPreviewPage(previewPage - 1)}>Sebelumnya</button>
+          <span role="status">Halaman {previewPage + 1} dari {preview.pages.length}</span>
+          <button type="button" className="action" disabled={previewPage + 1 >= preview.pages.length} onClick={() => setPreviewPage(previewPage + 1)}>Berikutnya</button>
+        </footer>
+      </>}
+    </dialog>
     {job && createPortal(<div ref={root} className="card-print-root" aria-hidden="true">
       {job.map((page, index) => <div key={index} className="print-sheet" style={{
         gridTemplateColumns: `repeat(${columns}, ${page[0].settings.width}mm)`,

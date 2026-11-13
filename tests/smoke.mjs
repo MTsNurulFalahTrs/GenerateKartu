@@ -226,27 +226,32 @@ try {
       await page.waitForSelector('#panel-3', { visible: true });
       assert.match(await page.locator('#panel-3').map((el) => el.textContent).wait(), /Lengkap Ruang/);
       assert.equal(await page.$$eval('#panel-3 .exam-card', (cards) => cards.length), 9);
-      assert.match(await page.$eval('#panel-3 [role=status]', (status) => status.textContent), /500 dari 500/);
+      assert.match(await page.$eval('#panel-3 .print-count', (status) => status.textContent), /500 dari 500/);
       assert.equal(await page.$eval('#panel-3 .exam-card-head > div:nth-child(2) > div', (line) => getComputedStyle(line).fontStyle), 'italic');
       assert.equal(await page.$eval('#panel-3 .exam-card-signature', (signature) => signature.style.height), '1.2cm');
       assert.equal(await page.$eval('#panel-3 .exam-card-signature', (signature) => getComputedStyle(signature).position), 'absolute');
       const qr = await page.$eval('#panel-3 .card-qr path', (path) => path.getAttribute('d'));
       await page.$eval('#panel-3 nav button:last-child', (button) => button.click());
-      await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('Halaman 2/56'));
+      await page.waitForFunction(() => document.querySelector('#panel-3 .print-count')?.textContent.includes('Halaman 2/56'));
       await page.$eval('#panel-3 nav button:first-child', (button) => button.click());
-      await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('Halaman 1/56'));
+      await page.waitForFunction(() => document.querySelector('#panel-3 .print-count')?.textContent.includes('Halaman 1/56'));
       assert.equal(await page.$eval('#panel-3 .card-qr path', (path) => path.getAttribute('d')), qr);
-      await page.locator('#panel-3 input[placeholder="Nama atau ID peserta"]').fill('0002');
-      await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('1 dari 500'));
+      await page.locator('#panel-3 input[placeholder="Cari nama, NISN, atau no. peserta…"]').fill('0002');
+      await page.waitForFunction(() => document.querySelector('#panel-3 .print-count')?.textContent.includes('1 dari 500'));
       assert.equal(await page.$$eval('#panel-3 .exam-card', (cards) => cards.length), 1);
-      await page.locator('#panel-3 input[placeholder="Nama atau ID peserta"]').fill('tidak ditemukan');
-      await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('0 dari 500'));
+      await page.locator('#preview-a4').click();
+      await page.waitForSelector('.print-a4-dialog[open] .exam-card');
+      assert.equal(await page.$$eval('.print-a4-dialog[open] .exam-card', (cards) => cards.length), 1);
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('.print-a4-dialog[open]', { hidden: true });
+      await page.locator('#panel-3 input[placeholder="Cari nama, NISN, atau no. peserta…"]').fill('tidak ditemukan');
+      await page.waitForFunction(() => document.querySelector('#panel-3 .print-count')?.textContent.includes('0 dari 500'));
       assert.equal(await page.$$eval('#panel-3 .exam-card', (cards) => cards.length), 0);
       await page.$eval('#panel-3 input', (input) => {
         Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '');
         input.dispatchEvent(new Event('input', { bubbles: true }));
       });
-      await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('500 dari 500'));
+      await page.waitForFunction(() => document.querySelector('#panel-3 .print-count')?.textContent.includes('500 dari 500'));
       if (name === 'desktop') {
         for (const [w, h] of [[320, 700], [844, 390], [768, 1024], [1440, 1000]]) {
           await page.setViewport({ width: w, height: h });
@@ -263,12 +268,12 @@ try {
         }
         await page.setOfflineMode(true);
         await page.select('#preview-Ruang', 'Ruang 60');
-        await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('60 dari 500'));
+        await page.waitForFunction(() => document.querySelector('#panel-3 .print-count')?.textContent.includes('60 dari 500'));
         await page.setOfflineMode(false);
         for (const count of [60, 132, 500]) {
           const start = performance.now();
           await page.select('#preview-Ruang', count === 500 ? '' : `Ruang ${count}`);
-          await page.waitForFunction((total) => document.querySelector('#panel-3 [role=status]')?.textContent.includes(`${total} dari 500`), {}, count);
+          await page.waitForFunction((total) => document.querySelector('#panel-3 .print-count')?.textContent.includes(`${total} dari 500`), {}, count);
           assert.equal(await page.$$eval('#panel-3 .exam-card', (cards) => cards.length), 9);
           const heap = (await page.metrics()).JSHeapUsedSize / 1048576;
           console.log(`Preview ${count} peserta: ${Math.round(performance.now() - start)} ms; heap JS ${heap.toFixed(1)} MiB`);
@@ -307,7 +312,7 @@ try {
         console.log(`Cetak 500 kartu: ${Math.round(performance.now() - printStart)} ms; heap JS ${heap.toFixed(1)} MiB`);
         await page.evaluate(() => window.finishPrint());
         await page.select('#preview-Kelas', 'IX-A');
-        await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('10 dari 500'));
+        await page.waitForFunction(() => document.querySelector('#panel-3 .print-count')?.textContent.includes('10 dari 500'));
         await page.waitForSelector('#download-card-pdf:enabled');
         const pdfStart = performance.now();
         await page.$eval('#download-card-pdf', (button) => button.click());
