@@ -125,7 +125,11 @@ try {
       const catalogPage = await browser.newPage();
       await catalogPage.setViewport({ width, height, deviceScaleFactor: 1, isMobile: name === 'mobile', hasTouch: name === 'mobile' });
       catalogPage.on('pageerror', (error) => errors.push(error.message));
-      catalogPage.on('console', (entry) => { if (entry.type() === 'error') errors.push(entry.text()); });
+      catalogPage.on('console', (entry) => {
+        const expectedPinRejection = entry.text().startsWith('Failed to load resource:') &&
+          entry.text().includes('403') && entry.location().url === new URL('/api/community-formats', origin).href;
+        if (entry.type() === 'error' && !expectedPinRejection) errors.push(entry.text());
+      });
       const sampleCommunity = [{
         id: 9001, name: 'Format Uji Komunitas',
         fields: ['NoPeserta', 'NISN', 'NamaMurid', 'Kelas', 'Ruang', 'Sesi'],
