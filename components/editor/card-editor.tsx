@@ -1,5 +1,7 @@
 'use client';
 
+import { MasonryGrid } from './masonry-grid';
+
 import { notify } from '../../lib/ui/notify';
 import { CommunityDeleteDialog } from './community-delete-dialog';
 import { HelpContent } from './help-content';
@@ -443,7 +445,7 @@ export function CardEditor() {
                   (formatFilter === 'community' && catalogStatus === 'ready' && !visibleCommunity.length) ||
                   (formatFilter === 'all' && catalogStatus === 'ready' && !visibleFormats.length && !visibleCommunity.length)) &&
                   <p role="status">Tidak ada format yang cocok.</p>}
-                {formatFilter !== 'community' && <div className="format-grid">
+                {formatFilter !== 'community' && <MasonryGrid className="format-grid">
                   {visibleFormats.map(({ title, id }) => {
                     const fields = fieldsFor(id, custom);
                     const photoKey = photoFieldFor(id, customAppearance?.photoKey);
@@ -480,7 +482,7 @@ export function CardEditor() {
                       </div>
                     </article>;
                   })}
-                </div>}
+                </MasonryGrid>}
                 {formatFilter !== 'built-in' && <section className="community-formats" aria-labelledby="community-title">
                   <header className="community-section-header">
                     <div className="community-section-heading">
@@ -501,7 +503,7 @@ export function CardEditor() {
                   {catalogStatus === 'ready' && !catalog.length && <p>Belum ada format yang dibagikan.</p>}
                   {catalogStatus === 'ready' && catalog.length > 0 && !visibleCommunity.length &&
                     <p role="status">Tidak ada format komunitas yang cocok dengan pencarian.</p>}
-                  <div className="format-grid community-grid">
+                  <MasonryGrid className="format-grid community-grid">
                     {visibleCommunity.map((entry) => {
                       const active = format === 7 && selectedCommunityId === entry.id;
                       const date = publicationDate(entry.createdAt);
@@ -562,7 +564,7 @@ export function CardEditor() {
                         </div>
                       </article>;
                     })}
-                  </div>
+                  </MasonryGrid>
                 </section>}
               </>
             )}
