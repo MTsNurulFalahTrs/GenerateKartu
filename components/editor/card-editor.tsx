@@ -541,7 +541,7 @@ export function CardEditor() {
               </footer>
               </>
             )}
-            {index === 3 && (
+            {index === 3 && step === 3 && !helpOpen && (
               <div className="print-workspace min-w-0">
                 {format === null ? <p>Pilih format kartu untuk membuka pratinjau.</p> : <>
                   <p className="sr-only">Format terpilih: {formats[format] ?? 'Format Kustom'}.</p>
