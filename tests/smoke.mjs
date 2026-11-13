@@ -72,7 +72,7 @@ try {
     });
     try {
       await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: name === 'mobile', hasTouch: name === 'mobile' });
-      const home = await page.goto(origin, { waitUntil: 'networkidle0' });
+      const home = await page.goto(origin, { waitUntil: 'domcontentloaded' });
       assert.equal(home?.status(), 200);
       const headers = home.headers();
       assert.equal(headers['x-content-type-options'], 'nosniff');
@@ -388,7 +388,7 @@ try {
         await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key))?.format === 7, {}, key);
         const stored = await page.evaluate((key) => localStorage.getItem(key), key);
         assert.doesNotMatch(stored, /Madrasah Uji Fase 7|Peserta Uji/);
-        await page.reload({ waitUntil: 'networkidle0' });
+        await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForSelector('#pick-custom-format[aria-pressed=true]');
         await page.$eval('#step-2', (button) => button.click());
         await page.waitForSelector('#panel-2', { visible: true });
@@ -428,7 +428,7 @@ try {
         await page.evaluateOnNewDocument(() => {
           Storage.prototype.setItem = () => { throw new DOMException('Simulasi kuota', 'QuotaExceededError'); };
         });
-        await page.goto(origin, { waitUntil: 'networkidle0' });
+        await page.goto(origin, { waitUntil: 'domcontentloaded' });
         await page.$eval('#step-2', (button) => button.click());
         await page.waitForFunction(() => document.querySelector('#panel-2')?.textContent.includes('Penyimpanan browser penuh atau diblokir'));
         await page.$eval('.theme', (button) => button.click());
