@@ -482,3 +482,30 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 .help-shell .header-inner { flex-direction: row; align-items: center; flex-wrap: wrap; }
 .help-shell .header::after { width: 100%; }
 #help-content { scroll-margin-top: 8rem; }
+
+.help-content, .content:has(#editor-help-panel:not([hidden])) { max-width: 94rem; }
+.help-nav { white-space: nowrap; }
+.help-stats, .help-grid { display: grid; gap: 1rem; }
+.help-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 1.25rem; }
+.help-stats > div { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0 .65rem; padding: .65rem; border: 1px solid var(--line); border-radius: .7rem; background: color-mix(in srgb, var(--indigo-500) 12%, var(--surface)); }
+.help-stats .format-icon { grid-row: span 2; }
+.help-stats dt { grid-row: 2; grid-column: 2; font-size: .72rem; color: var(--muted); }
+.help-stats dd { grid-row: 1; grid-column: 2; font-weight: 750; color: var(--indigo-700); }
+.help-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.help-grid > .panel { padding: clamp(1rem, 2vw, 1.75rem); }
+.help-grid h2 { padding-bottom: .85rem; margin-bottom: .85rem; border-bottom: 1px solid var(--line); }
+.help-faq { grid-column: 1 / -1; }
+.help-faq details { margin-bottom: .5rem; border: 1px solid var(--line); border-radius: .7rem; padding: .7rem .85rem; }
+.help-faq summary { cursor: pointer; font-weight: 650; }
+.content .help-faq details p { margin: .55rem 0 0; }
+.help-notices, .help-rules { display: grid; gap: .65rem; }
+.help-notices li, .help-shortcuts { padding: .75rem; border-radius: .65rem; background: color-mix(in srgb, #059669 10%, var(--surface)); }
+.help-notices li:last-child { background: color-mix(in srgb, #d97706 12%, var(--surface)); }
+.help-rules { list-style: disc; padding-inline-start: 1.25rem; }
+.help-shortcuts { margin-top: 1rem; background: color-mix(in srgb, var(--indigo-500) 12%, var(--surface)); }
+.help-shortcuts h3 { font-weight: 700; }
+.help-shortcuts, .help-faq { scroll-margin-top: 8rem; }
+@media (max-width: 720px) {
+  .help-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .help-grid { grid-template-columns: minmax(0, 1fr); }
+}

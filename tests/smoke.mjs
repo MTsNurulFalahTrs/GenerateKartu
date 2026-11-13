@@ -381,9 +381,13 @@ try {
         await page.$eval('#reset-card-session', (button) => button.click());
         await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('direset'));
       }
-      await page.locator('a[href="/bantuan"]').click();
+      await page.locator('.help-nav').click();
+      await page.waitForSelector('#editor-help-panel .help-stats', { visible: true });
+      await page.locator('#editor-help-faq details:first-of-type summary').click();
+      await page.waitForSelector('#editor-help-faq details[open] p', { visible: true });
+      await page.locator('#editor-help-panel a[href="/bantuan"]').click();
       await page.waitForFunction(() => location.pathname === '/bantuan');
-      assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Bantuan');
+      assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Pusat Informasi & Bantuan');
       assert.deepEqual(errors, []);
       assert.deepEqual(externalRequests, [], 'No external requests or HTTP uploads during editor flow');
       assert.equal((await page.goto(new URL('/halaman-tidak-ada', origin).href))?.status(), 404);
