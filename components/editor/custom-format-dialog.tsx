@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
 import { customFieldIds } from '../../lib/participants/model';
 import type { Field } from '../../lib/participants/model';
 import type { CustomAppearance } from '../../lib/cards/preferences';
@@ -108,7 +109,7 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
     setError('');
   }
 
-  function save(event: React.FormEvent<HTMLFormElement>) {
+  function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const selected = rows.filter((row) => row.field !== '');
     if (!name.trim() || !rows.length || rows.length > maxRows || selected.length !== rows.length ||
@@ -158,16 +159,16 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
           {rows.map((row, index) => <li key={row.id} data-photo={photoRow === row.id}>
             <div className="custom-row-order">
               <button type="button" className="custom-row-move" disabled={index === 0}
-                aria-label={\`Naikkan \${row.field ? labels[row.field] : 'baris ' + (index + 1)}\`}
+                aria-label={`Naikkan ${row.field ? labels[row.field] : 'baris ' + (index + 1)}`}
                 onClick={() => move(index, -1)}>⌃</button>
               <span aria-hidden="true" className="custom-row-number">{index + 1}</span>
               <button type="button" className="custom-row-move" disabled={index === rows.length - 1}
-                aria-label={\`Turunkan \${row.field ? labels[row.field] : 'baris ' + (index + 1)}\`}
+                aria-label={`Turunkan ${row.field ? labels[row.field] : 'baris ' + (index + 1)}`}
                 onClick={() => move(index, 1)}>⌄</button>
             </div>
             <label className="custom-row-field">
               <span className="custom-row-caption">Field Bawaan</span>
-              <select aria-label={\`Field Bawaan baris \${index + 1}\`}
+              <select aria-label={`Field Bawaan baris ${index + 1}`}
                 value={customFieldIds.some((field) => field === row.field) ? 'manual' : row.field}
                 onChange={(event) => setField(row.id, event.currentTarget.value)}>
                 <option value="">— Pilih —</option>
@@ -181,25 +182,30 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
             <label className="custom-row-field">
               <span className="custom-row-caption">Label Tampilan</span>
               <input type="text" maxLength={60} placeholder="e.g. Nama Murid"
-                aria-label={\`Label Tampilan baris \${index + 1}\`} value={row.label}
+                aria-label={`Label Tampilan baris ${index + 1}`} value={row.label}
                 onChange={(event) => updateRow(row.id, { label: event.currentTarget.value })} />
             </label>
             <label className="custom-row-field">
               <span className="custom-row-caption">Kolom Excel <small>(header .xlsx)</small></span>
               <input type="text" maxLength={64} placeholder="e.g. NamaMurid"
-                aria-label={\`Kolom Excel baris \${index + 1}\`} value={row.excel}
+                aria-label={`Kolom Excel baris ${index + 1}`} value={row.excel}
                 onChange={(event) => updateRow(row.id, { excel: event.currentTarget.value })} />
             </label>
             <div className="custom-row-meta">
               <label><input type="radio" name="custom-photo-key" checked={photoRow === row.id}
-                onChange={() => setPhotoRow(row.id)} aria-label={\`Acuan Foto \${row.field ? labels[row.field] : 'baris ' + (index + 1)}\`} />
+                onChange={() => setPhotoRow(row.id)} aria-label={`Acuan Foto ${row.field ? labels[row.field] : 'baris ' + (index + 1)}`} />
                 <span aria-hidden="true">📷</span> Acuan Foto</label>
               <label><input type="checkbox" checked={row.mono} onChange={(event) => updateRow(row.id, { mono: event.currentTarget.checked })}
-                aria-label={\`Monospace \${row.field ? labels[row.field] : 'baris ' + (index + 1)}\`} />
+                aria-label={`Monospace ${row.field ? labels[row.field] : 'baris ' + (index + 1)}`} />
                 Monospace</label>
               <button className="custom-row-remove" type="button"
-                aria-label={\`Hapus \${row.field ? labels[row.field] : 'baris ' + (index + 1)}\`}
-                onClick={() => removeRow(row.id)} title="Hapus baris">♲</button>
+                aria-label={`Hapus ${row.field ? labels[row.field] : 'baris ' + (index + 1)}`}
+                onClick={() => removeRow(row.id)} title="Hapus baris">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+                  strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 7h16 M10 4h4 M6 7l1 13h10l1-13 M10 11v6 M14 11v6" />
+                </svg>
+              </button>
             </div>
           </li>)}
         </ol> : <div className="custom-format-empty">
