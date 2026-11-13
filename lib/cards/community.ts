@@ -20,12 +20,14 @@ export function parseCommunityFormat(value: unknown): CommunityFormat | null {
   if (!safeValue(name, 60) || !validFields(fields) || !fields.length || fields.length > 6 ||
     !fields.includes(photoKey as Field) || !validFields(mono) || mono.some((field) => !fields.includes(field))) return null;
 
+  const selectedFields: Field[] = fields;
+
   function map(input: unknown, max: number): Partial<Record<Field, string>> | null {
     if (input === undefined) return {};
     if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
     const result: Partial<Record<Field, string>> = {};
     for (const [field, text] of Object.entries(input)) {
-      if (!fields.includes(field as Field) || !safeValue(text, max) ||
+      if (!selectedFields.includes(field as Field) || !safeValue(text, max) ||
         (max === 64 && text.trim().toLowerCase() === 'password')) return null;
       result[field as Field] = text.trim();
     }
