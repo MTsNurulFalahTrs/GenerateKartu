@@ -1,18 +1,25 @@
 import { defaultCard, kopFields, kopSizes } from './settings.ts';
 import type { CardSettings } from './settings.ts';
+import { customFieldIds } from '../participants/model';
 import type { Field } from '../participants/model';
 
 export const storageKey = 'generate-kartu:preferences:v1';
 export const idleLimit = 2 * 60 * 60 * 1000;
 export const maxBackupBytes = 1024 * 1024;
-export const customFields: readonly Field[] = ['NoPeserta', 'NamaMurid', 'NISN', 'Kelas', 'Ruang', 'Sesi', 'Username', 'TglLahir', 'NamaSatdik'];
+export const customFields: readonly Field[] = ['NoPeserta', 'NamaMurid', 'NISN', 'Kelas', 'Ruang', 'Sesi', 'Username', 'TglLahir', 'NamaSatdik', ...customFieldIds];
 export const defaultCustom: Field[] = ['NoPeserta', 'NamaMurid', 'Kelas'];
 
 const optionKeys = ['width', 'height', 'fontSize', 'align', 'monochrome', 'photo', 'qr', 'showSchedule'] as const;
 const appearanceKeys = ['kopStyles', 'signatureSize', 'signatureOverlap'] as const;
 const headingKeys = ['institution', 'exam', 'year'] as const;
 
-export type CustomAppearance = { name: string; photoKey: Field; mono: Field[] };
+export type CustomAppearance = {
+  name: string;
+  photoKey: Field;
+  mono: Field[];
+  labels?: Partial<Record<Field, string>>;
+  excelHeaders?: Partial<Record<Field, string>>;
+};
 
 export type Preferences = {
   schemaVersion: 1;
@@ -88,11 +95,32 @@ export function parseBackup(raw: string, allowHeading = true): { preferences: Pr
   const { schemaVersion, dark, format, custom, hidden } = value;
   let customAppearance: CustomAppearance | undefined;
   if (keys.includes('customAppearance')) {
-    const appearance = object(value.customAppearance, ['name', 'photoKey', 'mono']);
+    const rawAppearance = value.customAppearance as Record<string, unknown>;
+    const hasLabels = !!rawAppearance && Object.hasOwn(rawAppearance, 'labels');
+    const hasHeaders = !!rawAppearance && Object.hasOwn(rawAppearance, 'excelHeaders');
+    const appearance = object(value.customAppearance,
+      ['name', 'photoKey', 'mono', ...(hasLabels ? ['labels'] : []), ...(hasHeaders ? ['excelHeaders'] : [])]);
     if (typeof appearance.name !== 'string' || !appearance.name.trim() || appearance.name.length > 60 ||
       !customFields.some((field) => field === appearance.photoKey && (custom as Field[]).includes(field)) ||
       !fields(appearance.mono) || !appearance.mono.every((field) => (custom as Field[]).includes(field)) ||
       (custom as Field[]).length > 6) throw new Error('Format kustom tidak valid.');
+    for (const [key, prop] of [['labels', 60], ['excelHeaders', 64]] as const) {
+      if (!Object.hasOwn(appearance, key)) continue;
+      const values = appearance[key];
+      if (!values || typeof values !== 'object' || Array.isArray(values)) throw new Error('Metadata format kustom tidak valid.');
+      for (const [field, text] of Object.entries(values)) {
+        if (!customFields.includes(field as Field) || !(custom as Field[]).includes(field as Field) ||
+          typeof text !== 'string' || !text.trim() || text.trim().length > prop ||
+          (key === 'excelHeaders' && text.trim().toLowerCase() === 'password')) {
+          throw new Error('Metadata format kustom tidak valid.');
+        }
+      }
+    }
+    if ((custom as Field[]).some((field) => customFieldIds.includes(field as typeof customFieldIds[number]) &&
+      (!appearance.labels || typeof (appearance.labels as Record<string, string>)[field] !== 'string' ||
+       !appearance.excelHeaders || typeof (appearance.excelHeaders as Record<string, string>)[field] !== 'string'))) {
+      throw new Error('Kolom buatan sendiri harus memiliki label dan header Excel.');
+    }
     customAppearance = appearance as CustomAppearance;
   } else if (!(custom as Field[]).includes('NoPeserta') || !(custom as Field[]).includes('NamaMurid')) {
     throw new Error('Format kustom tidak valid.');
