@@ -416,6 +416,15 @@ try {
         assert.ok(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length >= 4));
         console.log('Smoke trace: completed format', format);
       }
+      // Isolate form behavior from the 500-card print/PDF stress phase.
+      // The imported participant dataset is intentionally ephemeral.
+      await page.evaluate(() => {
+        localStorage.removeItem('generate-kartu:preferences:v1');
+        sessionStorage.removeItem('generate-kartu:card-session:v1');
+      });
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('#pick-custom-format');
+      console.log('Smoke trace: clean-page custom editor after 500-card print regression');
       console.log('Smoke trace: returning to format panel before custom');
       await page.$eval('#step-0', (button) => button.click());
       console.log('Smoke trace: step-0 click completed');
