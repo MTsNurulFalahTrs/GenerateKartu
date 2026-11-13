@@ -27,7 +27,6 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
   assets: InstitutionAssets;
   onAssets: (name: AssetName, asset?: Blob) => void;
 }) {
-  const [editingCustomSize, setEditingCustomSize] = useState(false);
   const assetJob = useRef(0);
   const assetPending = useRef(false);
   const [busy, setBusy] = useState(false);
@@ -146,82 +145,99 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
     {error && <p role="alert">{error}</p>}
   </div>;
   if (section === 1) {
-    const dimensions = `${value.width}x${value.height}`;
-    const customSize = editingCustomSize || !['86x54', '90x60', '100x70'].includes(dimensions);
-    const switches = [
-      ['qr', 'QR Code di Kartu', 'Tampilkan QR berisi referensi kartu.'],
-      ['photo', 'Foto Peserta di Kartu', 'Tampilkan foto peserta pada format kartu yang dipilih.'],
-      ['showSchedule', 'Tabel Jadwal di Kartu', 'Tampilkan jadwal yang sudah diisi di subtab Tabel Jadwal.'],
-    ] as const;
-    return <div className="kop-body print-settings">
-      <div className="print-setting-field">
-        <label htmlFor="print-card-size">Ukuran Fisik Kartu</label>
-        <small id="print-card-size-help">Pilih ukuran preset atau masukkan dimensi kustom.</small>
-        <select id="print-card-size" aria-describedby="print-card-size-help" value={customSize ? 'custom' : dimensions} onChange={(event) => {
-          setEditingCustomSize(event.target.value === 'custom');
-          const [width, height] = (event.target.value === 'custom' ? '95x65' : event.target.value).split('x').map(Number);
-          onChange((previous) => ({ ...previous, width, height }));
-        }}>
-          <option value="86x54">Standar KTP / ID Card (8,6 cm × 5,4 cm)</option>
-          <option value="90x60">9 cm × 6 cm</option>
-          <option value="100x70">10 cm × 7 cm</option>
-          <option value="custom">Ukuran kustom</option>
+    const sizeKey = value.width + 'x' + value.height;
+    const preset = ['86x54', '90x60', '100x70'].includes(sizeKey);
+    const customSize = !preset;
+    return <div className="layout-body">
+      <div className="layout-field">
+        <label className="layout-label" htmlFor="layout-card-size">Ukuran Fisik Kartu</label>
+        <p className="layout-help" id="layout-card-size-help">Pilih ukuran preset atau masukkan dimensi custom sesuai kebutuhan Anda.</p>
+        <select id="layout-card-size" aria-describedby="layout-card-size-help" value={preset ? sizeKey : 'custom'}
+          onChange={(event) => {
+            if (event.currentTarget.value === 'custom') {
+              if (!customSize) onChange((previous) => ({ ...previous, width: 95, height: 65 }));
+              return;
+            }
+            const [width, height] = event.currentTarget.value.split('x').map(Number);
+            onChange((previous) => ({ ...previous, width, height }));
+          }}>
+          <option value="86x54">📏 Standar KTP / ID Card (8,6 cm × 5,4 cm)</option>
+          <option value="90x60">Kartu Sedang (9 cm × 6 cm)</option>
+          <option value="100x70">Kartu Besar (10 cm × 7 cm)</option>
+          <option value="custom">Ukuran Kustom</option>
         </select>
-      </div>
-      {customSize && <div className="kop-grid">
+        {customSize && <div className="layout-custom-dimensions">
           {([['width', 'Lebar (mm)', 60, 180], ['height', 'Tinggi (mm)', 40, 150]] as const).map(([key, label, min, max]) =>
-            <label className="kop-field" key={key}>{label}
-              <input type="number" min={min} max={max} step="any" value={value[key] || ''}
+            <label key={key}>{label}
+              <input type="number" min={min} max={max} step={1} value={value[key] || ''}
                 onChange={(event) => update(key, Number(event.currentTarget.value))}
                 onBlur={(event) => {
-                  const number = event.currentTarget.valueAsNumber;
-                  if (!Number.isFinite(number) || number < min || number > max) {
-                    update(key, Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : defaultCard[key]);
+                  const next = event.currentTarget.valueAsNumber;
+                  if (!Number.isFinite(next) || next < min || next > max) {
+                    update(key, Number.isFinite(next) ? Math.min(max, Math.max(min, next)) : defaultCard[key]);
                   }
                 }} />
             </label>)}
-      </div>}
-      <div className="print-setting-field">
-        <label htmlFor="print-color-mode">Mode Printer</label>
-        <small id="print-color-help">Pilih mode cetak sesuai kemampuan printer Anda.</small>
-        <select id="print-color-mode" aria-describedby="print-color-help" value={value.monochrome ? 'mono' : 'color'}
-          onChange={(event) => update('monochrome', event.target.value === 'mono')}>
-          <option value="color">Warna (Full Color)</option>
-          <option value="mono">Hitam Putih</option>
+          <small>Rentang ukuran: lebar 60–180 mm dan tinggi 40–150 mm.</small>
+        </div>}
+      </div>
+      <div className="layout-field">
+        <label className="layout-label" htmlFor="layout-printer-mode">Mode Printer</label>
+        <p className="layout-help" id="layout-printer-mode-help">Pilih mode cetak sesuai kemampuan printer Anda.</p>
+        <select id="layout-printer-mode" aria-describedby="layout-printer-mode-help"
+          value={value.monochrome ? 'mono' : 'color'}
+          onChange={(event) => update('monochrome', event.currentTarget.value === 'mono')}>
+          <option value="color">🎨 Warna (Full Color)</option>
+          <option value="mono">Hitam Putih (Grayscale)</option>
         </select>
       </div>
-      {switches.map(([key, label, hint]) => <label className="print-switch" data-setting={key} key={key}>
-        <span><strong id={`print-${key}-label`}>{label}</strong><small id={`print-${key}-help`}>{hint}</small></span>
-        <input className="print-switch-input" type="checkbox" role="switch" aria-labelledby={`print-${key}-label`}
-          aria-describedby={`print-${key}-help`} checked={value[key]} onChange={(event) => update(key, event.target.checked)} />
-      </label>)}
-      <aside className="print-tips" aria-label="Tips cetak optimal">
+      <div className="layout-switches">
+        {([
+          ['qr', 'QR Code di Kartu', 'Tampilkan QR Code identitas murid di kartu peserta.', 'qr'],
+          ['photo', 'Foto Peserta di Kartu', 'Tampilkan foto 3×4 peserta pada format kartu yang dipilih. Nonaktifkan jika foto tidak tersedia atau tidak diperlukan.', 'photo'],
+          ['showSchedule', 'Tabel Jadwal di Kartu', 'Tampilkan tabel jadwal ujian pada kartu peserta. Berlaku hanya jika kolom jadwal sudah dikonfigurasi di subtab Tabel Jadwal.', 'schedule'],
+        ] as const).map(([key, title, description, tone]) =>
+          <label className="layout-toggle" data-tone={tone} key={key} htmlFor={'layout-' + key}>
+            <span className="layout-toggle-copy">
+              <strong>{title}</strong>
+              <small id={'layout-' + key + '-help'}>{description}</small>
+            </span>
+            <input id={'layout-' + key} role="switch" type="checkbox" checked={value[key]}
+              aria-describedby={'layout-' + key + '-help'}
+              onChange={(event) => update(key, event.currentTarget.checked)} />
+          </label>)}
+      </div>
+      <aside className="layout-print-tips" aria-label="Tips Cetak Optimal">
         <strong>Tips Cetak Optimal</strong>
         <ul>
-          <li>Atur skala printer ke 100%.</li>
-          <li>Pilih margin Tidak Ada.</li>
-          <li>Aktifkan Cetak Latar Belakang di pengaturan browser.</li>
-          <li>Untuk ukuran kustom, uji cetak satu kartu sebelum mencetak semuanya.</li>
+          <li>Pastikan <b>Scale/Skala</b> printer diatur ke <b>100%</b>.</li>
+          <li>Atur <b>Margin</b> printer ke <b>None / Tidak Ada</b>.</li>
+          <li>Aktifkan opsi <b>Cetak Latar Belakang</b> di pengaturan browser.</li>
+          <li>Untuk ukuran custom, uji cetak 1 kartu terlebih dahulu sebelum mencetak semua.</li>
         </ul>
       </aside>
-      <details className="print-advanced">
-        <summary>Pengaturan lanjutan</summary>
-        <div className="kop-grid">
-          <label className="kop-field">Ukuran teks (pt)
-            <input type="number" min={6} max={12} step="any" value={value.fontSize || ''}
+      <details className="layout-extra">
+        <summary>Pengaturan teks lanjutan</summary>
+        <div className="layout-advanced-grid">
+          <label>Ukuran teks (pt)
+            <input type="number" min={6} max={12} step={0.5} value={value.fontSize || ''}
               onChange={(event) => update('fontSize', Number(event.currentTarget.value))}
               onBlur={(event) => {
-                const number = event.currentTarget.valueAsNumber;
-                if (!Number.isFinite(number) || number < 6 || number > 12) {
-                  update('fontSize', Number.isFinite(number) ? Math.min(12, Math.max(6, number)) : defaultCard.fontSize);
+                const next = event.currentTarget.valueAsNumber;
+                if (!Number.isFinite(next) || next < 6 || next > 12) {
+                  update('fontSize', Number.isFinite(next) ? Math.min(12, Math.max(6, next)) : defaultCard.fontSize);
                 }
               }} />
           </label>
-          <label className="kop-field">Posisi teks
+          <label>Posisi teks
             <select value={value.align} onChange={(event) => {
-              const align = event.target.value;
+              const align = event.currentTarget.value;
               if (align === 'left' || align === 'center' || align === 'right') update('align', align);
-            }}><option value="left">Kiri</option><option value="center">Tengah</option><option value="right">Kanan</option></select>
+            }}>
+              <option value="left">Kiri</option>
+              <option value="center">Tengah</option>
+              <option value="right">Kanan</option>
+            </select>
           </label>
         </div>
       </details>

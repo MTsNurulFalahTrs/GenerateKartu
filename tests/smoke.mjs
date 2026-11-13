@@ -178,15 +178,21 @@ try {
       assert.equal(savedAppearance.signatureOverlap, true);
       await page.$eval('#card-settings-1', (button) => button.click());
       await page.waitForSelector('#card-settings-1[aria-pressed=true]');
-      await page.select('#print-card-size', 'custom');
-      await page.waitForSelector('.print-settings input[min="60"]', { visible: true });
-      await page.select('#print-card-size', '86x54');
-      await page.select('#print-color-mode', 'mono');
-      await page.waitForSelector('#panel-2 .exam-card[data-bw="true"]');
-      await page.select('#print-color-mode', 'color');
+      assert.equal(await page.$eval('#layout-card-size', (el) => el.value), '86x54');
+      assert.equal(await page.$eval('#layout-printer-mode', (el) => el.value), 'color');
+      await page.select('#layout-card-size', 'custom');
+      await page.waitForSelector('.layout-custom-dimensions input');
+      assert.equal(await page.$eval('#layout-card-size', (el) => el.value), 'custom');
+      await page.select('#layout-card-size', '86x54');
+      await page.select('#layout-printer-mode', 'mono');
+      assert.equal(await page.$eval('#layout-printer-mode', (el) => el.value), 'mono');
+      await page.select('#layout-printer-mode', 'color');
+      assert.equal(await page.$eval('#layout-printer-mode', (el) => el.value), 'color');
+      assert.equal(await page.$eval('#layout-showSchedule', (el) => el.getAttribute('role')), 'switch');
+      assert.ok(await page.$eval('.layout-print-tips', (el) => el.textContent.includes('100%')));
       await page.waitForSelector('#panel-2 img[alt="Foto peserta"]');
       await page.evaluate(() => {
-        const input = [...document.querySelectorAll('#panel-2 input[type=checkbox]')].find((element) => element.getAttribute('aria-labelledby') === 'print-qr-label');
+        const input = [...document.querySelectorAll('#panel-2 input[type=checkbox]')].find((element) => element.labels?.[0]?.textContent.includes('Tampilkan QR'));
         if (!input) throw new Error('Toggle QR hilang');
         input.click();
       });
