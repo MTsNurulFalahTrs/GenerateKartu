@@ -153,14 +153,7 @@ try {
       }
       await page.$eval('#step-2', (button) => button.click());
       await page.waitForSelector('#panel-2', { visible: true });
-      await page.evaluate(() => {
-        const input = document.querySelector('#kop-institution');
-        if (!input) throw new Error('Input institusi hilang');
-        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-        setter.call(input, 'Madrasah Uji Fase 7');
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      });
-      await page.waitForFunction(() => document.querySelector('#panel-2 .exam-card-head')?.textContent.includes('Madrasah Uji Fase 7'));
+      await page.locator('#kop-institution').fill('Madrasah Uji Fase 7');
       await page.waitForFunction(() => document.querySelector('.kop-live')?.textContent.includes('Madrasah Uji Fase 7'));
       await page.select('select[aria-label="Ukuran teks Nama Lembaga"]', '12');
       await page.locator('button[aria-label="Miring Nama Lembaga"]').click();
