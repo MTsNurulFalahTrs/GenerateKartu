@@ -531,7 +531,7 @@ export function CardEditor() {
                 </div>
                 <small className="kop-save-note">Preferensi disimpan di browser; teks KOP/jadwal hanya selama sesi tab aktif.
                   Foto, logo, dan tanda tangan tidak disimpan ulang.</small>
-                {storageMessage && <p className="kop-save-message" role={storageMessage.startsWith('Gagal') || storageMessage.startsWith('Perbaiki') ? 'alert' : 'status'}>{storageMessage}</p>
+                {storageMessage && <p className="kop-save-message" role={storageMessage.startsWith('Gagal') || storageMessage.startsWith('Perbaiki') ? 'alert' : 'status'}>{storageMessage}</p>}
                 <BackupPanel key={`backup-${revision}`} preferences={preferences} heading={heading}
                   onRestore={restore} storageMessage={storageMessage} compact={setting !== 0} />
               </div>

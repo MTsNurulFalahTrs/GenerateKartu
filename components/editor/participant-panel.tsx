@@ -67,7 +67,7 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
   const schema = formatId === 7
     ? `7:${photoKey}:${JSON.stringify(fields.map((field) => [field, excelHeaders[field] || field]))}`
     : String(formatId);
-  const mapping = useMemo(() => mapped.schema === schema ? mapped.values : defaultMapping(input?.headers ?? [], fields, excelHeaders, formatId === 7), [mapped, schema, input, fields]);
+  const mapping = useMemo(() => mapped.schema === schema ? mapped.values : defaultMapping(input?.headers ?? [], fields, excelHeaders, formatId === 7), [mapped, schema, input, fields, excelHeaders, formatId]);
   const validation = useMemo(() => input ? validateRows(input, formatId, mapping, custom, customPhotoKey) : null, [input, formatId, mapping, custom, customPhotoKey]);
   const participants = dataset?.schema === schema ? dataset?.rows : undefined;
   const rows = useMemo(() => (participants ?? []).filter((p) =>
