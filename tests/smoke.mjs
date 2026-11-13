@@ -416,11 +416,16 @@ try {
         assert.ok(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length >= 4));
         console.log('Smoke trace: completed format', format);
       }
+      console.log('Smoke trace: returning to format panel before custom');
       await page.$eval('#step-0', (button) => button.click());
+      console.log('Smoke trace: step-0 click completed');
       await page.waitForSelector('#panel-0', { visible: true });
+      console.log('Smoke trace: format panel visible');
       await page.$eval('#pick-custom-format', (button) => button.click());
+      console.log('Smoke trace: custom trigger click completed');
       const customDialog = '.custom-format-dialog[open]';
       await page.waitForSelector(customDialog, { visible: true });
+      console.log('Smoke trace: custom modal visible');
       assert.equal(await page.$$eval(`${customDialog} .custom-format-rows li`, (items) => items.length), 3);
       const options = await page.$$eval(`${customDialog} li:first-child select option`,
         (items) => items.map((item) => ({ text: item.textContent.trim(), disabled: item.disabled })));
