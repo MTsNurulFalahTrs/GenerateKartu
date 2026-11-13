@@ -869,7 +869,7 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 .community-card-symbol { display: inline-grid; place-items: center; flex: none; color: #873bfa; }
 .community-card-symbol svg { width: 1.18rem; height: 1.18rem; }
 .community-card[data-selected="true"] .community-card-symbol { color: #fff; }
-.community-card-identity { flex: 1; min-width: 0; padding-right: 1.2rem; }
+.community-card-identity { flex: 1; min-width: 0; }
 .community-card-identity h3 {
   color: inherit; font-size: .83rem; font-weight: 800; line-height: 1.25;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -885,7 +885,6 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
   color: #f4ecff;
 }
 .community-card-fieldcount {
-  position: absolute; top: .58rem; right: .6rem;
   border-radius: 30px; padding: .18rem .42rem;
   background: #fff; color: #515d79; font-size: .59rem; font-weight: 800;
   white-space: nowrap;
@@ -893,7 +892,7 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 .community-card[data-selected="true"] .community-card-fieldcount {
   color: #fff; background: rgb(255 255 255 / 19%);
 }
-.community-card-active-mark { position: absolute; right: .85rem; bottom: .55rem; font-size: .65rem; }
+.community-card-active-mark { font-size: .65rem; }
 .community-card-content {
   display: flex; flex-direction: column; flex: 1; min-height: 0;
   padding: .9rem .95rem .8rem;
@@ -1185,7 +1184,35 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
   .import-footer-buttons > .action { flex: 1; }
 }
 
-.community-delete { color: #b42318; background: #fff1f0; }
+.community-card-meta {
+  display: grid;
+  justify-items: center;
+  align-self: start;
+  flex: none;
+}
+.community-delete {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 38px;
+  border-radius: .65rem;
+}
+.community-delete span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 25%);
+  color: #b42318;
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.community-delete:hover span { background: rgb(255 255 255 / 70%); }
+.community-delete:focus-visible { outline: 2px solid currentColor; outline-offset: -2px; }
+.community-card[data-selected="true"] .community-delete span,
+.editor[data-theme="dark"] .community-delete span { color: #670b10; }
 
 @media screen {
   html:has(dialog:modal), body:has(dialog:modal) { overflow: hidden; overscroll-behavior: none; }
