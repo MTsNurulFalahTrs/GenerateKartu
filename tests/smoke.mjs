@@ -165,7 +165,7 @@ try {
       await page.waitForFunction(() => document.querySelector('.kop-signature output')?.textContent?.includes('1.2 cm'));
       await page.$eval('.kop-signature input[role="switch"]', (input) => input.click());
       await page.waitForFunction(() => document.querySelector('.kop-signature input[role="switch"]')?.checked === true);
-      await page.locator('.kop-save').click();
+      await page.$eval('.kop-save', (button) => button.click());
       await page.waitForFunction(() => document.querySelector('.kop-page-meta [role=status]')?.textContent === 'Disimpan');
       const savedAppearance = await page.evaluate(() => JSON.parse(localStorage.getItem('generate-kartu:preferences:v1')).settings);
       assert.deepEqual(savedAppearance.kopStyles.institution, { size: 12, bold: true, italic: true });
