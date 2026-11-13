@@ -321,7 +321,7 @@ export function CardEditor() {
             {index === 1 && (
               <>
                 <p className="data-intro">Semua data murid dan foto diproses di browser Anda.</p>
-                <ParticipantPanel key={revision} format={format} custom={custom} photos={photos} onDataset={setDataset} onPhotos={setPhotos} />
+                <ParticipantPanel key={revision} active={step === 1} format={format} custom={custom} photos={photos} onDataset={setDataset} onPhotos={setPhotos} />
                 <footer className="data-footer">
                   <small>Tip: Foto bersifat opsional. Kartu tetap bisa dicetak tanpa foto.</small>
                   <button className="action" type="button" onClick={() => setStep(0)}>‹ Kembali</button>

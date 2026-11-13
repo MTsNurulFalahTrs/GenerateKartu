@@ -30,7 +30,8 @@ function csvCell(value: string) {
   return '"' + safe.replaceAll('"', '""') + '"';
 }
 
-export function ParticipantPanel({ format, custom, photos, onDataset, onPhotos }: {
+export function ParticipantPanel({ active, format, custom, photos, onDataset, onPhotos }: {
+  active: boolean;
   format: number | null;
   custom: readonly Field[];
   photos: ReadonlyMap<string, Blob>;
@@ -75,8 +76,10 @@ export function ParticipantPanel({ format, custom, photos, onDataset, onPhotos }
 
   useEffect(() => {
     const dialog = importDialog.current;
-    if (names.length && !busy && dialog && !dialog.open) dialog.showModal();
-  }, [names, busy]);
+    if (!dialog) return;
+    if (!active && dialog.open) dialog.close();
+    if (active && names.length && !busy && !dialog.open) dialog.showModal();
+  }, [active, names, busy]);
 
   function stop() {
     worker.current?.terminate();
