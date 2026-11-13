@@ -55,7 +55,7 @@ const browser = await puppeteer.launch({
 
 try {
   for (const [name, width, height] of [['desktop', 1440, 1000], ['mobile', 390, 844]]) {
-    const page = await browser.newPage();
+    let page = await browser.newPage();
     await page.setCacheEnabled(false);
     const errors = [];
     const externalRequests = [];
@@ -416,13 +416,22 @@ try {
         assert.ok(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length >= 4));
         console.log('Smoke trace: completed format', format);
       }
-      // Isolate form behavior from the 500-card print/PDF stress phase.
-      // The imported participant dataset is intentionally ephemeral.
-      await page.evaluate(() => {
-        localStorage.removeItem('generate-kartu:preferences:v1');
-        sessionStorage.removeItem('generate-kartu:card-session:v1');
+      // Start interactive custom-format checks on a new CDP page after
+      // closing the page used for the 500-card print and PDF stress test.
+      await page.close();
+      page = await browser.newPage();
+      await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: name === 'mobile', hasTouch: name === 'mobile' });
+      await page.setCacheEnabled(false);
+      page.on('request', (request) => {
+        const url = new URL(request.url());
+        if (['http:', 'https:'].includes(url.protocol) &&
+          (url.origin !== new URL(origin).origin || request.method() !== 'GET' || /Peserta(?:%20|\+)Uji|Madrasah(?:%20|\+)Uji/i.test(url.href))) {
+          externalRequests.push({ origin: url.origin, method: request.method() });
+        }
       });
-      await page.reload({ waitUntil: 'domcontentloaded' });
+      page.on('pageerror', (error) => errors.push(error.message));
+      page.on('console', (entry) => { if (entry.type() === 'error') errors.push(entry.text()); });
+      await page.goto(origin, { waitUntil: 'domcontentloaded' });
       await page.waitForSelector('#pick-custom-format');
       console.log('Smoke trace: clean-page custom editor after 500-card print regression');
       console.log('Smoke trace: returning to format panel before custom');
