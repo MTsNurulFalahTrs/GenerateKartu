@@ -355,3 +355,9 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 @media (max-width: 639px) { .kop-grid { grid-template-columns: minmax(0, 1fr); } }
 
 .kop-save-note { display: block; margin-top: .45rem; color: var(--muted); }
+
+.import-dialog.panel { width: min(44rem, calc(100% - 2rem)); padding: 0; }
+.import-dialog > header, .import-dialog-actions { background: var(--surface); }
+.import-dialog > header { position: sticky; top: 0; z-index: 1; border-bottom: 1px solid var(--line); }
+.import-dialog-body { padding: .5rem 1.25rem 1rem; }
+.import-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; border-top: 1px solid var(--line); }

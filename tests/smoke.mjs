@@ -116,8 +116,10 @@ try {
       if (output) await page.screenshot({ path: `${output}/data-murid-awal-${name}.png`, fullPage: true });
       const fileInput = await page.$('input[type="file"]');
       assert.ok(fileInput);
+      assert.equal(await page.$('.import-dialog[open]'), null);
       for (const file of [valid, duplicate]) {
         await fileInput.uploadFile(file);
+        await page.waitForSelector('.import-dialog[open]');
         await page.waitForFunction(() => {
           const sheet = document.querySelector('#participant-sheet');
           return sheet && !sheet.disabled && sheet.value === 'Petunjuk';
@@ -128,12 +130,15 @@ try {
           await page.waitForSelector('#apply-participant-import:enabled');
           await page.focus('#apply-participant-import');
           await page.keyboard.press('Space');
+          await page.waitForSelector('.import-dialog[open]', { hidden: true });
           await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('500 terpilih'));
           await page.locator('input[placeholder="Nama atau ID"]').fill('0002');
           await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('1 cocok'));
         } else {
-          await page.waitForFunction(() => document.querySelector('[role="alert"]')?.textContent.includes('Gunakan ID unik'));
+          await page.waitForFunction(() => document.querySelector('.import-dialog [role="alert"]')?.textContent.includes('Gunakan ID unik'));
           assert.equal(await page.$eval('#apply-participant-import', (button) => button.disabled), true);
+          await page.keyboard.press('Escape');
+          await page.waitForSelector('.import-dialog[open]', { hidden: true });
           assert.match(await page.$eval('#panel-1', (panel) => panel.textContent), /500 peserta/);
         }
       }
