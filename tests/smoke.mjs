@@ -162,6 +162,7 @@ try {
       await signatureInput.uploadFile(photo);
       await page.waitForSelector('.kop-asset-image img[alt="Tanda Tangan Digital (opsional)"]');
       await page.locator('.kop-signature button:nth-child(3)').click();
+      await page.waitForFunction(() => document.querySelector('.kop-signature output')?.textContent?.includes('1.2 cm'));
       await page.locator('.kop-signature input[role="switch"]').click();
       await page.locator('.kop-save').click();
       await page.waitForFunction(() => document.querySelector('.kop-page-meta [role=status]')?.textContent === 'Disimpan');
