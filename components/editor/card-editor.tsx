@@ -162,9 +162,10 @@ export function CardEditor() {
 
   return (
     <div className="editor" data-theme={dark ? 'dark' : 'light'}>
+      <a className="skip-editor" href="#editor-content">Lewati ke isi editor</a>
       <header className="header">
         <div className="header-inner">
-          <Link className="brand" href="/" aria-label="Kartu Ujian Pro, editor">
+          <Link className="brand" href="/">
             <span className="brand-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M1 9 12 3l11 6-11 6-11-6Zm4 4 7 4 7-4v5l-7 4-7-4Z"/></svg>
             </span>
@@ -190,7 +191,7 @@ export function CardEditor() {
           </div>
         </div>
       </header>
-      <main className="content">
+      <main className="content" id="editor-content" tabIndex={-1}>
         {sessionMessage && <p role="status">{sessionMessage}</p>}
         {steps.map((label, index) => (
           <section key={label} id={`panel-${index}`} role="tabpanel" aria-labelledby={`step-${index}`}
@@ -202,7 +203,7 @@ export function CardEditor() {
                   <article className="panel format" key={name} data-selected={format === id}>
                     <h2>Format {id + 1}</h2><p>{name}</p>
                     <button className="action" type="button" aria-pressed={format === id}
-                      aria-label={`Pilih Format ${id + 1}`} onClick={() => setFormat(id)}>
+                      id={`pick-format-${id + 1}`} aria-label={format === id ? `Dipilih · Format ${id + 1}` : `Pilih Format ${id + 1}`} onClick={() => setFormat(id)}>
                       {format === id ? 'Dipilih' : 'Pilih Format'}
                     </button>
                   </article>

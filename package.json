@@ -32,7 +32,8 @@
     "eslint-config-next": "16.4.3",
     "puppeteer-core": "25.16.0",
     "tailwindcss": "4.3.3",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "axe-core": "4.14.0"
   },
   "type": "module"
 }

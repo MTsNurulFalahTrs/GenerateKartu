@@ -204,9 +204,9 @@ export function ParticipantPanel({ format, custom, onDataset, onPhotos }: {
               </select></label>)}
             </div>
             <h3>Pratinjau impor · {input.rows.length} baris</h3>
-            <div className="overflow-x-auto">
+            <div className="table-scroll" role="region" aria-label="Pratinjau impor Excel" tabIndex={0}>
               <table className="w-full text-left">
-                <thead><tr><th>Baris</th>{fields.map((field) => <th className="px-2" key={field}>{field}</th>)}</tr></thead>
+                <thead><tr><th scope="col">Baris</th>{fields.map((field) => <th scope="col" className="px-2" key={field}>{field}</th>)}</tr></thead>
                 <tbody>{input.rows.slice(0, 5).map((row) => <tr key={row.number}><td>{row.number}</td>{fields.map((field) => <td className="px-2 break-all" key={field}>{row.cells[mapping[field] ?? -1] || '—'}</td>)}</tr>)}</tbody>
               </table>
             </div>
@@ -244,9 +244,9 @@ export function ParticipantPanel({ format, custom, onDataset, onPhotos }: {
           <button className="action" type="button" disabled={!rows.length} onClick={() => setSelected((previous) => new Set([...previous, ...rows.map((p) => p.id)]))}>Pilih hasil filter</button>
           <button className="action" type="button" disabled={!selected.size} onClick={() => setSelected(new Set())}>Kosongkan pilihan</button>
         </div>
-        <div className="overflow-x-auto">
+        <div className="table-scroll" role="region" aria-label="Daftar peserta" tabIndex={0}>
           <table className="w-full text-left">
-            <thead><tr><th>Pilih</th><th>ID</th><th>Nama</th>{fields.filter((field) => field !== 'NamaMurid' && field !== 'NoPeserta' && field !== 'Username').map((field) => <th className="px-2" key={field}>{field}</th>)}</tr></thead>
+            <thead><tr><th scope="col">Pilih</th><th scope="col">ID</th><th scope="col">Nama</th>{fields.filter((field) => field !== 'NamaMurid' && field !== 'NoPeserta' && field !== 'Username').map((field) => <th scope="col" className="px-2" key={field}>{field}</th>)}</tr></thead>
             <tbody>{rows.slice(page * 25, (page + 1) * 25).map((p) => <tr key={p.id}>
               <td><input type="checkbox" aria-label={`Pilih ${p.name} (${p.id})`} checked={selected.has(p.id)} onChange={() => toggle(p.id)} /></td>
               <td className="px-2">{p.id}</td><td className="px-2">{p.name}</td>
