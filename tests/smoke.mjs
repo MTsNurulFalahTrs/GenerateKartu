@@ -37,6 +37,8 @@ async function fixture(name, ids) {
 }
 const valid = await fixture('valid.xlsx', ['0001', '0002']);
 const duplicate = await fixture('duplikat.xlsx', ['0001', '0001']);
+const photo = join(fixtureDir, '0001.png');
+await writeFile(photo, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGNkYPjPQApgIkn1qIZRDUNKAwA+MAEfWiW9ygAAAABJRU5ErkJggg==', 'base64'));
 const browser = await puppeteer.launch({
   executablePath: await chromium.executablePath(),
   args: chromium.args,
@@ -85,14 +87,53 @@ try {
           assert.match(await page.$eval('#panel-1', (panel) => panel.textContent), /2 peserta/);
         }
       }
-      await page.locator('#step-2').click();
-      await page.locator('button::-p-text(Jadwal)').click();
-      await page.waitForSelector('button[aria-pressed="true"]::-p-text(Jadwal)');
-      await page.locator('#step-3').click();
+      const photoInput = await page.$('#panel-1 input[accept="image/png,image/jpeg"]');
+      assert.ok(photoInput);
+      await photoInput.uploadFile(photo);
+      await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('1 foto diterapkan'));
+      await page.$eval('#step-2', (button) => button.click());
+      await page.waitForSelector('#panel-2', { visible: true });
+      await page.evaluate(() => {
+        const input = [...document.querySelectorAll('#panel-2 input')].find((element) => element.labels?.[0]?.textContent.includes('Nama sekolah'));
+        if (!input) throw new Error('Input institusi hilang');
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+        setter.call(input, 'Madrasah Uji Fase 7');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await page.waitForFunction(() => document.querySelector('#panel-2 .exam-card-head')?.textContent.includes('Madrasah Uji Fase 7'));
+      await page.waitForSelector('#panel-2 img[alt="Foto peserta"]');
+      await page.$eval('#card-settings-1', (button) => button.click());
+      await page.waitForSelector('#card-settings-1[aria-pressed=true]');
+      await page.evaluate(() => {
+        const input = [...document.querySelectorAll('#panel-2 input[type=checkbox]')].find((element) => element.labels?.[0]?.textContent.includes('Tampilkan QR'));
+        if (!input) throw new Error('Toggle QR hilang');
+        input.click();
+      });
+      await page.waitForSelector('#panel-2 svg[aria-label="QR referensi kartu"]');
+      await page.$eval('#card-settings-2', (button) => button.click());
+      await page.waitForSelector('#card-settings-2[aria-pressed=true]');
+      await page.$eval('#step-3', (button) => button.click());
+      await page.waitForSelector('#panel-3', { visible: true });
       assert.match(await page.locator('#panel-3').map((el) => el.textContent).wait(), /Lengkap Ruang/);
+      for (let format = 1; format <= 7; format++) {
+        await page.$eval('#step-0', (button) => button.click());
+        await page.waitForSelector('#panel-0', { visible: true });
+        await page.$eval(`[aria-label="Pilih Format ${format}"]`, (button) => button.click());
+        await page.$eval('#step-3', (button) => button.click());
+        await page.waitForSelector('#panel-3', { visible: true });
+        await page.waitForSelector('#panel-3 .exam-card');
+        assert.ok(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length >= 4));
+      }
+      await page.$eval('#step-0', (button) => button.click());
+      await page.waitForSelector('#panel-0', { visible: true });
+      await page.$eval('#pick-custom-format', (button) => button.click());
+      await page.$eval('#step-3', (button) => button.click());
+      await page.waitForSelector('#panel-3', { visible: true });
+      assert.equal(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length), 3);
       await page.locator('.theme').click();
       await page.waitForSelector('[data-theme="dark"]');
-      await page.locator('#step-0').click();
+      await page.$eval('#step-0', (button) => button.click());
+      await page.waitForSelector('#panel-0', { visible: true });
       await page.locator('.theme').click();
       await page.waitForSelector('[data-theme="light"]');
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);

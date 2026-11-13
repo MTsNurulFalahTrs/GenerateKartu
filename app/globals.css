@@ -61,3 +61,19 @@ a { color: var(--indigo-700); }
 }
 .action:disabled { cursor: not-allowed; opacity: .55; }
 .panel th, .panel td { border-bottom: 1px solid var(--line); padding-block: .4rem; }
+
+.card-preview-wrap { max-width: 100%; overflow-x: auto; padding: .25rem; }
+.exam-card { background: white; color: #000; border: 1px solid black; overflow: hidden; line-height: 1.2; }
+.exam-card[data-bw="true"] { filter: grayscale(1); }
+.exam-card-content { padding: 1.5mm; overflow-wrap: anywhere; }
+.exam-card-head { display: grid; grid-template-columns: 9mm 1fr 9mm; align-items: center; gap: 1mm; text-align: center; padding-bottom: 1mm; border-bottom: 1px solid black; }
+.exam-card-body { display: grid; grid-template-columns: 55fr 45fr; gap: 1mm; padding-top: 1mm; }
+.exam-card dl > div { display: grid; grid-template-columns: 40fr 60fr; gap: .7mm; }
+.exam-card dt { font-weight: 600; }
+.exam-card-sign { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; }
+.card-asset { object-fit: contain; width: 10mm; height: 12mm; }
+.exam-card-head .card-asset { width: 9mm; height: 9mm; }
+.exam-card-sign .card-asset { width: 18mm; height: 8mm; }
+.card-photo-empty { display: grid; place-items: center; width: 10mm; height: 12mm; border: 1px dashed #64748b; }
+.card-qr { width: 13mm; height: 13mm; flex: none; }
+.exam-card-schedule { margin-top: 1mm; border-top: 1px solid black; }

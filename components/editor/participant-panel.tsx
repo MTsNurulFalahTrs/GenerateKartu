@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { defaultMapping, fieldsFor, validateRows } from '../../lib/participants/model';
-import type { Issue, Mapping, Participant, WorkbookRows } from '../../lib/participants/model';
+import type { Field, Issue, Mapping, Participant, WorkbookRows } from '../../lib/participants/model';
+import { PhotoPanel } from './photo-panel';
 import type { WorkbookRequest } from '../../lib/participants/workbook.worker';
 
 const MAX_FILE = 10 * 1024 * 1024;
@@ -27,9 +28,11 @@ function csvCell(value: string) {
   return '"' + safe.replaceAll('"', '""') + '"';
 }
 
-export function ParticipantPanel({ format, onSelection }: {
+export function ParticipantPanel({ format, custom, onSelection, onPhotos }: {
   format: number | null;
-  onSelection: (count: number) => void;
+  custom: readonly Field[];
+  onSelection: (participants: Participant[]) => void;
+  onPhotos: (photos: Map<string, Blob>) => void;
 }) {
   const worker = useRef<Worker | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -39,6 +42,7 @@ export function ParticipantPanel({ format, onSelection }: {
   const [sheet, setSheet] = useState('');
   const [input, setInput] = useState<WorkbookRows | null>(null);
   const [mapped, setMapped] = useState<{ format: number; values: Mapping }>({ format: 0, values: {} });
+  const [revision, setRevision] = useState(0);
   const [dataset, setDataset] = useState<{ format: number; rows: Participant[] } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState('');
@@ -46,9 +50,9 @@ export function ParticipantPanel({ format, onSelection }: {
   const [sort, setSort] = useState('name');
   const [page, setPage] = useState(0);
   const formatId = format ?? 0;
-  const fields = fieldsFor(formatId);
+  const fields = fieldsFor(formatId, custom);
   const mapping = useMemo(() => mapped.format === formatId ? mapped.values : defaultMapping(input?.headers ?? [], fields), [mapped, formatId, input, fields]);
-  const validation = useMemo(() => input ? validateRows(input, formatId, mapping) : null, [input, formatId, mapping]);
+  const validation = useMemo(() => input ? validateRows(input, formatId, mapping, custom) : null, [input, formatId, mapping, custom]);
   const participants = dataset?.format === format ? dataset?.rows : undefined;
   const rows = useMemo(() => (participants ?? []).filter((p) =>
     `${p.id} ${p.name}`.toLocaleLowerCase('id').includes(query.trim().toLocaleLowerCase('id')) &&
@@ -56,7 +60,7 @@ export function ParticipantPanel({ format, onSelection }: {
   ).sort((a, b) => (sort === 'id' ? a.id.localeCompare(b.id, 'id', { numeric: true }) : a.name.localeCompare(b.name, 'id'))), [participants, query, facets, sort]);
 
   useEffect(() => {
-    onSelection(participants ? selected.size : 0);
+    onSelection(participants?.filter((participant) => selected.has(participant.id)) ?? []);
   }, [onSelection, participants, selected]);
 
   useEffect(() => () => {
@@ -134,6 +138,8 @@ export function ParticipantPanel({ format, onSelection }: {
 
   function applyImport() {
     if (!validation || validation.issues.length || format === null) return;
+    onPhotos(new Map());
+    setRevision((value) => value + 1);
     setDataset({ format, rows: validation.participants });
     setSelected(new Set(validation.participants.map((p) => p.id)));
     setQuery('');
@@ -164,8 +170,8 @@ export function ParticipantPanel({ format, onSelection }: {
         <p>Unduh templat Format {format + 1} atau pilih berkas XLSX/XLS.</p>
         <div className="flex flex-wrap items-center gap-3">
           <button className="action" type="button" disabled={busy} onClick={() => {
-            if (worker.current && names.length) send(worker.current, { action: 'template', format });
-            else start({ action: 'template', format });
+            if (worker.current && names.length) send(worker.current, { action: 'template', format, custom });
+            else start({ action: 'template', format, custom });
           }}>Unduh templat Excel</button>
           <input aria-label="Berkas Excel peserta" className="max-w-full" type="file" accept=".xlsx,.xls"
             onChange={(event) => {
@@ -253,7 +259,7 @@ export function ParticipantPanel({ format, onSelection }: {
           <button type="button" className="action" disabled={(page + 1) * 25 >= rows.length} onClick={() => setPage(page + 1)}>Berikutnya</button>
         </div>}
       </div>}
-      <div className="panel"><h2>2. Foto Peserta</h2><p>Foto individual dan ZIP tersedia pada fase pengolahan aset.</p></div>
+      <PhotoPanel key={revision} participants={participants} onPhotos={onPhotos} />
     </div>
   );
 }

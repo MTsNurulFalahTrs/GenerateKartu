@@ -3,21 +3,36 @@
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
+import { CardSettingsPanel } from './card-settings';
+import { CardPreview } from './card-preview';
+import { defaultCard } from '../../lib/cards/settings';
+import type { InstitutionAssets } from '../../lib/cards/settings';
+import { fieldsFor } from '../../lib/participants/model';
+import type { Field, Participant } from '../../lib/participants/model';
 import { ParticipantPanel } from './participant-panel';
 import { formats, moveStep, steps } from '../../lib/editor';
 
 const settings = ['Kop', 'Tata Letak', 'Jadwal'] as const;
-const settingsDescriptions = [
-  'Kop, logo, dan tanda tangan akan ditampilkan pada pratinjau kartu.',
-  'Ukuran kartu, warna, foto, dan QR diatur di sini.',
-  'Atur kolom jadwal yang akan tampil pada kartu.',
-];
+const sample: Participant = {
+  id: 'CONTOH-001',
+  name: 'Peserta Contoh',
+  values: { NamaMurid: 'Peserta Contoh', NoPeserta: '0001', NISN: '0000000001', Kelas: 'IX-A', Ruang: '1', Sesi: 'Sesi 1', Username: 'CONTOH-001', TglLahir: '2012-01-01', NamaSatdik: 'Madrasah Contoh' },
+};
+const optionalFields = ['NISN', 'Kelas', 'Ruang', 'Sesi', 'Username', 'TglLahir', 'NamaSatdik'] as const;
 
 export function CardEditor() {
   const [step, setStep] = useState(0);
   const [format, setFormat] = useState<number | null>(null);
   const [setting, setSetting] = useState(0);
-  const [selectedCount, setSelectedCount] = useState(0);
+  const [selected, setSelected] = useState<Participant[]>([]);
+  const [photos, setPhotos] = useState(new Map<string, Blob>());
+  const [assets, setAssets] = useState<InstitutionAssets>({});
+  const [card, setCard] = useState(defaultCard);
+  const [custom, setCustom] = useState<Field[]>(['NoPeserta', 'NamaMurid', 'Kelas']);
+  const [hidden, setHidden] = useState<Field[]>([]);
+  const previewParticipant = selected[0] ?? sample;
+  const preview = (id: number) => <CardPreview format={id} custom={custom} participant={previewParticipant}
+    photo={photos.get(previewParticipant.id)} settings={card} assets={assets} hidden={hidden} />;
   const [dark, setDark] = useState(false);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -75,25 +90,57 @@ export function CardEditor() {
                     </button>
                   </article>
                 ))}
-                <article className="panel format custom"><h2>Format Kustom</h2><p>Builder tersedia pada fase pengolahan format.</p></article>
+                <article className="panel format custom" data-selected={format === 7}>
+                  <h2>Format Kustom</h2>
+                  <p>Susun kolom dan urutan biodata.</p>
+                  <button type="button" id="pick-custom-format" className="action" aria-pressed={format === 7} onClick={() => setFormat(7)}>Pilih format kustom</button>
+                </article>
               </div>
             )}
+            {index === 0 && format === 7 && <div className="panel mt-4">
+              <h2>Susun format kustom</h2>
+              <p>Nomor peserta dan nama wajib. Kolom lain dapat ditambahkan atau diurutkan.</p>
+              <div className="flex flex-wrap gap-3">{optionalFields.map((field) => <label key={field}>
+                <input type="checkbox" checked={custom.includes(field)} onChange={(event) => {
+                  setCustom(event.target.checked ? [...custom, field] : custom.filter((item) => item !== field));
+                }} /> {field}
+              </label>)}</div>
+              <ol className="mt-3 grid gap-2">{custom.map((field, position) => <li key={field} className="flex items-center gap-2">
+                <span>{position + 1}. {field}</span>
+                <button className="action" type="button" aria-label={`Naikkan ${field}`} disabled={position === 0} onClick={() => {
+                  const next = [...custom];
+                  [next[position - 1], next[position]] = [next[position], next[position - 1]];
+                  setCustom(next);
+                }}>↑</button>
+              </li>)}</ol>
+            </div>}
             {index === 1 && (
-              <ParticipantPanel format={format} onSelection={setSelectedCount} />
+              <ParticipantPanel format={format} custom={custom} onSelection={setSelected} onPhotos={setPhotos} />
             )}
             {index === 2 && (
               <div className="panel">
                 <div className="subtabs" role="group" aria-label="Bagian pengaturan">
                   {settings.map((name, id) => (
-                    <button className="action" key={name} type="button" aria-pressed={setting === id} onClick={() => setSetting(id)}>{name}</button>
+                    <button className="action" id={`card-settings-${id}`} key={name} type="button" aria-pressed={setting === id} onClick={() => setSetting(id)}>{name}</button>
                   ))}
                 </div>
-                <h2>{settings[setting]}</h2><p>{settingsDescriptions[setting]}</p>
+                <h2 className="mb-3">{settings[setting]}</h2>
+                <CardSettingsPanel section={setting} value={card} onChange={setCard} assets={assets}
+                  onAssets={(name, asset) => setAssets((previous) => ({ ...previous, [name]: asset }))} />
+                {setting === 1 && format !== null && <fieldset className="mt-4">
+                  <legend>Kolom kartu</legend>
+                  <div className="flex flex-wrap gap-3">{fieldsFor(format, custom).filter((field) =>
+                    field !== 'NamaMurid' && field !== (format === 0 ? 'Username' : 'NoPeserta')).map((field) =>
+                    <label key={field}><input type="checkbox" checked={!hidden.includes(field)} onChange={(event) =>
+                      setHidden(event.target.checked ? hidden.filter((item) => item !== field) : [...hidden, field])
+                    } /> {field}</label>)}</div>
+                </fieldset>}
+                <div className="mt-4">{preview(format ?? 0)}</div>
               </div>
             )}
             {index === 3 && (
-              <div className="panel"><h2>Pratinjau Kartu</h2><p>{selectedCount ? `${selectedCount} peserta terpilih untuk kartu.` : 'Belum ada peserta terpilih.'}</p>
-                {format !== null && <p>Format terpilih: {formats[format]}.</p>}
+              <div className="panel"><h2>Pratinjau Kartu</h2><p>{selected.length ? `${selected.length} peserta terpilih. Kartu peserta pertama ditampilkan.` : 'Contoh kartu. Impor data untuk melihat kartu peserta.'}</p>
+                {format !== null && <><p>Format terpilih: {formats[format] ?? 'Format Kustom'}.</p>{preview(format)}</>}
               </div>
             )}
           </section>
