@@ -34,3 +34,9 @@ Sesuai arahan pengguna pada 13 November 2026, pembandingan hasil terhadap aplika
 ## Bukti aplikasi baru pada Fase 13
 
 Suite browser memeriksa format 1–7 dan kustom, panel editor, kondisi kosong dan data 500 peserta, serta keluaran cetak/PDF. Artefak screenshot desktop/mobile berasal dari pipeline Quality. Status baseline di atas tetap berlaku. Perubahan keamanan terlihat pada penolakan pembingkaian aplikasi. Perubahan desain besar masih membutuhkan persetujuan.
+
+## Rekonsiliasi layar Format
+
+Bukti desktop original dari operator menunjukkan Format 1 aktif, ringkasan pilihan, katalog empat kolom, penanda acuan foto, dan modal Preview Format Kustom. Modal memuat satu kartu contoh, petunjuk ukuran cetak, serta dua tombol penutup.
+
+PR ini menerapkan katalog bawaan dan Preview terpisah dari pemilihan format. Smoke Quality menyimpan keadaan awal dan modal Preview Format 2 pada desktop dan mobile. Perbandingan visual staging, baseline original mobile, dan penyamaan isi kartu tetap terbuka. Jumlah field mengikuti kontrak data saat ini. Tampilan katalog komunitas dan baris Password CBT mengikuti keputusan cakupan masing-masing.
