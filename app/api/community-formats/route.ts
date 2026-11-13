@@ -1,6 +1,6 @@
 import { parseCommunityFormat } from '../../../lib/cards/community';
 
-const maxBodyBytes = 1024;
+const maxBodyBytes = 4096;
 
 function request(path: string, init?: RequestInit) {
   const url = process.env.COMMUNITY_SUPABASE_URL;

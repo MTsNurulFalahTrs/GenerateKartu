@@ -46,14 +46,15 @@ export function readSheet(bytes: ArrayBuffer, name: string, maxRows = maxPartici
   return { headers, rows, headerRow: range.s.r + 1 };
 }
 
-export function createTemplate(format: number, custom?: readonly Field[]) {
+export function createTemplate(format: number, custom?: readonly Field[],
+  excelHeaders: Partial<Record<Field, string>> = {}) {
   const examples = {
     NamaMurid: 'Peserta Uji 0001', Kelas: 'IX-A', Sesi: 'Sesi 1', Username: 'UJI-0001',
     NoPeserta: '0001', NISN: '0000000001', Ruang: 'Ruang 1', TglLahir: '2012-01-01', NamaSatdik: 'Madrasah Contoh',
   };
   const fields = fieldsFor(format, custom);
   const workbook = utils.book_new();
-  utils.book_append_sheet(workbook, utils.aoa_to_sheet([[...fields], fields.map((field) => examples[field])]), 'Peserta');
+  utils.book_append_sheet(workbook, utils.aoa_to_sheet([fields.map((field) => excelHeaders[field] || field), fields.map((field) => examples[field as keyof typeof examples] ?? '')]), 'Peserta');
   return write(workbook, { type: 'array', bookType: 'xlsx', compression: true }) as ArrayBuffer;
 }
 

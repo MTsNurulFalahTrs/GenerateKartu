@@ -35,3 +35,22 @@ test('restores pre-KOP preferences and validates new appearance settings', () =>
   assert.deepEqual(parseBackup(JSON.stringify({ ...preferences, settings: legacy })).preferences, preferences);
   assert.throws(() => parseBackup(JSON.stringify({ ...preferences, settings: { ...preferences.settings, signatureSize: 3 } })));
 });
+
+
+test('custom format retains display labels and Excel headers while rejecting sensitive mappings', () => {
+  const configured = {
+    ...preferences,
+    custom: ['NoPeserta', 'NamaMurid', 'Custom1'],
+    customAppearance: {
+      name: 'Kartu Ujian Kustom', photoKey: 'NoPeserta', mono: ['Custom1'],
+      labels: { NoPeserta: 'No. Peserta', NamaMurid: 'Nama Murid', Custom1: 'Nomor Bangku' },
+      excelHeaders: { NoPeserta: 'NoPeserta', NamaMurid: 'NamaMurid', Custom1: 'NomorBangku' },
+    },
+  };
+  assert.deepEqual(parseBackup(JSON.stringify(configured)).preferences, configured);
+  const bad = (appearance) => JSON.stringify({ ...configured, customAppearance: appearance });
+  assert.throws(() => parseBackup(bad({ ...configured.customAppearance, excelHeaders: { Custom1: 'Password' } })));
+  assert.throws(() => parseBackup(bad({ ...configured.customAppearance, labels: { Custom1: '' } })));
+  assert.throws(() => parseBackup(bad({ ...configured.customAppearance, excelHeaders: { Custom1: 'NomorBangku', Unlisted: 'Kolom' } })));
+  assert.throws(() => parseBackup(JSON.stringify({ ...configured, customAppearance: undefined })));
+});
