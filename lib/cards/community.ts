@@ -4,7 +4,7 @@ import type { CustomAppearance } from './preferences.ts';
 import type { Field } from '../participants/model.ts';
 
 export type CommunityFormat = CustomAppearance & { fields: Field[] };
-export type CatalogFormat = CommunityFormat & { id: number; contributor?: string };
+export type CatalogFormat = CommunityFormat & { id: number; contributor?: string; createdAt?: string };
 export type CommunityAttribution = { anonymous: boolean; contributorName: string };
 
 export function parseCommunityAttribution(value: unknown): CommunityAttribution | null {

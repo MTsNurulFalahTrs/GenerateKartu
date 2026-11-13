@@ -92,6 +92,79 @@ try {
       await page.keyboard.up('Control');
       await page.keyboard.press('Backspace');
       await page.waitForFunction(() => document.querySelectorAll('.format-grid article').length === 8);
+
+      // Local stub: validate catalog display, selection, search and preview without writing to Neon.
+      const catalogPage = await browser.newPage();
+      await catalogPage.setViewport({ width, height, deviceScaleFactor: 1, isMobile: name === 'mobile', hasTouch: name === 'mobile' });
+      catalogPage.on('pageerror', (error) => errors.push(error.message));
+      catalogPage.on('console', (entry) => { if (entry.type() === 'error') errors.push(entry.text()); });
+      const sampleCommunity = [{
+        id: 9001, name: 'Format Uji Komunitas',
+        fields: ['NoPeserta', 'NISN', 'NamaMurid', 'Kelas', 'Ruang', 'Sesi'],
+        photoKey: 'NoPeserta', mono: [],
+        labels: { NoPeserta: 'No. Peserta' },
+        contributor: 'Kontributor Simulasi',
+        createdAt: '2026-11-13T12:00:00.000Z',
+      }];
+      await catalogPage.setRequestInterception(true);
+      const communityRequest = (request) => {
+        if (request.method() === 'GET' && new URL(request.url()).pathname === '/api/community-formats') {
+          void request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(sampleCommunity) });
+        } else {
+          void request.continue();
+        }
+      };
+      catalogPage.on('request', communityRequest);
+      await catalogPage.goto(origin, { waitUntil: 'domcontentloaded' });
+      await catalogPage.waitForSelector('.community-card[data-community-id="9001"]', { visible: true });
+      await catalogPage.waitForSelector('.community-card[data-community-id="9001"]', { visible: true });
+      assert.match(await catalogPage.$eval('.community-card-byline', (el) => el.textContent),
+        /Kontributor Simulasi.*13 Nov 2026/);
+      assert.equal(await catalogPage.$$eval('.community-card-fields li', (items) => items.length), 6);
+      assert.equal(await catalogPage.$eval('.community-extra-fields', (el) => el.textContent.trim()), '+1 field lainnya');
+      await catalogPage.$eval('.format-library-filters button:nth-child(3)', (button) => button.click());
+      await catalogPage.waitForSelector('.format-library-filters button:nth-child(3)[aria-pressed="true"]');
+      await catalogPage.waitForFunction(() => document.querySelectorAll('.format-grid article').length === 1);
+      await catalogPage.locator('input[aria-label="Cari format"]').fill('Kontributor Simulasi');
+      assert.equal(await catalogPage.$$eval('.community-card', (els) => els.length), 1);
+      await catalogPage.locator('input[aria-label="Cari format"]').fill('');
+      await catalogPage.locator('.community-card .community-choose').click();
+      await catalogPage.waitForSelector('.community-card[data-selected="true"]');
+      assert.equal(await catalogPage.$eval('.community-card[data-selected="true"] .community-choose',
+        (el) => el.disabled), true);
+      await catalogPage.locator('.community-card .community-preview').click();
+      await catalogPage.waitForSelector('#format-preview-title');
+      assert.match(await catalogPage.$eval('#format-preview-title', (el) => el.textContent), /Format Uji Komunitas/);
+      await catalogPage.locator('.format-close').click();
+      await catalogPage.waitForFunction(() => !document.querySelector('.format-dialog[open]'));
+      await catalogPage.$eval('.format-library-filters button:nth-child(2)', (button) => button.click());
+      await catalogPage.waitForSelector('.format-library-filters button:nth-child(2)[aria-pressed="true"]');
+      await catalogPage.focus('input[aria-label="Cari format"]');
+      await catalogPage.keyboard.down('Control');
+      await catalogPage.keyboard.press('A');
+      await catalogPage.keyboard.up('Control');
+      await catalogPage.keyboard.press('Backspace');
+      await catalogPage.waitForFunction(() => document.querySelectorAll('#panel-0 .format-grid article').length === 8,
+        { timeout: 5000 }).catch(async () => {
+          console.log('Filter debugging:', await catalogPage.evaluate(() => ({
+            search: document.querySelector('input[aria-label="Cari format"]')?.value,
+            categories: Array.from(document.querySelectorAll('.format-library-filters button'))
+              .map((item) => [item.textContent, item.getAttribute('aria-pressed')]),
+            builtins: document.querySelectorAll('#panel-0 .format-grid .format').length,
+            community: document.querySelectorAll('.community-card').length,
+          })));
+          throw new Error('Built-in cards should return after clearing the search query.');
+        });
+      await catalogPage.$eval('#pick-format-1', (button) => button.click());
+      await catalogPage.waitForSelector('#pick-format-1[aria-pressed="true"]');
+      await catalogPage.$eval('.format-library-filters button:nth-child(1)', (button) => button.click());
+      await catalogPage.waitForSelector('.format-library-filters button:nth-child(1)[aria-pressed="true"]');
+      await catalogPage.waitForFunction(() => document.querySelectorAll('.format-grid article').length === 9);
+      assert.equal(await catalogPage.$$eval('.community-card[data-selected="true"]', (els) => els.length), 0);
+      assert.equal(await catalogPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+      catalogPage.off('request', communityRequest);
+      await catalogPage.close();
+
       const trigger = 'button[aria-label="Preview Format 2"]';
       await page.locator(trigger).click();
       await page.waitForSelector('.format-dialog[open] .exam-card');
