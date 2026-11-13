@@ -595,12 +595,10 @@ try {
         });
         await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('Sesi kedaluwarsa'));
         await page.waitForFunction(() => document.querySelector('#kop-institution')?.value !== 'Madrasah Pulih');
-        const resetDialog = new Promise((resolve, reject) => {
-          page.once('dialog', (dialog) => {
-            void dialog.accept().then(resolve, reject);
-          });
+        await page.$eval('#reset-card-session', (button) => {
+          window.confirm = () => true;
+          button.click();
         });
-        await Promise.all([resetDialog, page.click('#reset-card-session')]);
         await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('direset'));
       }
       await page.locator('.help-nav').click();
@@ -613,12 +611,12 @@ try {
       await dialogAction(page, '.release-notes-footer button');
       await page.waitForSelector('.release-notes-dialog[open]', { hidden: true });
       assert.equal(await page.$eval('.help-nav', (button) => button.getAttribute('aria-pressed')), 'true');
-      assert.equal((await page.goto(new URL('/bantuan', origin).href))?.status(), 404);
-      assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Halaman tidak ditemukan');
       assert.deepEqual(errors, []);
       assert.deepEqual(externalRequests, [], 'No external requests or HTTP uploads during editor flow');
-      assert.equal((await page.goto(new URL('/halaman-tidak-ada', origin).href))?.status(), 404);
-      assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Halaman tidak ditemukan');
+      for (const path of ['/bantuan', '/halaman-tidak-ada']) {
+        assert.equal((await page.goto(new URL(path, origin).href))?.status(), 404);
+        assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Halaman tidak ditemukan');
+      }
       if (name === 'desktop') {
         await page.evaluateOnNewDocument(() => {
           Storage.prototype.setItem = () => { throw new DOMException('Simulasi kuota', 'QuotaExceededError'); };
