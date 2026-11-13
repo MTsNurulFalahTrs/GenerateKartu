@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { defaultMapping, fieldsFor, validateRows } from '../../lib/participants/model';
 import type { Field, Issue, Mapping, Participant, WorkbookRows } from '../../lib/participants/model';
 import { newCardReference } from '../../lib/cards/qr';
+import { EditorIcon } from './editor-icon';
 import { PhotoPanel } from './photo-panel';
 import type { WorkbookRequest } from '../../lib/participants/workbook.worker';
 
@@ -29,9 +30,10 @@ function csvCell(value: string) {
   return '"' + safe.replaceAll('"', '""') + '"';
 }
 
-export function ParticipantPanel({ format, custom, onDataset, onPhotos }: {
+export function ParticipantPanel({ format, custom, photos, onDataset, onPhotos }: {
   format: number | null;
   custom: readonly Field[];
+  photos: ReadonlyMap<string, Blob>;
   onDataset: (dataset: { participants: Participant[]; selected: Set<string> }) => void;
   onPhotos: (photos: Map<string, Blob>) => void;
 }) {
@@ -166,21 +168,33 @@ export function ParticipantPanel({ format, custom, onDataset, onPhotos }: {
   if (format === null) return <div className="panel"><p>Pilih format kartu untuk mengunduh templat atau mengimpor peserta.</p></div>;
 
   return (
-    <div className="grid gap-4">
-      <div className="panel">
-        <h2>1. Data Excel</h2>
-        <p>Unduh templat Format {format + 1} atau pilih berkas XLSX/XLS.</p>
-        <div className="flex flex-wrap items-center gap-3">
-          <button className="action" type="button" disabled={busy} onClick={() => {
+    <div className="data-grid">
+      <div className="panel data-excel">
+        <div className="data-title"><span className="data-icon"><EditorIcon name="excel" /></span>
+          <div><h2>1. Data Excel</h2><small>File Excel berisi data murid</small></div>
+        </div>
+        <div className="data-note"><strong>Kolom wajib di Excel:</strong>
+          <div className="data-columns">{fields.map((field) => <code key={field}>{field}</code>)}</div>
+        </div>
+        <div className="grid gap-3">
+          <button className="action data-download" type="button" disabled={busy} onClick={() => {
             if (worker.current && names.length) send(worker.current, { action: 'template', format, custom });
             else start({ action: 'template', format, custom });
-          }}>Unduh templat Excel</button>
-          <input aria-label="Berkas Excel peserta" className="max-w-full" type="file" accept=".xlsx,.xls"
+          }}>Unduh Template Aktif</button>
+          <label className="data-drop" onDragOver={(event) => event.preventDefault()} onDrop={(event) => {
+            event.preventDefault();
+            const file = event.dataTransfer.files[0];
+            if (file) choose(file);
+          }}>
+            <span className="data-icon"><EditorIcon name="upload" /></span>
+            <strong>Klik atau seret file Excel ke sini</strong><small>Format: .xlsx atau .xls</small>
+          <input aria-label="Berkas Excel peserta" className="sr-only" type="file" accept=".xlsx,.xls"
             onChange={(event) => {
               const file = event.currentTarget.files?.[0];
               if (file) choose(file);
               event.currentTarget.value = '';
             }} />
+          </label>
         </div>
         {busy && <p role="status">Memproses Excel… <button type="button" onClick={() => { stop(); setNames([]); setInput(null); }}>Batalkan</button></p>}
         {message && <p role="alert">{message}</p>}
@@ -222,8 +236,12 @@ export function ParticipantPanel({ format, custom, onDataset, onPhotos }: {
         )}
       </div>
       {dataset && !participants && <p role="status">Data tersimpan untuk Format {dataset.format + 1}. Kembali ke format tersebut untuk melihatnya.</p>}
-      {participants && <div className="panel">
-        <h2>Peserta</h2>
+      <PhotoPanel key={revision} participants={participants} photoKey={formatId === 0 ? 'Username' : 'NoPeserta'} onPhotos={onPhotos} />
+      <div className="panel data-wide data-preview">
+        <header className="data-title"><span className="data-icon"><EditorIcon name="table" /></span>
+          <h2>Preview Data Masuk</h2><span className="format-count">{participants?.length ?? 0} Murid</span>
+        </header>
+        {participants ? <div className="data-preview-controls">
         <p role="status">{participants.length} peserta · {rows.length} cocok · {selected.size} terpilih</p>
         <div className="flex flex-wrap gap-3">
           <label>Cari <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(0); }} placeholder="Nama atau ID" /></label>
@@ -244,24 +262,26 @@ export function ParticipantPanel({ format, custom, onDataset, onPhotos }: {
           <button className="action" type="button" disabled={!rows.length} onClick={() => setSelected((previous) => new Set([...previous, ...rows.map((p) => p.id)]))}>Pilih hasil filter</button>
           <button className="action" type="button" disabled={!selected.size} onClick={() => setSelected(new Set())}>Kosongkan pilihan</button>
         </div>
-        <div className="table-scroll" role="region" aria-label="Daftar peserta" tabIndex={0}>
-          <table className="w-full text-left">
-            <thead><tr><th scope="col">Pilih</th><th scope="col">ID</th><th scope="col">Nama</th>{fields.filter((field) => field !== 'NamaMurid' && field !== 'NoPeserta' && field !== 'Username').map((field) => <th scope="col" className="px-2" key={field}>{field}</th>)}</tr></thead>
-            <tbody>{rows.slice(page * 25, (page + 1) * 25).map((p) => <tr key={p.id}>
-              <td><input type="checkbox" aria-label={`Pilih ${p.name} (${p.id})`} checked={selected.has(p.id)} onChange={() => toggle(p.id)} /></td>
-              <td className="px-2">{p.id}</td><td className="px-2">{p.name}</td>
-              {fields.filter((field) => field !== 'NamaMurid' && field !== 'NoPeserta' && field !== 'Username').map((field) => <td className="px-2" key={field}>{p.values[field]}</td>)}
-            </tr>)}</tbody>
-          </table>
-        </div>
         {!rows.length && <p>Peserta tidak ditemukan.</p>}
         {rows.length > 25 && <div className="flex items-center gap-3 mt-3">
           <button type="button" className="action" disabled={page === 0} onClick={() => setPage(page - 1)}>Sebelumnya</button>
           <span>Halaman {page + 1} dari {Math.ceil(rows.length / 25)}</span>
           <button type="button" className="action" disabled={(page + 1) * 25 >= rows.length} onClick={() => setPage(page + 1)}>Berikutnya</button>
         </div>}
-      </div>}
-      <PhotoPanel key={revision} participants={participants} onPhotos={onPhotos} />
+        </div> : null}
+        <div className="table-scroll" role="region" aria-label="Daftar peserta" tabIndex={0}>
+          <table className="w-full text-left">
+            <thead><tr>{participants && <th scope="col">Pilih</th>}{fields.map((field) => <th scope="col" key={field}>{field}</th>)}<th scope="col">Status Foto</th></tr></thead>
+            <tbody>{participants ? rows.slice(page * 25, (page + 1) * 25).map((p) => <tr key={p.id}>
+              <td><input type="checkbox" aria-label={`Pilih ${p.name} (${p.id})`} checked={selected.has(p.id)} onChange={() => toggle(p.id)} /></td>
+              {fields.map((field) => <td key={field}>{p.values[field]}</td>)}
+              <td>{photos.has(p.id) ? 'Tersedia' : 'Belum ada'}</td>
+            </tr>) : <tr><td colSpan={fields.length + 1}><div className="data-empty">
+              <EditorIcon name="excel" /><strong>Data belum tersedia.</strong><small>Upload file Excel terlebih dahulu.</small>
+            </div></td></tr>}</tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

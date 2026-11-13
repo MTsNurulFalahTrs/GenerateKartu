@@ -15,6 +15,7 @@ import { defaultCard } from '../../lib/cards/settings';
 import type { InstitutionAssets } from '../../lib/cards/settings';
 import { fieldsFor } from '../../lib/participants/model';
 import type { Field, Participant } from '../../lib/participants/model';
+import { EditorIcon } from './editor-icon';
 import { ParticipantPanel } from './participant-panel';
 import { formats, moveStep, steps } from '../../lib/editor';
 
@@ -33,7 +34,7 @@ const formatFieldLabels: Record<Field, string> = {
 };
 
 const formatTitles = [...formats.map((_, id) => `Format ${id + 1}`), 'Format Kustom'];
-const formatIcons = ['▣', '♙', '▢', '▤', '♙', '▥', '⌂', '✎'];
+const formatIcons = ['monitor', 'users', 'clipboard', 'calendar', 'user', 'building', 'home', 'edit'] as const;
 
 export function CardEditor() {
   const [step, setStep] = useState(0);
@@ -222,7 +223,8 @@ export function CardEditor() {
         {steps.map((label, index) => (
           <section key={label} id={`panel-${index}`} role="tabpanel" aria-labelledby={`step-${index}`}
             tabIndex={0} hidden={step !== index}>
-            <h1 className={index === 0 ? 'sr-only' : undefined}>{index === 0 ? 'Pilih Format Kartu' : index === 2 ? 'Pengaturan Kartu' : label}</h1>
+            {index === 1 && <div className="data-badges"><span>Langkah 2 dari 4</span><span>Data lokal — privasi terjaga</span></div>}
+            <h1 className={index === 0 ? 'sr-only' : undefined}>{index === 0 ? 'Pilih Format Kartu' : index === 1 ? 'Upload Data & Foto' : index === 2 ? 'Pengaturan Kartu' : label}</h1>
             {index === 0 && (
               <>
                 <p>Pilih tata letak yang sesuai standar ujian madrasah atau sekolah Anda.</p>
@@ -231,7 +233,7 @@ export function CardEditor() {
                   <div><small>Format Aktif</small><strong>{formatTitles[format]}{formats[format] && ` (${formats[format]})`}</strong></div>
                   <span className="format-count">{fieldsFor(format, custom).length} field</span>
                 </div>}
-                <div className="format-toolbar">
+                <div className="format-toolbar"><EditorIcon name="search" />
                   <input type="search" aria-label="Cari format" placeholder="Cari format..." value={formatQuery}
                     onChange={(event) => setFormatQuery(event.target.value)} />
                   <span className="format-count">Bawaan {formatTitles.length}</span>
@@ -241,9 +243,9 @@ export function CardEditor() {
                   {visibleFormats.map(({ title, id }) => {
                     const fields = fieldsFor(id, custom);
                     const photoKey = id === 0 ? 'Username' : 'NoPeserta';
-                    return <article className={id === 7 ? 'format custom' : 'format'} key={id} data-selected={format === id}>
+                    return <article className={id === 7 ? 'format custom' : 'format'} key={id} data-format={id + 1} data-selected={format === id}>
                       <header className="format-heading">
-                        <span className="format-icon" aria-hidden="true">{formatIcons[id]}</span>
+                        <span className="format-icon" aria-hidden="true"><EditorIcon name={formatIcons[id]} /></span>
                         <div><h2>{title}</h2><span>{formats[id] ?? 'Buat Sendiri'}</span></div>
                         <span className="format-count">{fields.length} field</span>
                       </header>
@@ -251,7 +253,7 @@ export function CardEditor() {
                         {fields.map((field) => <li key={field}>
                           <span className="format-check" aria-hidden="true">✓</span>
                           <span>{formatFieldLabels[field]}</span>
-                          {field === photoKey && <span className="format-photo">Acuan Foto</span>}
+                          {field === photoKey && <span className="format-photo"><EditorIcon name="image" /> Acuan Foto</span>}
                         </li>)}
                       </ul>
                       <div className="format-actions">
@@ -263,7 +265,7 @@ export function CardEditor() {
                           onClick={(event) => {
                             previewTrigger.current = event.currentTarget;
                             setPreviewFormat(id);
-                          }}>Preview</button>
+                          }}><EditorIcon name="eye" /> Preview</button>
                         {id === 7 && <button type="button" className="action" onClick={() => {
                           if (editingCustom) customBuilder.current?.focus();
                           else setEditingCustom(true);
@@ -292,7 +294,15 @@ export function CardEditor() {
               </li>)}</ol>
             </div>}
             {index === 1 && (
-              <ParticipantPanel key={revision} format={format} custom={custom} onDataset={setDataset} onPhotos={setPhotos} />
+              <>
+                <p className="data-intro">Semua data murid dan foto diproses di browser Anda.</p>
+                <ParticipantPanel key={revision} format={format} custom={custom} photos={photos} onDataset={setDataset} onPhotos={setPhotos} />
+                <footer className="data-footer">
+                  <small>Tip: Foto bersifat opsional. Kartu tetap bisa dicetak tanpa foto.</small>
+                  <button className="action" type="button" onClick={() => setStep(0)}>‹ Kembali</button>
+                  <button className="action data-next" type="button" onClick={() => setStep(2)}>Lanjut ke Pengaturan ›</button>
+                </footer>
+              </>
             )}
             {index === 2 && (
               <div className="panel">
@@ -337,7 +347,7 @@ export function CardEditor() {
       }}>
         {previewFormat !== null && <>
           <header>
-            <span className="format-icon" aria-hidden="true">◉</span>
+            <span className="format-icon" aria-hidden="true"><EditorIcon name="eye" /></span>
             <h2 id="format-preview-title">Preview: {formatTitles[previewFormat]}</h2>
             <button type="button" className="action" aria-label="Tutup modal Preview"
               onClick={() => previewDialog.current?.close()}>×</button>

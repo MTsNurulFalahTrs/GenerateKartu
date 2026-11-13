@@ -110,6 +110,10 @@ try {
       await page.focus('#step-0');
       await page.keyboard.press('ArrowRight');
       await page.waitForSelector('#step-1[aria-selected="true"]');
+      await page.waitForSelector('#panel-1 .data-locked', { visible: true });
+      assert.equal(await page.$('#panel-1 input[accept=".zip"]'), null);
+      assert.match(await page.$eval('#panel-1 .data-preview', (panel) => panel.textContent), /0 Murid.*Status Foto.*Data belum tersedia/s);
+      if (output) await page.screenshot({ path: `${output}/data-murid-awal-${name}.png`, fullPage: true });
       const fileInput = await page.$('input[type="file"]');
       assert.ok(fileInput);
       for (const file of [valid, duplicate]) {
@@ -143,6 +147,7 @@ try {
         const zipStart = performance.now();
         await zipInput.uploadFile(archive);
         await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('20 foto diterapkan'));
+        await page.waitForFunction(() => document.querySelector('.data-preview tbody')?.textContent.includes('Tersedia'));
         const heap = (await page.metrics()).JSHeapUsedSize / 1048576;
         console.log(`Impor ZIP 20 foto: ${Math.round(performance.now() - zipStart)} ms; heap JS ${heap.toFixed(1)} MiB`);
       }

@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { importPhotoZip, normalizeImage } from '../../lib/cards/assets';
+import { EditorIcon } from './editor-icon';
 import type { Participant } from '../../lib/participants/model';
 
-export function PhotoPanel({ participants, onPhotos }: {
+export function PhotoPanel({ participants, photoKey, onPhotos }: {
   participants?: Participant[];
+  photoKey: string;
   onPhotos: (photos: Map<string, Blob>) => void;
 }) {
   const generation = useRef(0);
@@ -44,16 +46,36 @@ export function PhotoPanel({ participants, onPhotos }: {
     }
   }
 
-  return <div className="panel">
-    <h2>2. Foto Peserta</h2>
-    {!activeId ? <p>Impor data peserta sebelum menambahkan foto.</p> : <>
-      <p>{photos.size} foto tersimpan. Untuk ZIP, gunakan ID peserta sebagai nama foto.</p>
-      <div className="grid gap-3">
-        <label>Arsip foto ZIP <input className="max-w-full" type="file" accept=".zip" disabled={busy} onChange={(event) => {
+  return <>
+    <section className="panel data-zip">
+      <div className="data-title"><span className="data-icon"><EditorIcon name="image" /></span>
+        <div><h2>2. Foto Murid</h2><small>File .zip berisi foto murid</small></div>
+      </div>
+      <div className="data-note"><strong>Syarat nama file foto:</strong>
+        <div>Nama file gambar harus <strong>sama persis</strong> dengan nilai di kolom <code>{photoKey}</code>.</div>
+      </div>
+      {!activeId ? <div className="data-drop data-locked"><span className="data-icon"><EditorIcon name="lock" /></span>
+        <strong>Terkunci</strong><small>Upload Data Excel terlebih dahulu untuk mengaktifkan fitur ini</small>
+      </div> : <label className="data-drop" onDragOver={(event) => event.preventDefault()} onDrop={(event) => {
+        event.preventDefault();
+        const file = event.dataTransfer.files[0];
+        if (file) void load(file, true);
+      }}>
+        <span className="data-icon"><EditorIcon name="upload" /></span><strong>Klik atau seret arsip foto ZIP ke sini</strong>
+        <input aria-label="Arsip foto ZIP" className="sr-only" type="file" accept=".zip" disabled={busy} onChange={(event) => {
           const file = event.currentTarget.files?.[0];
           if (file) void load(file, true);
           event.currentTarget.value = '';
-        }} /></label>
+        }} />
+      </label>}
+    </section>
+    <section className="panel data-wide data-individual">
+      <header className="data-title"><span className="data-icon"><EditorIcon name="user" /></span>
+        <div><h2>3. Upload Foto Per Murid</h2><small>Alternatif ZIP — unggah satu per satu</small></div>
+      </header>
+      {!activeId ? <div className="data-empty"><EditorIcon name="plus" />
+        <span>Upload Excel terlebih dahulu untuk melihat daftar murid</span>
+      </div> : <div className="data-preview-controls grid gap-3">
         <label>Peserta <select className="max-w-full" value={activeId} disabled={busy} onChange={(event) => setId(event.target.value)}>
           {participants?.map((p) => <option key={p.id} value={p.id}>{p.id} · {p.name}</option>)}
         </select></label>
@@ -68,8 +90,8 @@ export function PhotoPanel({ participants, onPhotos }: {
           commit(next);
           setMessage('Foto peserta dihapus.');
         }}>Hapus foto peserta</button>
-      </div>
-    </>}
-    <p role="status">{busy ? 'Memproses foto…' : message}</p>
-  </div>;
+        <p role="status">{busy ? 'Memproses foto…' : message || `${photos.size} foto tersimpan.`}</p>
+      </div>}
+    </section>
+  </>;
 }
