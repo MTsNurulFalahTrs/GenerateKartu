@@ -169,9 +169,9 @@ try {
       assert.deepEqual(savedAppearance.kopStyles.institution, { size: 12, bold: true, italic: true });
       assert.equal(savedAppearance.signatureSize, 1.2);
       assert.equal(savedAppearance.signatureOverlap, true);
-      await page.waitForSelector('#panel-2 img[alt="Foto peserta"]');
       await page.$eval('#card-settings-1', (button) => button.click());
       await page.waitForSelector('#card-settings-1[aria-pressed=true]');
+      await page.waitForSelector('#panel-2 img[alt="Foto peserta"]');
       await page.evaluate(() => {
         const input = [...document.querySelectorAll('#panel-2 input[type=checkbox]')].find((element) => element.labels?.[0]?.textContent.includes('Tampilkan QR'));
         if (!input) throw new Error('Toggle QR hilang');
@@ -323,14 +323,14 @@ try {
         await page.evaluate(() => { window.confirm = () => true; });
         await writeFile(backupFile, JSON.stringify({ ...JSON.parse(stored), format: 1, heading: { institution: 'Madrasah Pulih', exam: '', year: '' } }));
         await backupInput.uploadFile(backupFile);
-        await page.waitForFunction(() => document.querySelector('#panel-2 .exam-card-head')?.textContent.includes('Madrasah Pulih'));
+        await page.waitForFunction(() => document.querySelector('#kop-institution')?.value === 'Madrasah Pulih');
         await page.evaluate(() => {
           const time = Date.now();
           Date.now = () => time + 7200001;
           window.dispatchEvent(new Event('pageshow'));
         });
         await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('Sesi kedaluwarsa'));
-        await page.waitForFunction(() => !document.querySelector('#panel-2 .exam-card-head')?.textContent.includes('Madrasah Pulih'));
+        await page.waitForFunction(() => document.querySelector('#kop-institution')?.value !== 'Madrasah Pulih');
         await page.$eval('#reset-card-session', (button) => button.click());
         await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('direset'));
       }

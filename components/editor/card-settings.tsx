@@ -1,5 +1,6 @@
 'use client';
 
+import type { Dispatch, SetStateAction } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { normalizeImage } from '../../lib/cards/assets';
 import type { AssetName, CardSettings, InstitutionAssets } from '../../lib/cards/settings';
@@ -22,7 +23,7 @@ const signerInputs = [
 export function CardSettingsPanel({ section, value, onChange, assets, onAssets }: {
   section: number;
   value: CardSettings;
-  onChange: (settings: CardSettings) => void;
+  onChange: Dispatch<SetStateAction<CardSettings>>;
   assets: InstitutionAssets;
   onAssets: (name: AssetName, asset?: Blob) => void;
 }) {
@@ -34,7 +35,7 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
     return () => { pending.current++; };
   }, []);
   function update<K extends keyof CardSettings>(key: K, next: CardSettings[K]) {
-    onChange({ ...value, [key]: next });
+    onChange((previous) => ({ ...previous, [key]: next }));
   }
   async function loadAsset(name: AssetName, file: File) {
     const job = ++assetJob.current;

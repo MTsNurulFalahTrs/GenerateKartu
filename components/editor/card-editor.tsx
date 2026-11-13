@@ -347,7 +347,7 @@ export function CardEditor() {
                       setHidden(event.target.checked ? hidden.filter((item) => item !== field) : [...hidden, field])
                     } /> {field}</label>)}</div>
                 </fieldset>}
-                <div className="mt-4" hidden={setting === 0}>{step === 2 && <CardPreview {...renderCard(previewParticipant)} />}</div>
+                {step === 2 && setting !== 0 && <div className="mt-4"><CardPreview {...renderCard(previewParticipant)} /></div>}
                 <button className="action kop-save" type="button" onClick={saveSettings}>Simpan Pengaturan</button>
                 <small className="kop-save-note">Preferensi disimpan di browser. Isi KOP dan aset berlaku selama sesi.</small>
                 <BackupPanel key={revision} preferences={preferences} heading={heading}
