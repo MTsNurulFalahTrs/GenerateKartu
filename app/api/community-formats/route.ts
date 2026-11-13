@@ -1,17 +1,12 @@
+import { neon } from '@neondatabase/serverless';
 import { parseCommunityFormat } from '../../../lib/cards/community';
 
 const maxBodyBytes = 4096;
 
-function request(path: string, init?: RequestInit) {
-  const url = process.env.COMMUNITY_SUPABASE_URL;
-  const key = process.env.COMMUNITY_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key) throw new Error('Community database is not configured');
-  return fetch(new URL(`/rest/v1/${path}`, url), {
-    ...init,
-    headers: { apikey: key, 'Content-Type': 'application/json' },
-    cache: 'no-store',
-    signal: AbortSignal.timeout(8000),
-  });
+function database() {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error('Community database is not configured');
+  return neon(url, { fetchOptions: { cache: 'no-store', signal: AbortSignal.timeout(8000) } });
 }
 
 function failure(message: string, status: number) {
@@ -19,13 +14,15 @@ function failure(message: string, status: number) {
 }
 
 export async function GET() {
-  if (!process.env.COMMUNITY_SUPABASE_URL || !process.env.COMMUNITY_SUPABASE_PUBLISHABLE_KEY) {
+  if (!process.env.DATABASE_URL) {
     return Response.json([], { headers: { 'X-Community-Unavailable': 'true', 'Cache-Control': 'no-store' } });
   }
   try {
-    const response = await request('community_formats?select=id,definition&order=id.desc&limit=100');
-    if (!response.ok) throw new Error('Community read failed');
-    const rows: { id: number; definition: unknown }[] = await response.json();
+    const sql = database();
+    const rows = await sql`select id, definition from public.community_formats order by id desc limit 100` as {
+      id: number;
+      definition: unknown;
+    }[];
     return Response.json(rows.flatMap(({ id, definition }) => {
       const format = parseCommunityFormat(definition);
       return format ? [{ id, ...format }] : [];
@@ -62,14 +59,13 @@ export async function POST(req: Request) {
   if (!format) return failure('Format tidak valid.', 400);
 
   try {
-    const response = await request('rpc/publish_community_format', {
-      method: 'POST',
-      body: JSON.stringify({ input: format }),
-    });
-    if (response.status === 429) return failure('Katalog sedang mencapai batas publikasi. Coba lagi nanti.', 429);
-    if (!response.ok) throw new Error('Community write failed');
-    return Response.json({ id: await response.json() });
-  } catch {
+    const sql = database();
+    const [result] = await sql`select public.publish_community_format(${JSON.stringify(format)}::jsonb) as id`;
+    return Response.json({ id: result.id });
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'PT429') {
+      return failure('Katalog sedang mencapai batas publikasi. Coba lagi nanti.', 429);
+    }
     return failure('Format belum berhasil dibagikan. Coba lagi atau simpan secara lokal.', 503);
   }
 }
