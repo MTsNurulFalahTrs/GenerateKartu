@@ -166,9 +166,11 @@ try {
       assert.ok(signatureInput);
       await signatureInput.uploadFile(photo);
       await page.waitForSelector('.kop-asset-image img[alt="Tanda Tangan Digital (opsional)"]');
-      await page.locator('.kop-signature button:nth-child(3)').click();
-      await page.locator('.kop-signature input[role="switch"]').click();
-      await page.locator('.kop-save').click();
+      await page.$eval('.kop-signature button:nth-child(3)', (button) => button.click());
+      await page.waitForFunction(() => document.querySelector('.kop-signature output')?.textContent?.includes('1.2 cm'));
+      await page.$eval('.kop-signature input[role="switch"]', (input) => input.click());
+      await page.waitForFunction(() => document.querySelector('.kop-signature input[role="switch"]')?.checked === true);
+      await page.$eval('.kop-save', (button) => button.click());
       await page.waitForFunction(() => document.querySelector('.kop-page-meta [role=status]')?.textContent === 'Disimpan');
       const savedAppearance = await page.evaluate(() => JSON.parse(localStorage.getItem('generate-kartu:preferences:v1')).settings);
       assert.deepEqual(savedAppearance.kopStyles.institution, { size: 12, bold: true, italic: true });
@@ -176,9 +178,15 @@ try {
       assert.equal(savedAppearance.signatureOverlap, true);
       await page.$eval('#card-settings-1', (button) => button.click());
       await page.waitForSelector('#card-settings-1[aria-pressed=true]');
+      await page.select('#print-card-size', 'custom');
+      await page.waitForSelector('.print-settings input[min="60"]', { visible: true });
+      await page.select('#print-card-size', '86x54');
+      await page.select('#print-color-mode', 'mono');
+      await page.waitForSelector('#panel-2 .exam-card[data-bw="true"]');
+      await page.select('#print-color-mode', 'color');
       await page.waitForSelector('#panel-2 img[alt="Foto peserta"]');
       await page.evaluate(() => {
-        const input = [...document.querySelectorAll('#panel-2 input[type=checkbox]')].find((element) => element.labels?.[0]?.textContent.includes('Tampilkan QR'));
+        const input = [...document.querySelectorAll('#panel-2 input[type=checkbox]')].find((element) => element.getAttribute('aria-labelledby') === 'print-qr-label');
         if (!input) throw new Error('Toggle QR hilang');
         input.click();
       });
