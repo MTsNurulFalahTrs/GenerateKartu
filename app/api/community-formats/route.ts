@@ -19,6 +19,9 @@ function failure(message: string, status: number) {
 }
 
 export async function GET() {
+  if (!process.env.COMMUNITY_SUPABASE_URL || !process.env.COMMUNITY_SUPABASE_PUBLISHABLE_KEY) {
+    return Response.json([], { headers: { 'X-Community-Unavailable': 'true', 'Cache-Control': 'no-store' } });
+  }
   try {
     const response = await request('community_formats?select=id,definition&order=id.desc&limit=100');
     if (!response.ok) throw new Error('Community read failed');
