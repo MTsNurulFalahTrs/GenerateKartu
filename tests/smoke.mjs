@@ -489,8 +489,7 @@ try {
       assert.equal(await dialogValue(page, `${customDialog} [aria-label="Acuan Foto Password"]`, 'disabled'), true);
       assert.match(await dialogValue(page, `${customDialog} .custom-format-note`), /case-sensitive, tanpa spasi/);
       assert.match(await dialogValue(page, `${customDialog} .custom-format-note`), /sesi lokal/);
-      assert.equal(await page.$eval(`${customDialog} [aria-label="Kolom Excel baris 1"]`,
-        (input) => input.value), 'NamaMurid');
+      assert.equal(await dialogValue(page, `${customDialog} [aria-label="Kolom Excel baris 1"]`, 'value'), 'NamaMurid');
       await dialogAction(page, `${customDialog} .custom-add`);
       assert.equal(await dialogCount(page, `${customDialog} .custom-format-rows li`), 4);
       await page.keyboard.press('Escape');
