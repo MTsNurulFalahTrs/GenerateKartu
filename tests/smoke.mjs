@@ -61,8 +61,8 @@ try {
       assert.equal((await page.goto(origin, { waitUntil: 'networkidle0' }))?.status(), 200);
       assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Pilih Format Kartu');
       assert.equal(await page.$$eval('.format-grid article', (cards) => cards.length), 8);
-      await page.locator('[aria-label="Pilih Format 2"]').click();
-      await page.waitForSelector('[aria-label="Pilih Format 2"][aria-pressed="true"]');
+      await page.locator('#pick-format-2').click();
+      await page.waitForSelector('#pick-format-2[aria-pressed="true"]');
       await page.focus('#step-0');
       await page.keyboard.press('ArrowRight');
       await page.waitForSelector('#step-1[aria-selected="true"]');
@@ -211,7 +211,7 @@ try {
       for (let format = 1; format <= 7; format++) {
         await page.$eval('#step-0', (button) => button.click());
         await page.waitForSelector('#panel-0', { visible: true });
-        await page.$eval(`[aria-label="Pilih Format ${format}"]`, (button) => button.click());
+        await page.$eval(`#pick-format-${format}`, (button) => button.click());
         await page.$eval('#step-3', (button) => button.click());
         await page.waitForSelector('#panel-3', { visible: true });
         await page.waitForSelector('#panel-3 .exam-card');
