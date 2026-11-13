@@ -327,10 +327,12 @@ Catat artefak, referensi commit/PR, hasil lint/typecheck/build/test, *screenshot
 
 ### Fase 11 — Format komunitas dan backend opsional
 
+**Status MVP:** `DEFERRED`. Lihat [keputusan dan verifikasi G11](evidence/fase-11/README.md).
+
 **Tujuan:** menambahkan layanan berbagi format **hanya bila disahkan**; fungsi cetak lokal tetap berjalan tanpa Supabase.
 
 **Pekerjaan:**
-- [ ] Putuskan apakah komunitas masuk MVP atau rilis berikutnya.
+- [x] Tetapkan format komunitas sebagai rilis opsional setelah MVP (`DEFERRED`).
 - [ ] Bila aktif, siapkan proyek Supabase yang benar, migrations versioned, Auth dan RLS.
 - [ ] Definisikan role contributor/moderator/admin; tidak ada endpoint publik untuk delete bebas.
 - [ ] Implementasi pengajuan, draft, review, approve/reject, read-only publik dan audit.

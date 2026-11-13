@@ -16,7 +16,7 @@ Operator ujian sekolah/madrasah menyiapkan kartu untuk satu atau banyak kelas, m
 | P0 MVP | Tujuh format bawaan, builder kustom, template Excel dan impor tervalidasi, foto ZIP/individual, kop dan aset, QR minimum, pratinjau, filter, cetak dan PDF lengkap, serta pemrosesan lokal. |
 | P1 MVP | Jadwal, pengaturan visual lanjutan, penyimpanan preferensi dan backup aman, pengalaman desktop/mobile, bantuan, aksesibilitas dan verifikasi 500 kartu. |
 | P2 backlog | Rekap operasional lanjutan dan penyempurnaan shortcut setelah alur utama stabil. |
-| Opsional Fase 11 | Komunitas, akun dan moderasi menunggu keputusan cakupan dan uji akses. |
+| Rilis opsional setelah MVP | Komunitas, akun dan moderasi berstatus `DEFERRED`. Pembukaan kembali mengikuti persetujuan cakupan dan uji akses. [Keputusan Fase 11](evidence/fase-11/README.md). |
 | Di luar MVP | Sinkronisasi sistem akademik, penyimpanan permanen biodata siswa, aplikasi native, pembayaran dan AI. |
 
 ## Keputusan yang perlu ditinjau
