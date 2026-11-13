@@ -47,11 +47,22 @@ const pageHeadings = [
 const formatTitles = [...formats.map((_, id) => `Format ${id + 1}`), 'Format Kustom'];
 const formatIcons = ['monitor', 'users', 'clipboard', 'calendar', 'user', 'building', 'home', 'edit'] as const;
 
+function publicationDate(value?: string) {
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return null;
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta',
+  }).format(timestamp);
+}
+
 export function CardEditor() {
   const [step, setStep] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
   const [format, setFormat] = useState<number | null>(0);
   const [formatQuery, setFormatQuery] = useState('');
+  const [formatFilter, setFormatFilter] = useState<'all' | 'built-in' | 'community'>('all');
+  const [selectedCommunityId, setSelectedCommunityId] = useState<number | null>(null);
   const [previewFormat, setPreviewFormat] = useState<number | null>(null);
   const [catalog, setCatalog] = useState<CatalogFormat[]>([]);
   const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -100,6 +111,7 @@ export function CardEditor() {
   const restore = useCallback((saved: Preferences, savedHeading?: Heading) => {
     setDark(saved.dark);
     setFormat(saved.format ?? 0);
+    setSelectedCommunityId(null);
     setCustom(saved.custom);
     setCustomAppearance(saved.customAppearance);
     setCustomConfigured(!!saved.customAppearance || saved.format === 7 || saved.custom.join() !== defaultCustom.join());
@@ -243,6 +255,7 @@ export function CardEditor() {
   }, [loadCatalog]);
 
   function activateCustom(fields: Field[], appearance: CustomAppearance) {
+    setSelectedCommunityId(null);
     setCustom(fields);
     setCustomAppearance(appearance);
     setCustomConfigured(true);
@@ -254,8 +267,12 @@ export function CardEditor() {
   const visibleFormats = titles.map((title, id) => ({ title, id })).filter(({ title, id }) =>
     `${title} ${formats[id] ?? 'Buat Sendiri'}`.toLowerCase().includes(formatQuery.trim().toLowerCase()));
 
-  const visibleCommunity = catalog.filter(({ name }) =>
-    name.toLowerCase().includes(formatQuery.trim().toLowerCase()));
+  const communityQuery = formatQuery.trim().toLocaleLowerCase('id');
+  const visibleCommunity = catalog.filter((entry) =>
+    entry.name.toLocaleLowerCase('id').includes(communityQuery) ||
+    (entry.contributor ?? '').toLocaleLowerCase('id').includes(communityQuery) ||
+    entry.fields.some((field) =>
+      (entry.labels?.[field] || formatFieldLabels[field]).toLocaleLowerCase('id').includes(communityQuery)));
 
   function onTabKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
@@ -317,18 +334,34 @@ export function CardEditor() {
                   <div><small>Format Aktif</small><strong>{titles[format]}{formats[format] && ` (${formats[format]})`}</strong></div>
                   <span className="format-count">{fieldsFor(format, custom).length} field</span>
                 </div>}
-                <div className="format-toolbar"><EditorIcon name="search" />
-                  <input type="search" aria-label="Cari format" placeholder="Cari format..." value={formatQuery}
-                    onChange={(event) => setFormatQuery(event.target.value)} />
-                  <span className="format-count">Bawaan {formatTitles.length}</span>
+                <div className="format-toolbar format-library-toolbar">
+                  <label className="format-library-search">
+                    <EditorIcon name="search" />
+                    <input type="search" aria-label="Cari format" placeholder="Cari format atau kontributor..."
+                      value={formatQuery} onChange={(event) => setFormatQuery(event.target.value)} />
+                  </label>
+                  <div className="format-library-filters" role="group" aria-label="Filter sumber format">
+                    <button type="button" aria-pressed={formatFilter === 'all'} onClick={() => setFormatFilter('all')}>
+                      Semua <span>{formatTitles.length + catalog.length}</span>
+                    </button>
+                    <button type="button" aria-pressed={formatFilter === 'built-in'} onClick={() => setFormatFilter('built-in')}>
+                      Bawaan <span>{formatTitles.length}</span>
+                    </button>
+                    <button type="button" aria-pressed={formatFilter === 'community'} onClick={() => setFormatFilter('community')}>
+                      <span aria-hidden="true">🌐</span> Komunitas <span>{catalog.length}</span>
+                    </button>
+                  </div>
                 </div>
-                {visibleFormats.length === 0 && visibleCommunity.length === 0 && <p role="status">Tidak ada format yang cocok.</p>}
-                <div className="format-grid">
+                {((formatFilter === 'built-in' && !visibleFormats.length) ||
+                  (formatFilter === 'community' && catalogStatus === 'ready' && !visibleCommunity.length) ||
+                  (formatFilter === 'all' && catalogStatus === 'ready' && !visibleFormats.length && !visibleCommunity.length)) &&
+                  <p role="status">Tidak ada format yang cocok.</p>}
+                {formatFilter !== 'community' && <div className="format-grid">
                   {visibleFormats.map(({ title, id }) => {
                     const fields = fieldsFor(id, custom);
                     const photoKey = photoFieldFor(id, customAppearance?.photoKey);
                     const unconfigured = id === 7 && !customConfigured;
-                    return <article className={id === 7 ? 'format custom' : 'format'} key={id} data-format={id + 1} data-selected={format === id}>
+                    return <article className={id === 7 ? 'format custom' : 'format'} key={id} data-format={id + 1} data-selected={format === id && selectedCommunityId === null}>
                       <header className="format-heading">
                         <span className="format-icon" aria-hidden="true"><EditorIcon name={formatIcons[id]} /></span>
                         <div><h2>{title}</h2><span>{formats[id] ?? 'Buat Sendiri'}</span></div>
@@ -343,10 +376,13 @@ export function CardEditor() {
                         </li>)}
                       </ul>
                       <div className="format-actions">
-                        <button type="button" className="action format-pick" aria-pressed={format === id}
+                        <button type="button" className="action format-pick" aria-pressed={format === id && selectedCommunityId === null}
                           id={id === 7 ? 'pick-custom-format' : `pick-format-${id + 1}`}
-                          aria-label={format === id ? `Format Aktif · ${title}` : `Pilih ${title}`}
-                          onClick={(event) => unconfigured ? openCustom(event.currentTarget) : setFormat(id)}>{format === id ? 'Format Aktif' : 'Pilih Format'}</button>
+                          aria-label={format === id && selectedCommunityId === null ? `Format Aktif · ${title}` : `Pilih ${title}`}
+                          onClick={(event) => {
+                             if (unconfigured) openCustom(event.currentTarget);
+                             else { setSelectedCommunityId(null); setFormat(id); }
+                           }}>{format === id && selectedCommunityId === null ? 'Format Aktif' : 'Pilih Format'}</button>
                         {!unconfigured && <button type="button" className="action" aria-haspopup="dialog" aria-label={`Preview ${title}`}
                           onClick={(event) => {
                             previewTrigger.current = event.currentTarget;
@@ -357,43 +393,82 @@ export function CardEditor() {
                       </div>
                     </article>;
                   })}
-                </div>
-                <section className="community-formats" aria-labelledby="community-title">
-                  <header>
-                    <h2 id="community-title">Format dari Komunitas <span className="format-count">{catalog.length}</span></h2>
-                    <button className="action" type="button" disabled={catalogStatus === 'loading'}
-                      onClick={() => { setCatalogStatus('loading'); void loadCatalog(); }}>Muat Ulang</button>
+                </div>}
+                {formatFilter !== 'built-in' && <section className="community-formats" aria-labelledby="community-title">
+                  <header className="community-section-header">
+                    <div className="community-section-heading">
+                      <h2 id="community-title">Format dari Komunitas</h2>
+                      <span className="community-shared-badge"><span aria-hidden="true">🌐</span> Dibagikan pengguna lain</span>
+                      <span className="community-total">{catalog.length} format</span>
+                    </div>
+                    <button className="community-refresh" type="button" disabled={catalogStatus === 'loading'}
+                      onClick={() => { setCatalogStatus('loading'); void loadCatalog(); }}>
+                      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" />
+                      </svg>
+                      Muat Ulang
+                    </button>
                   </header>
                   {published && <p role="status">{published}</p>}
                   {catalogStatus === 'loading' && <p role="status">Memuat format komunitas…</p>}
                   {catalogStatus === 'error' && <p role="status">Katalog komunitas belum dapat dimuat.</p>}
                   {catalogStatus === 'ready' && !catalog.length && <p>Belum ada format yang dibagikan.</p>}
-                  <div className="format-grid">
-                    {visibleCommunity.map((entry) => <article className="format custom" key={entry.id}>
-                      <header className="format-heading">
-                        <span className="format-icon"><EditorIcon name="users" /></span>
-                        <div><h2>{entry.name}</h2><span>Format Komunitas{entry.contributor ? ' · Oleh: ' + entry.contributor : ''}</span></div>
-                        <span className="format-count">{entry.fields.length} field</span>
-                      </header>
-                      <ul className="format-fields">{entry.fields.map((field) => <li key={field}>
-                        <span className="format-check" aria-hidden="true">✓</span>{entry.labels?.[field] || formatFieldLabels[field]}
-                        {field === entry.photoKey && <span className="format-photo"><EditorIcon name="image" /> Acuan Foto</span>}
-                      </li>)}</ul>
-                      <div className="format-actions">
-                        <button className="action format-pick" type="button" onClick={() => {
-                          const { name, photoKey, mono, labels, excelHeaders } = entry;
-                          activateCustom(entry.fields, { name, photoKey, mono, labels, excelHeaders });
-                          setPublished('');
-                        }}>Pilih Format</button>
-                        <button className="action" type="button" aria-haspopup="dialog" onClick={(event) => {
-                          previewTrigger.current = event.currentTarget;
-                          setCommunityPreview(entry);
-                          setPreviewFormat(7);
-                        }}><EditorIcon name="eye" /> Preview</button>
-                      </div>
-                    </article>)}
+                  {catalogStatus === 'ready' && catalog.length > 0 && !visibleCommunity.length &&
+                    <p role="status">Tidak ada format komunitas yang cocok dengan pencarian.</p>}
+                  <div className="format-grid community-grid">
+                    {visibleCommunity.map((entry) => {
+                      const active = format === 7 && selectedCommunityId === entry.id;
+                      const date = publicationDate(entry.createdAt);
+                      return <article className="community-card" data-selected={active} key={entry.id}
+                        data-community-id={entry.id}>
+                        <header className="community-card-header">
+                          <span className="community-card-symbol" aria-hidden="true"><EditorIcon name="users" /></span>
+                          <div className="community-card-identity">
+                            <h3 title={entry.name}>{entry.name}</h3>
+                            <span className="community-card-origin"><span aria-hidden="true">🌐</span> Format Komunitas</span>
+                            <small className="community-card-byline" title={entry.contributor || 'Anonim'}>
+                              <span aria-hidden="true">♟</span> {entry.contributor || 'Anonim'}{date ? ' · ' + date : ''}
+                            </small>
+                          </div>
+                          <span className="community-card-fieldcount">{entry.fields.length} field</span>
+                          {active && <span className="community-card-active-mark" aria-label="Format sedang aktif">✓</span>}
+                        </header>
+                        <div className="community-card-content">
+                          <ul className="community-card-fields">
+                            {entry.fields.slice(0, 5).map((field) => <li key={field}>
+                              <span className="community-field-check" aria-hidden="true">✓</span>
+                              <span className="community-field-name">{entry.labels?.[field] || formatFieldLabels[field]}</span>
+                              {field === entry.photoKey && <span className="community-photo-badge">
+                                <EditorIcon name="image" /> Acuan Foto
+                              </span>}
+                            </li>)}
+                            {entry.fields.length > 5 && <li className="community-extra-fields">
+                              +{entry.fields.length - 5} field lainnya
+                            </li>}
+                          </ul>
+                          <div className="community-card-actions">
+                            <button className="community-choose" type="button" disabled={active}
+                              aria-pressed={active}
+                              aria-label={active ? 'Format Aktif · ' + entry.name : 'Pilih ' + entry.name}
+                              onClick={() => {
+                                const { name, photoKey, mono, labels, excelHeaders } = entry;
+                                activateCustom(entry.fields, { name, photoKey, mono, labels, excelHeaders });
+                                setSelectedCommunityId(entry.id);
+                                setPublished('');
+                              }}>{active ? '✓ Format Aktif' : 'Pilih Format'}</button>
+                            <button className="community-preview" type="button" aria-haspopup="dialog"
+                              aria-label={'Preview ' + entry.name} onClick={(event) => {
+                                previewTrigger.current = event.currentTarget;
+                                setCommunityPreview(entry);
+                                setPreviewFormat(7);
+                              }}><EditorIcon name="eye" /> Preview</button>
+                          </div>
+                        </div>
+                      </article>;
+                    })}
                   </div>
-                </section>
+                </section>}
               </>
             )}
             {index === 1 && (
