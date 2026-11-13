@@ -207,7 +207,7 @@ try {
       await page.waitForSelector('#panel-2', { visible: true });
       await workerGate.evaluate((release) => release());
       await workerGate.dispose();
-      await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('Pratinjau impor'));
+      await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('Pratinjau Data'));
       assert.equal(await page.$('.import-dialog[open]'), null);
       await page.locator('#step-1').click();
       await page.waitForSelector('.import-dialog[open]', { visible: true });
@@ -216,14 +216,17 @@ try {
       for (const file of [valid, duplicate]) {
         await fileInput.uploadFile(file);
         await page.waitForSelector('.import-dialog[open]');
+        assert.equal(await page.$$eval('.import-steps li', (items) => items.length), 3);
+        assert.match(await page.$eval('.import-dialog-private', (item) => item.textContent), /Diproses lokal/);
         await page.waitForFunction(() => {
           const sheet = document.querySelector('#participant-sheet');
           return sheet && !sheet.disabled && sheet.value === 'Petunjuk';
         });
         await page.select('#participant-sheet', 'Peserta');
-        await page.waitForFunction((count) => document.querySelector('#panel-1')?.textContent.includes('Pratinjau impor · ' + count + ' baris'), {}, file === valid ? 500 : 2);
+        await page.waitForFunction((count) => document.querySelector('#panel-1')?.textContent.includes('Lima baris pertama dari ' + count + ' baris data'), {}, file === valid ? 500 : 2);
         if (file === valid) {
           await page.waitForSelector('#apply-participant-import:enabled');
+          assert.equal(await page.$eval('.import-validation-ok', (item) => item.textContent.includes('500 murid')), true);
           await page.focus('#apply-participant-import');
           await page.keyboard.press('Space');
           await page.waitForSelector('.import-dialog[open]', { hidden: true });
@@ -446,7 +449,13 @@ try {
       await page.click(`${customDialog} .custom-add`);
       await page.select(`${customDialog} li:nth-child(4) select`, 'manual');
       await page.locator(`${customDialog} [aria-label="Label Tampilan baris 4"]`).fill('Nomor Bangku');
+      await page.locator(`${customDialog} [aria-label="Kolom Excel baris 4"]`).fill('nopeserta');
+      await page.waitForSelector(`${customDialog} .custom-excel-duplicate`);
+      assert.equal(await page.$$eval(`${customDialog} .custom-excel-duplicate`, (items) => items.length), 2);
+      await page.$eval(`${customDialog} .custom-save`, (button) => button.click());
+      await page.waitForFunction(() => document.querySelector('.custom-format-error')?.textContent.includes('Kolom Excel'));
       await page.locator(`${customDialog} [aria-label="Kolom Excel baris 4"]`).fill('NomorBangku');
+      await page.waitForFunction(() => document.querySelectorAll('.custom-excel-duplicate').length === 0);
       await page.$eval(`${customDialog} .custom-community input`, (input) => input.click());
       assert.equal(await page.$eval(`${customDialog} .custom-format-name input`, (input) => input.value), 'Format_Kustom');
       await page.setRequestInterception(true);
@@ -514,6 +523,15 @@ try {
         await page.evaluate(() => { window.confirm = () => true; });
         await writeFile(backupFile, JSON.stringify({ ...JSON.parse(stored), format: 1, heading: { institution: 'Madrasah Pulih', exam: '', year: '' } }));
         await backupInput.uploadFile(backupFile);
+        await page.waitForSelector('.backup-confirm-dialog[open]');
+        assert.match(await page.$eval('.backup-confirm-content', (item) => item.textContent), /settings.json/);
+        await page.$eval('#confirm-backup-restore', (button) => button.click());
+        await page.waitForFunction(() => document.querySelector('#kop-institution')?.value === 'Madrasah Pulih');
+        await page.$eval('.kop-save', (button) => button.click());
+        await page.waitForFunction(() => document.querySelector('.kop-save-message')?.textContent.includes('berhasil disimpan'));
+        assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('generate-kartu:card-session:v1'))?.data?.institution), 'Madrasah Pulih');
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.$eval('#step-2', (button) => button.click());
         await page.waitForFunction(() => document.querySelector('#kop-institution')?.value === 'Madrasah Pulih');
         await page.evaluate(() => {
           const time = Date.now();
@@ -529,9 +547,14 @@ try {
       await page.waitForSelector('#editor-help-panel .help-stats', { visible: true });
       await page.locator('#editor-help-faq details:first-of-type summary').click();
       await page.waitForSelector('#editor-help-faq details[open] p', { visible: true });
-      await page.locator('#editor-help-panel a[href="/bantuan"]').click();
-      await page.waitForFunction(() => location.pathname === '/bantuan');
-      assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Pusat Informasi & Bantuan');
+      await page.$eval('.help-release-button', (button) => button.click());
+      await page.waitForSelector('.release-notes-dialog[open]', { visible: true });
+      assert.match(await page.$eval('.release-notes-dialog', (dialog) => dialog.textContent), /Format dan komunitas/);
+      await page.$eval('.release-notes-footer button', (button) => button.click());
+      await page.waitForSelector('.release-notes-dialog[open]', { hidden: true });
+      assert.equal(await page.$eval('.help-nav', (button) => button.getAttribute('aria-pressed')), 'true');
+      assert.equal((await page.goto(new URL('/bantuan', origin).href))?.status(), 404);
+      assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Halaman tidak ditemukan');
       assert.deepEqual(errors, []);
       assert.deepEqual(externalRequests, [], 'No external requests or HTTP uploads during editor flow');
       assert.equal((await page.goto(new URL('/halaman-tidak-ada', origin).href))?.status(), 404);
