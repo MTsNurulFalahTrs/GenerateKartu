@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { parseCommunityFormat } from '../../../lib/cards/community';
 
-const maxBodyBytes = 1024;
+const maxBodyBytes = 4096;
 
 function database() {
   const url = process.env.DATABASE_URL;
@@ -14,6 +14,9 @@ function failure(message: string, status: number) {
 }
 
 export async function GET() {
+  if (!process.env.DATABASE_URL) {
+    return Response.json([], { headers: { 'X-Community-Unavailable': 'true', 'Cache-Control': 'no-store' } });
+  }
   try {
     const sql = database();
     const rows = await sql`select id, definition from public.community_formats order by id desc limit 100` as {

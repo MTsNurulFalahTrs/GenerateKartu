@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { defaultMapping, fieldsFor, photoFieldFor, validateRows } from '../../lib/participants/model';
 import type { Field, Issue, Mapping, Participant, WorkbookRows } from '../../lib/participants/model';
+import type { CustomAppearance } from '../../lib/cards/preferences';
 import { newCardReference } from '../../lib/cards/qr';
 import { EditorIcon } from './editor-icon';
 import { PhotoPanel } from './photo-panel';
@@ -30,11 +31,12 @@ function csvCell(value: string) {
   return '"' + safe.replaceAll('"', '""') + '"';
 }
 
-export function ParticipantPanel({ active, format, custom, customPhotoKey, photos, onDataset, onPhotos }: {
+export function ParticipantPanel({ active, format, custom, customPhotoKey, customAppearance, photos, onDataset, onPhotos }: {
   active: boolean;
   format: number | null;
   custom: readonly Field[];
   customPhotoKey?: Field;
+  customAppearance?: CustomAppearance;
   photos: ReadonlyMap<string, Blob>;
   onDataset: (dataset: { participants: Participant[]; selected: Set<string> }) => void;
   onPhotos: (photos: Map<string, Blob>) => void;
@@ -59,8 +61,12 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, photo
   const formatId = format ?? 0;
   const fields = fieldsFor(formatId, custom);
   const photoKey = photoFieldFor(formatId, customPhotoKey);
-  const schema = formatId === 7 ? `7:${photoKey}:${[...fields].sort().join()}` : String(formatId);
-  const mapping = useMemo(() => mapped.schema === schema ? mapped.values : defaultMapping(input?.headers ?? [], fields), [mapped, schema, input, fields]);
+  const excelHeaders = formatId === 7 ? customAppearance?.excelHeaders ?? {} : {};
+  const displayLabels = formatId === 7 ? customAppearance?.labels ?? {} : {};
+  const schema = formatId === 7
+    ? `7:${photoKey}:${JSON.stringify(fields.map((field) => [field, excelHeaders[field] || field]))}`
+    : String(formatId);
+  const mapping = useMemo(() => mapped.schema === schema ? mapped.values : defaultMapping(input?.headers ?? [], fields, excelHeaders), [mapped, schema, input, fields]);
   const validation = useMemo(() => input ? validateRows(input, formatId, mapping, custom, customPhotoKey) : null, [input, formatId, mapping, custom, customPhotoKey]);
   const participants = dataset?.schema === schema ? dataset?.rows : undefined;
   const rows = useMemo(() => (participants ?? []).filter((p) =>
@@ -124,7 +130,7 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, photo
         setSheet(data.names[0]);
         send(current, { action: 'read', sheet: data.names[0] });
       } else if (data.action === 'read') {
-        setMapped({ schema, values: defaultMapping(data.input.headers, fields) });
+        setMapped({ schema, values: defaultMapping(data.input.headers, fields, excelHeaders) });
         setInput(data.input);
       } else {
         download(new Blob([data.template], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `template-format-${formatId + 1}.xlsx`);
@@ -197,11 +203,11 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, photo
           <div><h2>1. Data Excel</h2><small>File Excel berisi data murid</small></div>
         </div>
         <div className="data-note"><strong>Kolom wajib di Excel:</strong>
-          <div className="data-columns">{fields.map((field) => <code key={field}>{field}</code>)}</div>
+          <div className="data-columns">{fields.map((field) => <code key={field}>{excelHeaders[field] || field}</code>)}</div>
         </div>
         <div className="grid gap-3">
           <button className="action data-download" type="button" disabled={busy} onClick={() => {
-            if (worker.current && names.length) send(worker.current, { action: 'template', format, custom });
+            if (worker.current && names.length) send(worker.current, { action: 'template', format, custom, excelHeaders });
             else start({ action: 'template', format, custom });
           }}>Unduh Template Aktif</button>
           <label className="data-drop" onDragOver={(event) => event.preventDefault()} onDrop={(event) => {
@@ -241,7 +247,7 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, photo
             <div className="mt-4 grid gap-3">
               <h3>Pemetaan kolom</h3>
               <div className="grid gap-3 sm:grid-cols-2">
-                {fields.map((field) => <label className="grid min-w-0 gap-1" key={field}>{field} <select value={mapping[field] ?? ''} onChange={(event) => {
+                {fields.map((field) => <label className="grid min-w-0 gap-1" key={field}>{displayLabels[field] || field} <select value={mapping[field] ?? ''} onChange={(event) => {
                   const value = event.target.value;
                   setMapped({ schema, values: { ...mapping, [field]: value === '' ? undefined : Number(value) } });
                 }}>
@@ -253,7 +259,7 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, photo
               <h3>Pratinjau impor · {input.rows.length} baris</h3>
               <div className="table-scroll" role="region" aria-label="Pratinjau impor Excel" tabIndex={0}>
                 <table className="w-full text-left">
-                  <thead><tr><th scope="col">Baris</th>{fields.map((field) => <th scope="col" className="px-2" key={field}>{field}</th>)}</tr></thead>
+                  <thead><tr><th scope="col">Baris</th>{fields.map((field) => <th scope="col" className="px-2" key={field}>{displayLabels[field] || field}</th>)}</tr></thead>
                   <tbody>{input.rows.slice(0, 5).map((row) => <tr key={row.number}><td>{row.number}</td>{fields.map((field) => <td className="px-2 break-all" key={field}>{row.cells[mapping[field] ?? -1] || '—'}</td>)}</tr>)}</tbody>
                 </table>
               </div>
@@ -311,7 +317,7 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, photo
         </div> : null}
         <div className="table-scroll" role="region" aria-label="Daftar peserta" tabIndex={0}>
           <table className="w-full text-left">
-            <thead><tr>{participants && <th scope="col">Pilih</th>}{fields.map((field) => <th scope="col" key={field}>{field}</th>)}<th scope="col">Status Foto</th></tr></thead>
+            <thead><tr>{participants && <th scope="col">Pilih</th>}{fields.map((field) => <th scope="col" key={field}>{displayLabels[field] || field}</th>)}<th scope="col">Status Foto</th></tr></thead>
             <tbody>{participants ? rows.slice(page * 25, (page + 1) * 25).map((p) => <tr key={p.id}>
               <td><input type="checkbox" aria-label={`Pilih ${p.name} (${p.id})`} checked={selected.has(p.id)} onChange={() => toggle(p.id)} /></td>
               {fields.map((field) => <td key={field}>{p.values[field]}</td>)}

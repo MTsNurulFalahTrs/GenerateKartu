@@ -72,7 +72,7 @@ try {
     });
     try {
       await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: name === 'mobile', hasTouch: name === 'mobile' });
-      const home = await page.goto(origin, { waitUntil: 'networkidle0' });
+      const home = await page.goto(origin, { waitUntil: 'domcontentloaded' });
       assert.equal(home?.status(), 200);
       const headers = home.headers();
       assert.equal(headers['x-content-type-options'], 'nosniff');
@@ -342,23 +342,39 @@ try {
       await page.$eval('#pick-custom-format', (button) => button.click());
       const customDialog = '.custom-format-dialog[open]';
       await page.waitForSelector(customDialog, { visible: true });
-      assert.match(await page.$eval(customDialog, (dialog) => dialog.textContent), /Belum ada baris/);
+      assert.equal(await page.$$eval(`${customDialog} .custom-format-rows li`, (items) => items.length), 3);
+      const options = await page.$$eval(`${customDialog} li:first-child select option`,
+        (items) => items.map((item) => ({ text: item.textContent.trim(), disabled: item.disabled })));
+      assert.deepEqual(options.map((item) => item.text), [
+        '— Pilih —', 'Nama Murid', 'NISN', 'No. Peserta', 'Kelas', 'Ruang', 'Tgl. Lahir',
+        'Sesi', 'Username', 'Password', 'Nama Satdik', '-- Tulis Sendiri',
+      ]);
+      assert.equal(options[9].disabled, true, 'Password must never be imported');
+      assert.equal(await page.$eval(`${customDialog} [aria-label="Kolom Excel baris 1"]`,
+        (input) => input.value), 'NamaMurid');
       await page.click(`${customDialog} .custom-add`);
+      assert.equal(await page.$$eval(`${customDialog} .custom-format-rows li`, (items) => items.length), 4);
       await page.keyboard.press('Escape');
       await page.waitForSelector(customDialog, { hidden: true });
       await page.waitForFunction(() => document.activeElement?.id === 'pick-custom-format');
       await page.click('#pick-custom-format');
       await page.waitForSelector(customDialog, { visible: true });
-      assert.equal(await page.$$eval(`${customDialog} li select`, (rows) => rows.length), 0);
-      for (let i = 0; i < 3; i++) await page.click(`${customDialog} .custom-add`);
-      await page.click(`${customDialog} [aria-label="Naikkan Nama Murid"]`);
+      assert.equal(await page.$$eval(`${customDialog} .custom-format-rows li`, (items) => items.length), 3);
+      await page.select(`${customDialog} li:nth-child(2) select`, 'NoPeserta');
+      await page.select(`${customDialog} li:nth-child(3) select`, 'Kelas');
+      await page.click(`${customDialog} [aria-label="Naikkan No. Peserta"]`);
       await page.click(`${customDialog} [aria-label="Acuan Foto No. Peserta"]`);
-      await page.click(`${customDialog} [aria-label="Mono No. Peserta"]`);
+      await page.click(`${customDialog} [aria-label="Monospace No. Peserta"]`);
+      await page.click(`${customDialog} .custom-add`);
+      await page.select(`${customDialog} li:nth-child(4) select`, 'manual');
+      await page.locator(`${customDialog} [aria-label="Label Tampilan baris 4"]`).fill('Nomor Bangku');
+      await page.locator(`${customDialog} [aria-label="Kolom Excel baris 4"]`).fill('NomorBangku');
       await page.click(`${customDialog} .custom-save`);
       await page.waitForSelector('#pick-custom-format[aria-pressed=true]');
       await page.$eval('#step-3', (button) => button.click());
       await page.waitForSelector('#panel-3', { visible: true });
-      assert.equal(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length), 3);
+      assert.equal(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length), 4);
+      assert.ok(await page.$eval('#panel-3 .exam-card dl', (list) => list.textContent.includes('Nomor Bangku')));
       await page.locator('.theme').click();
       await page.waitForSelector('[data-theme="dark"]');
       await page.$eval('#step-0', (button) => button.click());
@@ -372,7 +388,7 @@ try {
         await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key))?.format === 7, {}, key);
         const stored = await page.evaluate((key) => localStorage.getItem(key), key);
         assert.doesNotMatch(stored, /Madrasah Uji Fase 7|Peserta Uji/);
-        await page.reload({ waitUntil: 'networkidle0' });
+        await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForSelector('#pick-custom-format[aria-pressed=true]');
         await page.$eval('#step-2', (button) => button.click());
         await page.waitForSelector('#panel-2', { visible: true });
@@ -412,7 +428,7 @@ try {
         await page.evaluateOnNewDocument(() => {
           Storage.prototype.setItem = () => { throw new DOMException('Simulasi kuota', 'QuotaExceededError'); };
         });
-        await page.goto(origin, { waitUntil: 'networkidle0' });
+        await page.goto(origin, { waitUntil: 'domcontentloaded' });
         await page.$eval('#step-2', (button) => button.click());
         await page.waitForFunction(() => document.querySelector('#panel-2')?.textContent.includes('Penyimpanan browser penuh atau diblokir'));
         await page.$eval('.theme', (button) => button.click());

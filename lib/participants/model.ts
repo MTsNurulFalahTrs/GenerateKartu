@@ -11,7 +11,8 @@ const builtins = [
   ['NamaMurid', 'TglLahir', 'NISN', 'NoPeserta', 'NamaSatdik'],
 ] as const;
 
-export type Field = (typeof builtins)[number][number];
+export const customFieldIds = ['Custom1', 'Custom2', 'Custom3', 'Custom4', 'Custom5', 'Custom6'] as const;
+export type Field = (typeof builtins)[number][number] | (typeof customFieldIds)[number];
 export type Participant = { id: string; name: string; cardReference?: string; values: Partial<Record<Field, string>> };
 export type Issue = { row: number; column: string; message: string };
 export type Row = { number: number; cells: string[] };
@@ -22,10 +23,12 @@ export function fieldsFor(format: number, custom: readonly Field[] = []) {
   return format === 7 ? custom : builtins[format] ?? builtins[0];
 }
 
-export function defaultMapping(headers: string[], fields: readonly Field[]): Mapping {
+export function defaultMapping(
+  headers: string[], fields: readonly Field[], excelHeaders: Partial<Record<Field, string>> = {},
+): Mapping {
   const mapping: Mapping = {};
   for (const field of fields) {
-    const matches = headers.flatMap((header, index) => header.trim().toLowerCase() === field.toLowerCase() ? [index] : []);
+    const matches = headers.flatMap((header, index) => header.trim().toLowerCase() === (excelHeaders[field]?.trim() || field).toLowerCase() ? [index] : []);
     if (matches.length === 1) mapping[field] = matches[0];
   }
   return mapping;

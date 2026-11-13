@@ -33,6 +33,8 @@ const sample: Participant = {
 const formatFieldLabels: Record<Field, string> = {
   NamaMurid: 'Nama Murid', NoPeserta: 'No. Peserta', NISN: 'NISN', Kelas: 'Kelas',
   Ruang: 'Ruang', Sesi: 'Sesi', Username: 'Username', TglLahir: 'Tgl. Lahir', NamaSatdik: 'Nama Satdik',
+  Custom1: 'Kolom Kustom 1', Custom2: 'Kolom Kustom 2', Custom3: 'Kolom Kustom 3',
+  Custom4: 'Kolom Kustom 4', Custom5: 'Kolom Kustom 5', Custom6: 'Kolom Kustom 6',
 };
 
 const pageHeadings = [
@@ -214,6 +216,13 @@ export function CardEditor() {
     try {
       const response = await fetch('/api/community-formats', { signal: signal ?? AbortSignal.timeout(12000) });
       if (!response.ok) throw new Error('Katalog tidak tersedia');
+      if (response.headers.get('X-Community-Unavailable') === 'true') {
+        if (!signal?.aborted) {
+          setCatalog([]);
+          setCatalogStatus('error');
+        }
+        return;
+      }
       const result: CatalogFormat[] = await response.json();
       if (!signal?.aborted) {
         setCatalog(result);
@@ -329,7 +338,7 @@ export function CardEditor() {
                         {unconfigured && <li className="custom-format-placeholder">Belum dikonfigurasi. Klik “Atur” untuk membuat format Anda sendiri.</li>}
                         {!unconfigured && fields.map((field) => <li key={field}>
                           <span className="format-check" aria-hidden="true">✓</span>
-                          <span>{formatFieldLabels[field]}</span>
+                          <span>{id === 7 ? customAppearance?.labels?.[field] || formatFieldLabels[field] : formatFieldLabels[field]}</span>
                           {field === photoKey && <span className="format-photo"><EditorIcon name="image" /> Acuan Foto</span>}
                         </li>)}
                       </ul>
@@ -367,13 +376,13 @@ export function CardEditor() {
                         <span className="format-count">{entry.fields.length} field</span>
                       </header>
                       <ul className="format-fields">{entry.fields.map((field) => <li key={field}>
-                        <span className="format-check" aria-hidden="true">✓</span>{formatFieldLabels[field]}
+                        <span className="format-check" aria-hidden="true">✓</span>{entry.labels?.[field] || formatFieldLabels[field]}
                         {field === entry.photoKey && <span className="format-photo"><EditorIcon name="image" /> Acuan Foto</span>}
                       </li>)}</ul>
                       <div className="format-actions">
                         <button className="action format-pick" type="button" onClick={() => {
-                          const { name, photoKey, mono } = entry;
-                          activateCustom(entry.fields, { name, photoKey, mono });
+                          const { name, photoKey, mono, labels, excelHeaders } = entry;
+                          activateCustom(entry.fields, { name, photoKey, mono, labels, excelHeaders });
                           setPublished('');
                         }}>Pilih Format</button>
                         <button className="action" type="button" aria-haspopup="dialog" onClick={(event) => {
@@ -389,7 +398,7 @@ export function CardEditor() {
             )}
             {index === 1 && (
               <>
-                <ParticipantPanel key={revision} active={!helpOpen && step === 1} format={format} custom={custom} customPhotoKey={customAppearance?.photoKey} photos={photos} onDataset={setDataset} onPhotos={setPhotos} />
+                <ParticipantPanel key={revision} active={!helpOpen && step === 1} format={format} custom={custom} customPhotoKey={customAppearance?.photoKey} customAppearance={customAppearance} photos={photos} onDataset={setDataset} onPhotos={setPhotos} />
                 <footer className="page-footer">
                   <small>Tip: Foto bersifat opsional. Kartu tetap bisa dicetak tanpa foto.</small>
                   <button className="action" type="button" onClick={() => setStep(0)}>‹ Kembali</button>

@@ -1,3 +1,5 @@
+-- Neon PostgreSQL migration for GenerateKartu community catalog.
+-- Apply only to Neon; the Supabase migration is historical.
 begin;
 
 create table public.community_formats (
@@ -13,7 +15,7 @@ security invoker
 set search_path = ''
 as $$
 declare
-  allowed constant text[] := array['NoPeserta','NamaMurid','NISN','Kelas','Ruang','Sesi','Username','TglLahir','NamaSatdik'];
+  allowed constant text[] := array['NoPeserta','NamaMurid','NISN','Kelas','Ruang','Sesi','Username','TglLahir','NamaSatdik','Custom1','Custom2','Custom3','Custom4','Custom5','Custom6'];
   fields text[];
   mono text[];
   name text;
@@ -21,7 +23,7 @@ declare
   normalized jsonb;
   format_id integer;
 begin
-  if jsonb_typeof(input) is distinct from 'object' or octet_length(input::text) > 1024 or
+  if jsonb_typeof(input) is distinct from 'object' or octet_length(input::text) > 4096 or
      jsonb_typeof(input->'fields') is distinct from 'array' or
      jsonb_typeof(input->'mono') is distinct from 'array' or
      jsonb_typeof(input->'name') is distinct from 'string' or
@@ -41,9 +43,35 @@ begin
     raise exception using errcode = '22023', message = 'Invalid format';
   end if;
 
+  if input ? 'labels' and (jsonb_typeof(input->'labels') is distinct from 'object' or exists (
+       select 1 from jsonb_each_text(input->'labels') as m(key, val)
+       where not m.key = any(fields) or char_length(btrim(m.val)) not between 1 and 60 or
+             m.val ~ '[[:cntrl:]]'
+     )) then
+    raise exception using errcode = '22023', message = 'Invalid labels';
+  end if;
+  if input ? 'excelHeaders' and (jsonb_typeof(input->'excelHeaders') is distinct from 'object' or exists (
+       select 1 from jsonb_each_text(input->'excelHeaders') as m(key, val)
+       where not m.key = any(fields) or char_length(btrim(m.val)) not between 1 and 64 or
+             lower(btrim(m.val)) = 'password' or m.val ~ '[[:cntrl:]]'
+     )) then
+    raise exception using errcode = '22023', message = 'Invalid headers';
+  end if;
+  if exists (select 1 from unnest(fields) as f(field) where field like 'Custom%' and
+      (not coalesce(input->'labels' ? field, false) or
+       not coalesce(input->'excelHeaders' ? field, false))) then
+    raise exception using errcode = '22023', message = 'Custom fields require metadata';
+  end if;
+  if (select count(distinct lower(btrim(coalesce(input->'excelHeaders'->>field, field))))
+      from unnest(fields) as f(field)) <> cardinality(fields) then
+    raise exception using errcode = '22023', message = 'Duplicate Excel headers';
+  end if;
+
   normalized := jsonb_build_object('name', name, 'fields', fields, 'photoKey', photo_key,
     'mono', array(select item from unnest(fields) with ordinality as f(item, pos)
-      where item = any(mono) order by pos));
+      where item = any(mono) order by pos)) ||
+    (case when input ? 'labels' then jsonb_build_object('labels', input->'labels') else '{}'::jsonb end) ||
+    (case when input ? 'excelHeaders' then jsonb_build_object('excelHeaders', input->'excelHeaders') else '{}'::jsonb end);
 
   perform pg_advisory_xact_lock(764209833);
   select id into format_id from public.community_formats where definition = normalized;
