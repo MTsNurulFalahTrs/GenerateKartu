@@ -129,7 +129,10 @@ try {
       await page.locator('#panel-3 input[placeholder="Nama atau ID peserta"]').fill('tidak ditemukan');
       await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('0 dari 500'));
       assert.equal(await page.$$eval('#panel-3 .exam-card', (cards) => cards.length), 0);
-      await page.locator('#panel-3 input[placeholder="Nama atau ID peserta"]').fill('');
+      await page.$eval('#panel-3 input', (input) => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
       await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('500 dari 500'));
       for (let format = 1; format <= 7; format++) {
         await page.$eval('#step-0', (button) => button.click());
