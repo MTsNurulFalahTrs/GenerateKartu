@@ -19,14 +19,15 @@ export async function GET() {
   }
   try {
     const sql = database();
-    const rows = await sql`select id, definition, contributor_name from public.community_formats order by id desc limit 100` as {
+    const rows = await sql`select id, definition, contributor_name, created_at from public.community_formats order by id desc limit 100` as {
       id: number;
       definition: unknown;
       contributor_name: string;
+      created_at: string;
     }[];
-    return Response.json(rows.flatMap(({ id, definition, contributor_name }) => {
+    return Response.json(rows.flatMap(({ id, definition, contributor_name, created_at }) => {
       const format = parseCommunityFormat(definition);
-      return format ? [{ id, ...format, contributor: contributor_name }] : [];
+      return format ? [{ id, ...format, contributor: contributor_name, createdAt: created_at }] : [];
     }), { headers: { 'Cache-Control': 'no-store' } });
   } catch {
     return failure('Katalog komunitas belum dapat dimuat. Coba lagi.', 503);
