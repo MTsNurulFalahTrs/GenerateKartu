@@ -11,6 +11,7 @@ import type { WorkbookRequest } from '../../lib/participants/workbook.worker';
 
 const MAX_FILE = 10 * 1024 * 1024;
 const filters = ['Kelas', 'Ruang', 'Sesi'] as const;
+const emptyExcelHeaders: Partial<Record<Field, string>> = {};
 type WorkerResult =
   | { action: 'inspect'; names: string[] }
   | { action: 'read'; input: WorkbookRows }
@@ -62,7 +63,7 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
   const fields = fieldsFor(formatId, custom);
   const photoKey = photoFieldFor(formatId, customPhotoKey);
   const allowPasswords = formatId === 7 && custom.includes('Password');
-  const excelHeaders = formatId === 7 ? customAppearance?.excelHeaders ?? {} : {};
+  const excelHeaders = formatId === 7 ? customAppearance?.excelHeaders ?? emptyExcelHeaders : emptyExcelHeaders;
   const displayLabels = formatId === 7 ? customAppearance?.labels ?? {} : {};
   const schema = formatId === 7
     ? `7:${photoKey}:${JSON.stringify(fields.map((field) => [field, excelHeaders[field] || field]))}`

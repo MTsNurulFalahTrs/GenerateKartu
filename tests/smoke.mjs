@@ -404,7 +404,9 @@ try {
           input.dispatchEvent(new Event('input', { bubbles: true }));
         });
       }
+      console.log('Smoke trace: entering 7-format regression checks');
       for (let format = 1; format <= 7; format++) {
+        console.log('Smoke trace: begin format', format);
         await page.$eval('#step-0', (button) => button.click());
         await page.waitForSelector('#panel-0', { visible: true });
         await page.$eval(`#pick-format-${format}`, (button) => button.click());
@@ -412,6 +414,7 @@ try {
         await page.waitForSelector('#panel-3', { visible: true });
         await page.waitForSelector('#panel-3 .exam-card');
         assert.ok(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length >= 4));
+        console.log('Smoke trace: completed format', format);
       }
       await page.$eval('#step-0', (button) => button.click());
       await page.waitForSelector('#panel-0', { visible: true });
