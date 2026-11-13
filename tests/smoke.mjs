@@ -135,12 +135,12 @@ try {
       await page.$eval('.format-library-filters button:nth-child(2)', (button) => button.click());
       await page.waitForSelector('.format-library-filters button:nth-child(2)[aria-pressed="true"]');
       await page.waitForFunction(() => document.querySelectorAll('.community-card').length === 0);
-      await page.locator('#pick-format-1').click();
+      await page.$eval('#pick-format-1', (button) => button.click());
       await page.waitForSelector('#pick-format-1[aria-pressed="true"]');
       await page.$eval('.format-library-filters button:nth-child(1)', (button) => button.click());
       await page.waitForSelector('.format-library-filters button:nth-child(1)[aria-pressed="true"]');
       await page.waitForFunction(() => document.querySelectorAll('.format-grid article').length === 9);
-      assert.equal(await page.$eval('.community-card[data-selected="true"]', (els) => els.length), 0);
+      assert.equal(await page.$$eval('.community-card[data-selected="true"]', (els) => els.length), 0);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
       await page.setRequestInterception(false);
       page.off('request', communityRequest);
