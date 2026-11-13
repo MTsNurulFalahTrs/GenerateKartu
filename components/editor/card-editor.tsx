@@ -94,6 +94,10 @@ export function CardEditor() {
   const [ready, setReady] = useState(false);
   const [savedSettings, setSavedSettings] = useState<{ snapshot: string; assets: InstitutionAssets }>();
   const [storageMessage, setStorageMessage] = useState('');
+  const [savedUntil, setSavedUntil] = useState<number>();
+  const [sessionRemaining, setSessionRemaining] = useState(0);
+  const [dismissedDeadline, setDismissedDeadline] = useState<number>();
+  const warningDialog = useRef<HTMLDialogElement>(null);
   const [sessionMessage, setSessionMessage] = useState('');
   const options = pickOptions(card);
   const preferences: Preferences = { schemaVersion: 1, dark, format, custom, customAppearance, hidden, settings: options };
@@ -108,9 +112,12 @@ export function CardEditor() {
       // Preferences are durable, while names/identities and schedules stay tab-scoped.
       // Neither participants, photos, signatures nor logo files are serialized.
       localStorage.setItem(storageKey, serialized);
-      sessionStorage.setItem(sessionCardKey, packSessionCard(card));
+      const now = Date.now();
+      sessionStorage.setItem(sessionCardKey, packSessionCard(card, now));
+      setSavedUntil(now + idleLimit);
+      setSessionRemaining(idleLimit);
       setSavedSettings({ snapshot: settingsSnapshot, assets });
-      setStorageMessage('Pengaturan berhasil disimpan. Preferensi tetap tersedia di browser; KOP dan jadwal dipulihkan selama sesi tab aktif (maks. 2 jam). Foto, logo, dan tanda tangan tidak disimpan.');
+      setStorageMessage('Pengaturan berhasil disimpan. Preferensi tetap tersedia di browser; KOP dan jadwal dipulihkan selama sesi tab aktif (maks. 1 jam). Foto, logo, dan tanda tangan tidak disimpan.');
     } catch (cause) {
       setSavedSettings(undefined);
       setStorageMessage(cause instanceof Error && cause.message.startsWith('Perbaiki')
@@ -131,6 +138,8 @@ export function CardEditor() {
 
   const clearSession = useCallback(() => {
     try { sessionStorage.removeItem(sessionCardKey); } catch { /* Storage may be blocked. */ }
+    setSavedUntil(undefined);
+    setSessionRemaining(0);
     setSavedSettings(undefined);
     setDataset({ participants: [], selected: new Set() });
     setPhotos(new Map());
@@ -162,7 +171,12 @@ export function CardEditor() {
         const storedCard = sessionStorage.getItem(sessionCardKey);
         if (storedCard) {
           const session = unpackSessionCard(storedCard);
-          if (session) setCard((previous) => ({ ...previous, ...session }));
+          if (session) {
+            const expires = (JSON.parse(storedCard).at as number) + idleLimit;
+            setSavedUntil(expires);
+            setSessionRemaining(Math.max(0, expires - Date.now()));
+            setCard((previous) => ({ ...previous, ...session }));
+          }
           else sessionStorage.removeItem(sessionCardKey);
         }
       } catch {
@@ -196,8 +210,10 @@ export function CardEditor() {
     const check = () => {
       const remaining = idleLimit - (Date.now() - lastActive);
       if (remaining <= 0) {
-        clearSession();
-        setSessionMessage('Sesi kedaluwarsa. Data peserta dan aset sesi telah dibersihkan.');
+        if (savedUntil === undefined) {
+          clearSession();
+          setSessionMessage('Sesi kedaluwarsa. Data peserta dan aset sesi telah dibersihkan.');
+        }
         lastActive = Date.now();
       }
       clearTimeout(timer);
@@ -230,7 +246,57 @@ export function CardEditor() {
       window.removeEventListener('pageshow', resume);
       document.documentElement.removeAttribute('data-card-session-paused');
     };
-  }, [clearSession]);
+  }, [clearSession, savedUntil]);
+  useEffect(() => {
+    if (savedUntil === undefined) return;
+    const tick = () => {
+      const remaining = savedUntil - Date.now();
+      if (remaining <= 0) {
+        clearSession();
+        setSessionMessage('Sesi kedaluwarsa. Data pengaturan dan peserta telah dibersihkan.');
+      } else setSessionRemaining(remaining);
+    };
+    const timer = window.setInterval(tick, 1000);
+    document.addEventListener('visibilitychange', tick);
+    window.addEventListener('pageshow', tick);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', tick);
+      window.removeEventListener('pageshow', tick);
+    };
+  }, [savedUntil, clearSession]);
+
+  const warnSession = savedUntil !== undefined && sessionRemaining > 0 &&
+    sessionRemaining <= 300000 && dismissedDeadline !== savedUntil;
+  useEffect(() => {
+    const dialog = warningDialog.current;
+    if (warnSession && !dialog?.open) dialog?.showModal();
+    else if (!warnSession && dialog?.open) dialog.close();
+  }, [warnSession]);
+
+  function extendSession() {
+    try {
+      const raw = sessionStorage.getItem(sessionCardKey);
+      const now = Date.now();
+      if (!raw || !unpackSessionCard(raw, now)) {
+        clearSession();
+        setSessionMessage('Sesi pengaturan sudah kedaluwarsa.');
+        return;
+      }
+      const saved = JSON.parse(raw);
+      sessionStorage.setItem(sessionCardKey, JSON.stringify({ ...saved, at: now }));
+      setSavedUntil(now + idleLimit);
+      setSessionRemaining(idleLimit);
+      setSessionMessage('Sesi pengaturan diperpanjang satu jam.');
+    } catch {
+      setSessionMessage('Sesi tidak dapat diperpanjang. Periksa akses penyimpanan browser.');
+      setDismissedDeadline(savedUntil);
+    }
+  }
+
+  const secondsLeft = Math.ceil(sessionRemaining / 1000);
+  const countdown = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`;
+
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
@@ -340,6 +406,7 @@ export function CardEditor() {
                 {index === 3 && <span>{dataset.selected.size} kartu terpilih</span>}
               </>}
               actions={index === 2 && <>
+                {savedUntil && <span className="format-count" aria-label="Sisa sesi pengaturan">Sisa sesi {countdown}</span>}
                 <button className="action" id="reset-card-session" type="button" onClick={() => {
                   if (window.confirm('Reset pengaturan dan hapus data peserta, foto, serta aset dari sesi ini?')) reset();
                 }}>Reset</button>
@@ -442,7 +509,11 @@ export function CardEditor() {
                       return <article className="community-card" data-selected={active} key={entry.id}
                         data-community-id={entry.id}>
                         <header className="community-card-header">
-                          <span className="community-card-symbol" aria-hidden="true"><EditorIcon name="users" /></span>
+                          <span className="community-card-symbol" aria-hidden="true">{entry.hasCustomIcon
+                            // ICO is served by the catalog API with an explicit image content type.
+                            // eslint-disable-next-line @next/next/no-img-element
+                            ? <img src={`/api/community-formats?icon=${entry.id}`} alt="" width={24} height={24} loading="lazy" />
+                            : <EditorIcon name={entry.iconPreset ?? 'users'} />}</span>
                           <div className="community-card-identity">
                             <h3 title={entry.name}>{entry.name}</h3>
                             <span className="community-card-origin"><span aria-hidden="true">🌐</span> Format Komunitas</span>
@@ -565,6 +636,17 @@ export function CardEditor() {
           {helpOpen && <HelpContent inEditor participants={dataset.participants.length} photos={photos.size} communityCount={catalogStatus === 'ready' ? catalog.length : undefined} />}
         </section>
       </main>
+      <dialog ref={warningDialog} className="format-dialog community-share-dialog" aria-labelledby="session-warning-title"
+        onCancel={(event) => { event.preventDefault(); setDismissedDeadline(savedUntil); }}>
+        <header><h2 id="session-warning-title">Sesi pengaturan segera berakhir</h2></header>
+        <div className="community-share-body">
+          <p>Sisa waktu <strong>{countdown}</strong>. Perpanjang sesi untuk mempertahankan KOP dan jadwal yang sudah disimpan.</p>
+        </div>
+        <footer className="community-share-footer">
+          <button type="button" className="action" onClick={() => setDismissedDeadline(savedUntil)}>Jangan Perpanjang</button>
+          <button type="button" className="action community-share-confirm" onClick={extendSession}>Perpanjang Sesi</button>
+        </footer>
+      </dialog>
       {deletingCommunity && <CommunityDeleteDialog id={deletingCommunity.id} name={deletingCommunity.name}
         onClose={() => {
           setDeletingCommunity(undefined);

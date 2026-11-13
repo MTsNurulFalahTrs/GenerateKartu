@@ -51,7 +51,10 @@ export function PreviewPanel({ participants, selected, renderCard, active }: {
   const visible = filtered.slice(current * size, (current + 1) * size);
 
   return <div className="print-workspace">
-    <CardOutput participants={filtered} renderCard={renderCard} pending={query !== deferredQuery} />
+    <section className="panel print-summary" aria-label="Ringkasan dan keluaran cetak">
+      <div><h2>Siapkan hasil cetak</h2><p>{filtered.length} kartu mengikuti pencarian, filter, dan cakupan saat ini.</p></div>
+      <CardOutput participants={filtered} renderCard={renderCard} pending={query !== deferredQuery} />
+    </section>
     <label className="print-search">
       <EditorIcon name="search" />
       <span className="sr-only">Cari nama, NISN, atau nomor peserta</span>
@@ -95,14 +98,15 @@ export function PreviewPanel({ participants, selected, renderCard, active }: {
         </div>
       </details>
     </div>
-    {!filtered.length && <p>{scope === 'selected' && !selected.size
+    {!filtered.length && <p className="panel print-empty">{scope === 'selected' && !selected.size
       ? 'Belum ada peserta terpilih. Pilih peserta di Data Murid atau ubah cakupan.'
       : 'Tidak ada kartu yang cocok dengan pencarian dan filter.'}</p>}
-    <div className="card-batch print-card-grid" aria-busy={query !== deferredQuery}>
+    <div className="card-batch print-card-grid" data-view={mode} aria-busy={query !== deferredQuery}>
       {active && visible.map((participant) => <CardPreview key={participant.id} {...renderCard(participant)} />)}
     </div>
-    {pages > 1 && <nav className="flex flex-wrap gap-2" aria-label="Halaman pratinjau">
+    {pages > 1 && <nav className="print-pagination" aria-label="Halaman pratinjau">
       <button type="button" className="action" disabled={current === 0} onClick={() => setPage(current - 1)}>Sebelumnya</button>
+      <span>Halaman {current + 1} dari {pages}</span>
       <button type="button" className="action" disabled={current + 1 >= pages} onClick={() => setPage(current + 1)}>Berikutnya</button>
     </nav>}
   </div>;

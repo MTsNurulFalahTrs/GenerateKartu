@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { importPhotoZip, normalizeImage } from '../../lib/cards/assets';
+import { CardImage } from './card-preview';
 import { EditorIcon } from './editor-icon';
 import type { Participant } from '../../lib/participants/model';
 
@@ -71,15 +72,18 @@ export function PhotoPanel({ participants, photoKey, onPhotos }: {
     </section>
     <section className="panel data-wide data-individual">
       <header className="data-title"><span className="data-icon"><EditorIcon name="user" /></span>
-        <div><h2>3. Upload Foto Per Murid</h2><small>Alternatif ZIP — unggah satu per satu</small></div>
+        <div><h2>3. Upload Foto Per Murid</h2><small>Unggah atau ganti foto peserta secara individual</small></div>
+        {participants && <span className="format-count">{participants.filter((p) => photos.has(p.id)).length}/{participants.length} berfoto</span>}
       </header>
       {!activeId ? <div className="data-empty"><EditorIcon name="plus" />
         <span>Upload Excel terlebih dahulu untuk melihat daftar murid</span>
-      </div> : <div className="data-preview-controls grid gap-3">
+      </div> : <div className="data-preview-controls individual-photo-layout">
+        <div className="individual-photo-thumb">{photos.has(activeId) ? <CardImage blob={photos.get(activeId)} label="Foto peserta" /> : <><EditorIcon name="image" /><small>Belum ada foto</small></>}</div>
+        <div className="individual-photo-form">
         <label>Peserta <select className="max-w-full" value={activeId} disabled={busy} onChange={(event) => setId(event.target.value)}>
           {participants?.map((p) => <option key={p.id} value={p.id}>{p.id} · {p.name}</option>)}
         </select></label>
-        <label>Foto individual <input className="max-w-full" type="file" accept="image/png,image/jpeg" disabled={busy} onChange={(event) => {
+        <label>Foto individual <small>PNG atau JPEG</small><input className="max-w-full" type="file" accept="image/png,image/jpeg" disabled={busy} onChange={(event) => {
           const file = event.currentTarget.files?.[0];
           if (file) void load(file, false);
           event.currentTarget.value = '';
@@ -91,6 +95,7 @@ export function PhotoPanel({ participants, photoKey, onPhotos }: {
           setMessage('Foto peserta dihapus.');
         }}>Hapus foto peserta</button>
         <p role="status">{busy ? 'Memproses foto…' : message || `${photos.size} foto tersimpan.`}</p>
+        </div>
       </div>}
     </section>
   </>;

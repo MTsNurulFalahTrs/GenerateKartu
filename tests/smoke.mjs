@@ -280,15 +280,15 @@ try {
           await page.focus('#apply-participant-import');
           await page.keyboard.press('Space');
           await page.waitForSelector('.import-dialog[open]', { hidden: true });
-          await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('500 terpilih'));
+          await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('500 Terpilih'));
           await page.locator('input[placeholder="Nama atau ID"]').fill('0002');
-          await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('1 cocok'));
+          await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('1 Hasil filter'));
         } else {
           await page.waitForFunction(() => document.querySelector('.import-dialog [role="alert"]')?.textContent.includes('Gunakan ID unik'));
           assert.equal(await page.$eval('#apply-participant-import', (button) => button.disabled), true);
           await page.keyboard.press('Escape');
           await page.waitForSelector('.import-dialog[open]', { hidden: true });
-          assert.match(await page.$eval('#panel-1', (panel) => panel.textContent), /500 peserta/);
+          assert.match(await page.$eval('#panel-1', (panel) => panel.textContent), /500 Peserta/);
         }
       }
       const photoInput = await page.$('#panel-1 input[accept="image/png,image/jpeg"]');
@@ -489,6 +489,7 @@ try {
       await page.$eval('#pick-custom-format', (button) => button.click());
       const customDialog = '.custom-format-dialog[open]';
       await page.waitForFunction((selector) => !!document.querySelector(selector), {}, customDialog);
+      assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).overflowY), 'hidden');
       assert.equal(await page.evaluate(() => document.querySelectorAll('.custom-format-dialog[open] .custom-format-rows li').length), 3);
       const options = await page.evaluate(() => Array.from(
         document.querySelectorAll('.custom-format-dialog[open] li:first-child select option'))
@@ -509,6 +510,7 @@ try {
       await page.keyboard.press('Escape');
       await page.waitForFunction((selector) => !document.querySelector(selector), {}, customDialog);
       await page.waitForFunction(() => document.activeElement?.id === 'pick-custom-format');
+      assert.notEqual(await page.evaluate(() => getComputedStyle(document.documentElement).overflowY), 'hidden');
       await dialogAction(page, '#pick-custom-format');
       await page.waitForFunction((selector) => !!document.querySelector(selector), {}, customDialog);
       assert.equal(await dialogCount(page, `${customDialog} .custom-format-rows li`), 3);
@@ -612,7 +614,16 @@ try {
         await page.waitForFunction(() => document.querySelector('#kop-institution')?.value === 'Madrasah Pulih');
         await page.evaluate(() => {
           const time = Date.now();
-          Date.now = () => time + 7200001;
+          Date.now = () => time + 56 * 60 * 1000;
+          window.dispatchEvent(new Event('pageshow'));
+        });
+        await page.waitForSelector('dialog[open] #session-warning-title');
+        await dialogAction(page, 'dialog[open] .community-share-confirm');
+        await page.waitForFunction(() => !document.querySelector('dialog[open] #session-warning-title'));
+        await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('diperpanjang'));
+        await page.evaluate(() => {
+          const time = Date.now();
+          Date.now = () => time + 3600001;
           window.dispatchEvent(new Event('pageshow'));
         });
         await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('Sesi kedaluwarsa'));
