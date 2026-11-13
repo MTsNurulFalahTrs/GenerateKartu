@@ -338,22 +338,26 @@ export function CardEditor() {
                     <button className="action" id={`card-settings-${id}`} key={name} type="button" aria-pressed={setting === id} onClick={() => setSetting(id)}>{name}</button>
                   ))}
                 </div>
-                {setting !== 0 && <h2 className="mb-3">{settings[setting]}</h2>}
+                {setting === 2 && <h2 className="mb-3">{settings[setting]}</h2>}
                 <CardSettingsPanel key={`settings-${revision}`} section={setting} value={card} onChange={setCard} assets={assets}
                   onAssets={(name, asset) => setAssets((previous) => ({ ...previous, [name]: asset }))} />
-                {setting === 1 && format !== null && <fieldset className="mt-4">
-                  <legend>Kolom kartu</legend>
-                  <div className="flex flex-wrap gap-3">{fieldsFor(format, custom).filter((field) =>
-                    field !== 'NamaMurid' && field !== (format === 0 ? 'Username' : 'NoPeserta')).map((field) =>
-                    <label key={field}><input type="checkbox" checked={!hidden.includes(field)} onChange={(event) =>
-                      setHidden(event.target.checked ? hidden.filter((item) => item !== field) : [...hidden, field])
-                    } /> {field}</label>)}</div>
-                </fieldset>}
-                {step === 2 && setting !== 0 && <div className="mt-4"><CardPreview {...renderCard(previewParticipant)} /></div>}
+                {setting === 1 && <details className="layout-extra layout-card-preview">
+                  <summary>Kolom kartu &amp; pratinjau</summary>
+                  {format !== null && <fieldset className="mt-4">
+                    <legend>Kolom kartu</legend>
+                    <div className="flex flex-wrap gap-3">{fieldsFor(format, custom).filter((field) =>
+                      field !== 'NamaMurid' && field !== (format === 0 ? 'Username' : 'NoPeserta')).map((field) =>
+                      <label key={field}><input type="checkbox" checked={!hidden.includes(field)} onChange={(event) =>
+                        setHidden(event.target.checked ? hidden.filter((item) => item !== field) : [...hidden, field])
+                      } /> {field}</label>)}</div>
+                  </fieldset>}
+                  {format !== null && <div className="layout-card-preview-stage"><CardPreview {...renderCard(previewParticipant)} /></div>}
+                </details>}
+                {setting === 2 && <div className="mt-4"><CardPreview {...renderCard(previewParticipant)} /></div>}
                 <button className="action kop-save" type="button" onClick={saveSettings}>Simpan Pengaturan</button>
                 <small className="kop-save-note">Preferensi disimpan di browser. Isi KOP dan aset berlaku selama sesi.</small>
                 <BackupPanel key={`backup-${revision}`} preferences={preferences} heading={heading}
-                  onRestore={restore} storageMessage={storageMessage} />
+                  onRestore={restore} storageMessage={storageMessage} compact={setting === 1} />
               </div>
               <footer className="data-footer">
                 <button className="action" type="button" onClick={() => setStep(1)}>‹ Kembali</button>
