@@ -436,3 +436,7 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 .schedule-table tr[data-example="false"] { background: color-mix(in srgb, #16a34a 12%, var(--surface)); }
 .schedule-apply { width: 100%; color: white; background: #a65005; font-weight: 700; }
 .exam-card-schedule th, .exam-card-schedule td { border: 1px solid currentColor; padding: .25mm; }
+
+.schedule-settings > section, .schedule-settings .table-scroll { min-width: 0; }
+.schedule-settings .schedule-column input { width: 0; }
+.schedule-range input { width: 0; }
