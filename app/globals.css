@@ -880,7 +880,7 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
   overflow: hidden; text-overflow: ellipsis;
 }
 .community-card-origin { color: #7637f1; font-size: .7rem; font-weight: 700; }
-.community-card-byline { color: #9099ac; font-size: .57rem; }
+.community-card-byline { color: #53627b; font-size: .61rem; }
 .community-card[data-selected="true"] :is(.community-card-origin,.community-card-byline) {
   color: #f4ecff;
 }
@@ -917,7 +917,7 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 }
 .community-photo-badge svg { width: .8rem; height: .8rem; }
 .community-card-fields .community-extra-fields {
-  margin-top: .13rem; color: #9aabcb; font-size: .7rem; font-style: italic;
+  margin-top: .13rem; color: #5b6680; font-size: .7rem; font-style: italic;
 }
 .community-card-actions {
   display: flex; align-items: center; flex-wrap: wrap; gap: .45rem;
@@ -943,6 +943,7 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
   color: #efe8ff; background: #392954;
 }
 .editor[data-theme="dark"] .community-card-fields li { color: var(--muted); }
+.editor[data-theme="dark"] .community-card-byline { color: #e1d9eb; }
 .editor[data-theme="dark"] .community-card:not([data-selected="true"]) .community-card-origin { color: #c8aaff; }
 .editor[data-theme="dark"] .community-shared-badge { color: #e7d6ff; background: #4d3574; }
 .editor[data-theme="dark"] .community-choose { color: #dfcaff; background: #4d3574; }
