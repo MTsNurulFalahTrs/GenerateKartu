@@ -1236,6 +1236,7 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 }
 .app-toast-stack:popover-open { display: grid; gap: .55rem; }
 .app-toast-stack .app-toast {
+  pointer-events: none;
   position: relative;
   width: 100%;
   padding: .85rem;
