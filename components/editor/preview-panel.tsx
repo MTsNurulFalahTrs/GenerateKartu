@@ -1,6 +1,7 @@
 'use client';
 
 import { useDeferredValue, useMemo, useState } from 'react';
+import { CardOutput } from './card-output';
 import { CardPreview } from './card-preview';
 import { filterPreview, previewFilters } from '../../lib/cards/render-model';
 import type { CardRenderModel, PreviewFilter, PreviewScope } from '../../lib/cards/render-model';
@@ -55,7 +56,7 @@ export function PreviewPanel({ participants, selected, renderCard, active }: {
         const values = [...new Set(participants.map((participant) => participant.values[field]).filter(Boolean))].sort();
         if (!values.length) return null;
         return <label key={field} className="grid min-w-0 gap-1">{field} pratinjau
-          <select className="max-w-full" value={facets[field] ?? ''} onChange={(event) => {
+          <select id={`preview-${field}`} className="max-w-full" value={facets[field] ?? ''} onChange={(event) => {
             setFacets((previous) => ({ ...previous, [field]: event.target.value }));
             setPage(0);
           }}>
@@ -69,6 +70,7 @@ export function PreviewPanel({ participants, selected, renderCard, active }: {
     {!filtered.length && <p>{scope === 'selected' && !selected.size
       ? 'Belum ada peserta terpilih. Pilih peserta di Data Murid atau ubah cakupan.'
       : 'Tidak ada kartu yang cocok dengan pencarian dan filter.'}</p>}
+    <CardOutput cards={filtered.map((participant) => renderCard(participant))} pending={query !== deferredQuery} />
     <div className="card-batch" aria-busy={query !== deferredQuery}>
       {active && visible.map((participant) => <CardPreview key={participant.id} {...renderCard(participant)} />)}
     </div>

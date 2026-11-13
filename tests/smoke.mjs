@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { utils, write } from 'xlsx';
+import { PDFDocument, PDFName as pdfName } from 'pdf-lib';
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 
@@ -29,7 +30,7 @@ async function fixture(name, ids) {
   utils.book_append_sheet(book, utils.aoa_to_sheet([['Petunjuk']]), 'Petunjuk');
   utils.book_append_sheet(book, utils.aoa_to_sheet([
     ['NoPeserta', 'NISN', 'NamaMurid', 'Kelas', 'Ruang'],
-    ...ids.map((id, index) => [id, '0000000123', 'Peserta Uji ' + index, 'IX-A', 'Ruang 1']),
+    ...ids.map((id, index) => [id, '0000000123', 'Peserta Uji ' + index, index < 10 ? 'IX-A' : 'IX-B', 'Ruang 1']),
   ]), 'Peserta');
   const file = join(fixtureDir, name);
   await writeFile(file, write(book, { type: 'buffer', bookType: 'xlsx', compression: true }));
@@ -134,6 +135,52 @@ try {
         input.dispatchEvent(new Event('input', { bubbles: true }));
       });
       await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('500 dari 500'));
+      if (name === 'desktop') {
+        await page.evaluate(() => {
+          const add = window.addEventListener.bind(window);
+          window.addEventListener = (type, listener, options) => {
+            if (type === 'afterprint') window.finishPrint = listener;
+            else add(type, listener, options);
+          };
+          window.print = () => {
+            const pages = [...document.querySelectorAll('.print-sheet')];
+            window.printEvidence = {
+              active: document.body.classList.contains('card-print-ready'),
+              counts: pages.map((page) => page.querySelectorAll('.exam-card').length),
+              names: pages.flatMap((page) => [...page.querySelectorAll('.exam-card')].map((card) => card.getAttribute('aria-label'))),
+            };
+          };
+          const click = HTMLAnchorElement.prototype.click;
+          HTMLAnchorElement.prototype.click = function () {
+            if (this.download !== 'kartu-peserta-ujian.pdf') return click.call(this);
+            window.pdfEvidence = fetch(this.href).then((response) => response.arrayBuffer()).then((bytes) => [...new Uint8Array(bytes)]);
+          };
+        });
+        await page.$eval('#print-cards', (button) => button.click());
+        await page.waitForFunction(() => window.printEvidence);
+        const printed = await page.evaluate(() => window.printEvidence);
+        assert.equal(printed.active, true);
+        assert.equal(printed.counts.length, 56);
+        assert.deepEqual(printed.counts.slice(-2), [9, 5]);
+        assert.deepEqual(printed.names, Array.from({ length: 500 }, (_, index) => 'Kartu ujian Peserta Uji ' + index));
+        const browserPdf = await PDFDocument.load(await page.pdf({ preferCSSPageSize: true, printBackground: true }));
+        assert.equal(browserPdf.getPageCount(), 56);
+        await page.evaluate(() => window.finishPrint());
+        await page.select('#preview-Kelas', 'IX-A');
+        await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('10 dari 500'));
+        await page.waitForSelector('#download-card-pdf:enabled');
+        await page.$eval('#download-card-pdf', (button) => button.click());
+        await page.waitForFunction(() => window.pdfEvidence, { timeout: 60000 });
+        const bytes = await page.evaluate(() => window.pdfEvidence);
+        const pdf = await PDFDocument.load(new Uint8Array(bytes));
+        assert.equal(pdf.getPageCount(), 2);
+        assert.deepEqual(pdf.getPages().map((sheet) => sheet.node.Resources().lookup(pdfName.of('XObject')).keys().length), [9, 1]);
+        assert.ok(Math.abs(pdf.getPage(0).getWidth() * 25.4 / 72 - 297) < 0.1);
+        await page.$eval('#panel-3 input', (input) => {
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '');
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      }
       for (let format = 1; format <= 7; format++) {
         await page.$eval('#step-0', (button) => button.click());
         await page.waitForSelector('#panel-0', { visible: true });
