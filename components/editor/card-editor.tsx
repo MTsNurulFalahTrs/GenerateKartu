@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { AppBrand, PageHeading } from './page-chrome';
 import { flushSync } from 'react-dom';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
@@ -33,6 +34,13 @@ const formatFieldLabels: Record<Field, string> = {
   NamaMurid: 'Nama Murid', NoPeserta: 'No. Peserta', NISN: 'NISN', Kelas: 'Kelas',
   Ruang: 'Ruang', Sesi: 'Sesi', Username: 'Username', TglLahir: 'Tgl. Lahir', NamaSatdik: 'Nama Satdik',
 };
+
+const pageHeadings = [
+  { title: 'Pilih Format Kartu', description: 'Pilih tata letak yang sesuai standar ujian madrasah atau sekolah Anda.' },
+  { title: 'Unggah Data & Foto', description: 'Semua data murid dan foto diproses di browser Anda.' },
+  { title: 'Pengaturan Kartu', description: 'Atur KOP kartu ujian, logo, data penandatangan, dan ukuran fisik kartu.' },
+  { title: 'Pratinjau & Cetak', description: 'Periksa tampilan kartu sebelum mencetak ke kertas.' },
+] as const;
 
 const formatTitles = [...formats.map((_, id) => `Format ${id + 1}`), 'Format Kustom'];
 const formatIcons = ['monitor', 'users', 'clipboard', 'calendar', 'user', 'building', 'home', 'edit'] as const;
@@ -209,12 +217,7 @@ export function CardEditor() {
       <a className="skip-editor" href="#editor-content">Lewati ke isi editor</a>
       <header className="header" data-step={step}>
         <div className="header-inner">
-          <Link className="brand" href="/">
-            <span className="brand-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M1 9 12 3l11 6-11 6-11-6Zm4 4 7 4 7-4v5l-7 4-7-4Z"/></svg>
-            </span>
-            <span><strong>Kartu Ujian Pro</strong><small>Generator Kartu Peserta</small></span>
-          </Link>
+          <AppBrand />
           <div className="navigation">
             <div className="stepper" role="tablist" aria-label="Langkah pembuatan kartu">
               {steps.map((label, index) => (
@@ -240,21 +243,20 @@ export function CardEditor() {
         {steps.map((label, index) => (
           <section key={label} id={`panel-${index}`} role="tabpanel" aria-labelledby={`step-${index}`}
             tabIndex={0} hidden={step !== index}>
-            {index === 1 && <div className="data-badges"><span>Langkah 2 dari 4</span><span>Data lokal — privasi terjaga</span></div>}
-            {index === 2 && <div className="kop-page-meta">
-              <span className="format-count">Langkah 3 dari 4</span>
-              <div>
+            <PageHeading title={pageHeadings[index].title} description={pageHeadings[index].description}
+              badges={<><span>Langkah {index + 1} dari {steps.length}</span>
+                {index === 1 && <span>Data lokal</span>}
+                {index === 3 && <span>{dataset.selected.size} kartu terpilih</span>}
+              </>}
+              actions={index === 2 && <>
                 <button className="action" id="reset-card-session" type="button" onClick={() => {
                   if (window.confirm('Reset pengaturan dan hapus data peserta, foto, serta aset dari sesi ini?')) reset();
                 }}>Reset</button>
                 <span className="format-count" role="status">{savedSettings?.snapshot === settingsSnapshot && savedSettings.assets === assets ? 'Disimpan' : 'Belum disimpan'}</span>
-              </div>
-            </div>}
-            {index === 3 && <div className="data-badges"><span>Langkah 4 dari 4</span><span>{dataset.selected.size} kartu terpilih</span></div>}
-            <h1 className={index === 0 ? 'sr-only' : undefined}>{index === 0 ? 'Pilih Format Kartu' : index === 1 ? 'Upload Data & Foto' : index === 2 ? 'Pengaturan Kartu' : index === 3 ? 'Preview & Cetak' : label}</h1>
+              </>}
+            />
             {index === 0 && (
               <>
-                <p>Pilih tata letak yang sesuai standar ujian madrasah atau sekolah Anda.</p>
                 {format !== null && <div className="format-summary" role="status">
                   <span className="format-icon" aria-hidden="true">✓</span>
                   <div><small>Format Aktif</small><strong>{formatTitles[format]}{formats[format] && ` (${formats[format]})`}</strong></div>
@@ -322,9 +324,8 @@ export function CardEditor() {
             </div>}
             {index === 1 && (
               <>
-                <p className="data-intro">Semua data murid dan foto diproses di browser Anda.</p>
                 <ParticipantPanel key={revision} active={step === 1} format={format} custom={custom} photos={photos} onDataset={setDataset} onPhotos={setPhotos} />
-                <footer className="data-footer">
+                <footer className="page-footer">
                   <small>Tip: Foto bersifat opsional. Kartu tetap bisa dicetak tanpa foto.</small>
                   <button className="action" type="button" onClick={() => setStep(0)}>‹ Kembali</button>
                   <button className="action data-next" type="button" onClick={() => setStep(2)}>Lanjut ke Pengaturan ›</button>
@@ -333,7 +334,6 @@ export function CardEditor() {
             )}
             {index === 2 && (
               <>
-              <p>Atur KOP kartu ujian, logo, data penandatangan, dan ukuran fisik kartu.</p>
               <div className="panel kop-shell">
                 <div className="subtabs" role="group" aria-label="Bagian pengaturan">
                   {settings.map((name, id) => (
@@ -360,7 +360,7 @@ export function CardEditor() {
                 <BackupPanel key={`backup-${revision}`} preferences={preferences} heading={heading}
                   onRestore={restore} storageMessage={storageMessage} compact={setting !== 0} />
               </div>
-              <footer className="data-footer">
+              <footer className="page-footer">
                 <button className="action" type="button" onClick={() => setStep(1)}>‹ Kembali</button>
                 <button className="action data-next" type="button" disabled={!validCardLayout(card)} onClick={() => setStep(3)}>Lihat & Cetak Kartu ›</button>
               </footer>
@@ -368,7 +368,6 @@ export function CardEditor() {
             )}
             {index === 3 && (
               <div className="print-workspace min-w-0">
-                <p>Periksa tampilan kartu sebelum mencetak ke kertas.</p>
                 {format === null ? <p>Pilih format kartu untuk membuka pratinjau.</p> : <>
                   <p className="sr-only">Format terpilih: {formats[format] ?? 'Format Kustom'}.</p>
                   {dataset.participants.length
