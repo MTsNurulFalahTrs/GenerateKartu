@@ -161,7 +161,7 @@ try {
       assert.ok(signatureInput);
       await signatureInput.uploadFile(photo);
       await page.waitForSelector('.kop-asset-image img[alt="Tanda Tangan Digital (opsional)"]');
-      await page.locator('.kop-signature button:nth-child(3)').click();
+      await page.$eval('.kop-signature button:nth-child(3)', (button) => button.click());
       await page.waitForFunction(() => document.querySelector('.kop-signature output')?.textContent?.includes('1.2 cm'));
       await page.locator('.kop-signature input[role="switch"]').click();
       await page.locator('.kop-save').click();
