@@ -126,7 +126,7 @@ export function parseBackup(raw: string, allowHeading = true): { preferences: Pr
     (custom as Field[]).some((field) => customFieldIds.includes(field as typeof customFieldIds[number]))) {
     throw new Error('Format kustom tidak valid.');
   }
-  const preferences = { schemaVersion, dark, format, custom, customAppearance, hidden, settings: { ...options, kopStyles: styles, signatureSize: appearance.signatureSize, signatureOverlap: appearance.signatureOverlap } } as Preferences;
+  const preferences = { schemaVersion, dark, format, custom, ...(customAppearance ? { customAppearance } : {}), hidden, settings: { ...options, kopStyles: styles, signatureSize: appearance.signatureSize, signatureOverlap: appearance.signatureOverlap } } as Preferences;
   if (!hasHeading) return { preferences };
   const heading = object(value.heading, headingKeys);
   if (headingKeys.some((key) => typeof heading[key] !== 'string' || heading[key].length > 160)) {
