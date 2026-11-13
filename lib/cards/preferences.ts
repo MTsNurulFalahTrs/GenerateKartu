@@ -1,6 +1,6 @@
 import { defaultCard, kopFields, kopSizes } from './settings.ts';
 import type { CardSettings } from './settings.ts';
-import { customFieldIds } from '../participants/model';
+import { customFieldIds } from '../participants/model.ts';
 import type { Field } from '../participants/model';
 
 export const storageKey = 'generate-kartu:preferences:v1';
