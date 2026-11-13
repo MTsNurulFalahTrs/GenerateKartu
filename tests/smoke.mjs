@@ -125,7 +125,11 @@ try {
       const catalogPage = await browser.newPage();
       await catalogPage.setViewport({ width, height, deviceScaleFactor: 1, isMobile: name === 'mobile', hasTouch: name === 'mobile' });
       catalogPage.on('pageerror', (error) => errors.push(error.message));
-      catalogPage.on('console', (entry) => { if (entry.type() === 'error') errors.push(entry.text()); });
+      catalogPage.on('console', (entry) => {
+        const expectedPinRejection = entry.text().startsWith('Failed to load resource:') &&
+          entry.text().includes('403') && entry.location().url === new URL('/api/community-formats', origin).href;
+        if (entry.type() === 'error' && !expectedPinRejection) errors.push(entry.text());
+      });
       const sampleCommunity = [{
         id: 9001, name: 'Format Uji Komunitas',
         fields: ['NoPeserta', 'NISN', 'NamaMurid', 'Kelas', 'Ruang', 'Sesi'],
@@ -135,9 +139,18 @@ try {
         createdAt: '2026-11-13T12:00:00.000Z',
       }];
       await catalogPage.setRequestInterception(true);
+      let catalogDeleted = false;
       const communityRequest = (request) => {
+        if (request.method() === 'DELETE' && new URL(request.url()).pathname === '/api/community-formats') {
+          const { id, pin } = JSON.parse(request.postData());
+          catalogDeleted = id === 9001 && pin === '12345678';
+          void request.respond(catalogDeleted ? { status: 204 } : {
+            status: 403, contentType: 'application/json', body: JSON.stringify({ message: 'PIN pemilik salah.' }),
+          });
+          return;
+        }
         if (request.method() === 'GET' && new URL(request.url()).pathname === '/api/community-formats') {
-          void request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(sampleCommunity) });
+          void request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(catalogDeleted ? [] : sampleCommunity) });
         } else {
           void request.continue();
         }
@@ -190,6 +203,15 @@ try {
       await catalogPage.waitForFunction(() => document.querySelectorAll('.format-grid article').length === 9);
       assert.equal(await catalogPage.$$eval('.community-card[data-selected="true"]', (els) => els.length), 0);
       assert.equal(await catalogPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+      await dialogAction(catalogPage, '.community-card .community-delete');
+      await catalogPage.waitForSelector('#community-owner-pin');
+      await dialogAction(catalogPage, '#community-owner-pin', 'fill', '87654321');
+      await dialogAction(catalogPage, 'dialog[open] button[type="submit"]');
+      await catalogPage.waitForFunction(() => document.querySelector('dialog[open] [role="alert"]')?.textContent === 'PIN pemilik salah.');
+      assert.equal(await dialogCount(catalogPage, '.community-card'), 1);
+      await dialogAction(catalogPage, '#community-owner-pin', 'fill', '12345678');
+      await dialogAction(catalogPage, 'dialog[open] button[type="submit"]');
+      await catalogPage.waitForFunction(() => !document.querySelector('.community-card') && !document.querySelector('dialog[open]'));
       catalogPage.off('request', communityRequest);
       await catalogPage.close();
 

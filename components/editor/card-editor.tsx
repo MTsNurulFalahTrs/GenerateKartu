@@ -1,5 +1,6 @@
 'use client';
 
+import { CommunityDeleteDialog } from './community-delete-dialog';
 import { HelpContent } from './help-content';
 import { AppBrand, PageHeading } from './page-chrome';
 import { flushSync } from 'react-dom';
@@ -67,6 +68,8 @@ export function CardEditor() {
   const [previewFormat, setPreviewFormat] = useState<number | null>(null);
   const [catalog, setCatalog] = useState<CatalogFormat[]>([]);
   const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [deletingCommunity, setDeletingCommunity] = useState<CatalogFormat>();
+  const deleteTrigger = useRef<HTMLButtonElement>(null);
   const [communityPreview, setCommunityPreview] = useState<CatalogFormat>();
   const [published, setPublished] = useState('');
   const [editingCustom, setEditingCustom] = useState(false);
@@ -479,6 +482,11 @@ export function CardEditor() {
                                 setCommunityPreview(entry);
                                 setPreviewFormat(7);
                               }}><EditorIcon name="eye" /> Preview</button>
+                            <button className="community-delete" type="button" aria-haspopup="dialog"
+                              aria-label={'Hapus ' + entry.name} onClick={(event) => {
+                                deleteTrigger.current = event.currentTarget;
+                                setDeletingCommunity(entry);
+                              }}>Hapus</button>
                           </div>
                         </div>
                       </article>;
@@ -557,6 +565,19 @@ export function CardEditor() {
           {helpOpen && <HelpContent inEditor participants={dataset.participants.length} photos={photos.size} communityCount={catalogStatus === 'ready' ? catalog.length : undefined} />}
         </section>
       </main>
+      {deletingCommunity && <CommunityDeleteDialog id={deletingCommunity.id} name={deletingCommunity.name}
+        onClose={() => {
+          setDeletingCommunity(undefined);
+          requestAnimationFrame(() => deleteTrigger.current?.focus());
+        }}
+        onDeleted={(id) => {
+          setDeletingCommunity(undefined);
+          setCatalog((entries) => entries.filter((entry) => entry.id !== id));
+          setSelectedCommunityId((selected) => selected === id ? null : selected);
+          setPublished('Format dihapus dari katalog komunitas.');
+          requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('#step-0')?.focus());
+          void loadCatalog();
+        }} />}
       {editingCustom && <CustomFormatDialog fields={customConfigured ? custom : []} appearance={customAppearance} labels={formatFieldLabels}
         onClose={() => {
           setEditingCustom(false);
