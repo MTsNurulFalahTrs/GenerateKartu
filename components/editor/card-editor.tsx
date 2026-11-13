@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { HelpContent } from './help-content';
 import { AppBrand, PageHeading } from './page-chrome';
 import { flushSync } from 'react-dom';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -47,6 +47,7 @@ const formatIcons = ['monitor', 'users', 'clipboard', 'calendar', 'user', 'build
 
 export function CardEditor() {
   const [step, setStep] = useState(0);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [format, setFormat] = useState<number | null>(0);
   const [formatQuery, setFormatQuery] = useState('');
   const [previewFormat, setPreviewFormat] = useState<number | null>(null);
@@ -207,6 +208,7 @@ export function CardEditor() {
     if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
     event.preventDefault();
     const next = moveStep(index, event.key);
+    setHelpOpen(false);
     setStep(next);
     tabRefs.current[next]?.focus({ preventScroll: true });
     tabRefs.current[next]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -222,16 +224,16 @@ export function CardEditor() {
             <div className="stepper" role="tablist" aria-label="Langkah pembuatan kartu">
               {steps.map((label, index) => (
                 <button key={label} id={`step-${index}`} role="tab" type="button"
-                  aria-selected={step === index} aria-controls={`panel-${index}`}
+                  aria-selected={!helpOpen && step === index} aria-controls={`panel-${index}`}
                   tabIndex={step === index ? 0 : -1}
                   ref={(element) => { tabRefs.current[index] = element; }}
                   onKeyDown={(event) => onTabKey(event, index)}
-                  onClick={() => setStep(index)}>
+                  onClick={() => { setHelpOpen(false); setStep(index); }}>
                   <span data-complete={!!completedSteps[index]} aria-hidden="true">{completedSteps[index] ? '✓' : index + 1}</span>{label}
                 </button>
               ))}
             </div>
-            <Link href="/bantuan">Bantuan</Link>
+            <button className="action help-nav" type="button" aria-pressed={helpOpen} aria-controls="editor-help-panel" onClick={() => setHelpOpen(!helpOpen)}>Bantuan</button>
             <button type="button" className="theme" aria-label="Tema gelap" aria-pressed={dark} onClick={() => setDark(!dark)}>
               <span aria-hidden="true">{dark ? '☀' : '☾'}</span>
             </button>
@@ -242,7 +244,7 @@ export function CardEditor() {
         {sessionMessage && <p role="status">{sessionMessage}</p>}
         {steps.map((label, index) => (
           <section key={label} id={`panel-${index}`} role="tabpanel" aria-labelledby={`step-${index}`}
-            tabIndex={0} hidden={step !== index}>
+            tabIndex={0} hidden={helpOpen || step !== index}>
             <PageHeading title={pageHeadings[index].title} description={pageHeadings[index].description}
               badges={<><span>Langkah {index + 1} dari {steps.length}</span>
                 {index === 1 && <span>Data lokal</span>}
@@ -324,7 +326,7 @@ export function CardEditor() {
             </div>}
             {index === 1 && (
               <>
-                <ParticipantPanel key={revision} active={step === 1} format={format} custom={custom} photos={photos} onDataset={setDataset} onPhotos={setPhotos} />
+                <ParticipantPanel key={revision} active={!helpOpen && step === 1} format={format} custom={custom} photos={photos} onDataset={setDataset} onPhotos={setPhotos} />
                 <footer className="page-footer">
                   <small>Tip: Foto bersifat opsional. Kartu tetap bisa dicetak tanpa foto.</small>
                   <button className="action" type="button" onClick={() => setStep(0)}>‹ Kembali</button>
@@ -371,13 +373,16 @@ export function CardEditor() {
                 {format === null ? <p>Pilih format kartu untuk membuka pratinjau.</p> : <>
                   <p className="sr-only">Format terpilih: {formats[format] ?? 'Format Kustom'}.</p>
                   {dataset.participants.length
-                    ? <PreviewPanel key={`${format}:${revision}`} active={step === 3} participants={dataset.participants} selected={dataset.selected} renderCard={renderCard} />
+                    ? <PreviewPanel key={`${format}:${revision}`} active={!helpOpen && step === 3} participants={dataset.participants} selected={dataset.selected} renderCard={renderCard} />
                     : <><CardOutput participants={dataset.participants} renderCard={renderCard} pending={false} /><p>Contoh kartu. Impor data untuk melihat kartu peserta.</p>{step === 3 && <CardPreview {...renderCard(sample)} />}</>}
                 </>}
               </div>
             )}
           </section>
         ))}
+        <section id="editor-help-panel" hidden={!helpOpen}>
+          {helpOpen && <HelpContent inEditor participants={dataset.participants.length} photos={photos.size} />}
+        </section>
       </main>
       <dialog className="format-dialog" ref={previewDialog} aria-labelledby="format-preview-title" onClose={() => {
         setPreviewFormat(null);
