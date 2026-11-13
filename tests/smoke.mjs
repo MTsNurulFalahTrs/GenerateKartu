@@ -422,7 +422,12 @@ try {
         '— Pilih —', 'Nama Murid', 'NISN', 'No. Peserta', 'Kelas', 'Ruang', 'Tgl. Lahir',
         'Sesi', 'Username', 'Password', 'Nama Satdik', '-- Tulis Sendiri',
       ]);
-      assert.equal(options[9].disabled, true, 'Password must never be imported');
+      assert.equal(options[9].disabled, false, 'Password should be available for custom formats');
+      await page.select(`${customDialog} li:nth-child(2) select`, 'Password');
+      assert.equal(await page.$eval(`${customDialog} [aria-label="Kolom Excel baris 2"]`, (input) => input.value), 'Password');
+      assert.equal(await page.$eval(`${customDialog} [aria-label="Acuan Foto Password"]`, (input) => input.disabled), true);
+      assert.match(await page.$eval(`${customDialog} .custom-format-note`, (note) => note.textContent), /case-sensitive, tanpa spasi/);
+      assert.match(await page.$eval(`${customDialog} .custom-format-note`, (note) => note.textContent), /sesi lokal/);
       assert.equal(await page.$eval(`${customDialog} [aria-label="Kolom Excel baris 1"]`,
         (input) => input.value), 'NamaMurid');
       await page.click(`${customDialog} .custom-add`);
@@ -443,17 +448,36 @@ try {
       await page.locator(`${customDialog} [aria-label="Label Tampilan baris 4"]`).fill('Nomor Bangku');
       await page.locator(`${customDialog} [aria-label="Kolom Excel baris 4"]`).fill('NomorBangku');
       await page.$eval(`${customDialog} .custom-community input`, (input) => input.click());
+      assert.equal(await page.$eval(`${customDialog} .custom-format-name input`, (input) => input.value), 'Format_Kustom');
+      await page.setRequestInterception(true);
+      let nameChecks = 0;
+      const checkNameRequest = (request) => {
+        const target = new URL(request.url());
+        if (request.method() === 'GET' && target.pathname === '/api/community-formats' && target.searchParams.has('name')) {
+          nameChecks += 1;
+          void request.respond({ status: 200, contentType: 'application/json',
+            body: JSON.stringify({ exists: nameChecks === 1 }) });
+        } else void request.continue();
+      };
+      page.on('request', checkNameRequest);
+      await page.$eval(`${customDialog} .custom-save`, (button) => button.click());
+      await page.waitForSelector(`${customDialog} .custom-format-error`);
+      assert.match(await page.$eval(`${customDialog} .custom-format-error`, (node) => node.textContent), /sudah digunakan/);
+      await page.locator(`${customDialog} .custom-format-name input`).fill('Format_Baru_2026');
       await page.$eval(`${customDialog} .custom-save`, (button) => button.click());
       const shareDialog = '.community-share-dialog[open]';
       await page.waitForSelector(shareDialog, { visible: true });
       assert.equal(await page.$eval(`${shareDialog} h2`, (title) => title.textContent), 'Bagikan ke Komunitas?');
-      assert.ok(await page.$eval(`${shareDialog} .community-share-notice`, (panel) => panel.textContent.includes('Format Kustom')));
+      assert.ok(await page.$eval(`${shareDialog} .community-share-notice`, (panel) => panel.textContent.includes('Format_Baru_2026')));
       await page.$eval(`${shareDialog} .community-share-confirm`, (button) => button.click());
       await page.waitForSelector(`${shareDialog} [role=alert]`);
-      await page.locator('#community-contributor-name').fill('Kontributor Uji');
+      await page.locator('#community-contributor-name').fill('rANDY uJI123!');
+      assert.equal(await page.$eval('#community-contributor-name', (input) => input.value), 'Randy Uji');
       await page.$eval(`${shareDialog} .community-share-anonymous input`, (input) => input.click());
       assert.equal(await page.$eval('#community-contributor-name', (input) => input.disabled), true);
       await page.$eval(`${shareDialog} .community-share-cancel`, (button) => button.click());
+      page.off('request', checkNameRequest);
+      await page.setRequestInterception(false);
       await page.waitForSelector(shareDialog, { hidden: true });
       assert.equal(await page.$eval(customDialog, (dialog) => dialog.open), true);
       await page.$eval(`${customDialog} .custom-community input`, (input) => input.click());

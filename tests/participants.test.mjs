@@ -90,3 +90,31 @@ test('custom Excel headers round-trip without importing Password data', () => {
   assert.equal(result.participants[0].values.Custom1, 'A-12');
   assert.doesNotMatch(JSON.stringify(result), /RAHASIA/);
 });
+
+test('Password is imported only for a custom format that explicitly selects it', () => {
+  const bytes = workbook([['NoPeserta', 'NamaMurid', 'Password'], ['0007', 'Peserta Uji', 'SANDI-SINTETIS-01']]);
+  assert.equal(readSheet(bytes, 'Peserta').rows[0].cells[2], '', 'built-in formats continue discarding passwords');
+  const fields = ['NoPeserta', 'NamaMurid', 'Password'];
+  const input = readSheet(bytes, 'Peserta', undefined, undefined, false);
+  const mapping = defaultMapping(input.headers, fields, {}, true);
+  assert.equal(input.rows[0].cells[2], 'SANDI-SINTETIS-01');
+  const result = validateRows(input, 7, mapping, fields, 'NoPeserta');
+  assert.equal(result.issues.length, 0);
+  assert.equal(result.participants[0].values.Password, 'SANDI-SINTETIS-01');
+  const forbidden = validateRows(input, 7, mapping, fields, 'Password');
+  assert.equal(forbidden.participants.length, 0);
+  assert.match(forbidden.issues[0].message, /Acuan Foto/);
+  const generated = readSheet(createTemplate(7, fields), 'Peserta', undefined, undefined, false);
+  assert.deepEqual(generated.headers, fields);
+  assert.ok(generated.rows[0].cells[2]);
+});
+
+test('custom automatic mapping requires exact Excel headers', () => {
+  const fields = ['NoPeserta', 'NamaMurid', 'Password'];
+  const headers = ['nopeserta', 'NamaMurid', 'Password'];
+  const exact = defaultMapping(headers, fields, {}, true);
+  assert.equal(exact.NoPeserta, undefined);
+  assert.equal(exact.NamaMurid, 1);
+  assert.equal(exact.Password, 2);
+  assert.equal(defaultMapping(headers, fields).NoPeserta, 0, 'built-in mapping stays case-insensitive');
+});

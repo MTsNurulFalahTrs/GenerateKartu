@@ -6,7 +6,7 @@ import type { Field } from '../participants/model';
 export const storageKey = 'generate-kartu:preferences:v1';
 export const idleLimit = 2 * 60 * 60 * 1000;
 export const maxBackupBytes = 1024 * 1024;
-export const customFields: readonly Field[] = ['NoPeserta', 'NamaMurid', 'NISN', 'Kelas', 'Ruang', 'Sesi', 'Username', 'TglLahir', 'NamaSatdik', ...customFieldIds];
+export const customFields: readonly Field[] = ['NoPeserta', 'NamaMurid', 'NISN', 'Kelas', 'Ruang', 'Sesi', 'Username', 'Password', 'TglLahir', 'NamaSatdik', ...customFieldIds];
 export const defaultCustom: Field[] = ['NoPeserta', 'NamaMurid', 'Kelas'];
 
 const optionKeys = ['width', 'height', 'fontSize', 'align', 'monochrome', 'photo', 'qr', 'showSchedule'] as const;
@@ -102,6 +102,7 @@ export function parseBackup(raw: string, allowHeading = true): { preferences: Pr
       ['name', 'photoKey', 'mono', ...(hasLabels ? ['labels'] : []), ...(hasHeaders ? ['excelHeaders'] : [])]);
     if (typeof appearance.name !== 'string' || !appearance.name.trim() || appearance.name.length > 60 ||
       !customFields.some((field) => field === appearance.photoKey && (custom as Field[]).includes(field)) ||
+      appearance.photoKey === 'Password' ||
       !fields(appearance.mono) || !appearance.mono.every((field) => (custom as Field[]).includes(field)) ||
       (custom as Field[]).length > 6) throw new Error('Format kustom tidak valid.');
     for (const [key, prop] of [['labels', 60], ['excelHeaders', 64]] as const) {
@@ -111,7 +112,7 @@ export function parseBackup(raw: string, allowHeading = true): { preferences: Pr
       for (const [field, text] of Object.entries(values)) {
         if (!customFields.includes(field as Field) || !(custom as Field[]).includes(field as Field) ||
           typeof text !== 'string' || !text.trim() || text.trim().length > prop ||
-          (key === 'excelHeaders' && text.trim().toLowerCase() === 'password')) {
+          (key === 'excelHeaders' && text.trim().toLowerCase() === 'password' && field !== 'Password')) {
           throw new Error('Metadata format kustom tidak valid.');
         }
       }

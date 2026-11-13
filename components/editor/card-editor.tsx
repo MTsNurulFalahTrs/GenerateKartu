@@ -28,11 +28,11 @@ const sample: Participant = {
   id: 'CONTOH-001',
   cardReference: 'GK1:00000000000000000000000000000000',
   name: 'Peserta Contoh',
-  values: { NamaMurid: 'Peserta Contoh', NoPeserta: '0001', NISN: '0000000001', Kelas: 'IX-A', Ruang: '1', Sesi: 'Sesi 1', Username: 'CONTOH-001', TglLahir: '2012-01-01', NamaSatdik: 'Madrasah Contoh' },
+  values: { NamaMurid: 'Peserta Contoh', NoPeserta: '0001', NISN: '0000000001', Kelas: 'IX-A', Ruang: '1', Sesi: 'Sesi 1', Username: 'CONTOH-001', Password: 'KODE-UJI-0001', TglLahir: '2012-01-01', NamaSatdik: 'Madrasah Contoh' },
 };
 const formatFieldLabels: Record<Field, string> = {
   NamaMurid: 'Nama Murid', NoPeserta: 'No. Peserta', NISN: 'NISN', Kelas: 'Kelas',
-  Ruang: 'Ruang', Sesi: 'Sesi', Username: 'Username', TglLahir: 'Tgl. Lahir', NamaSatdik: 'Nama Satdik',
+  Ruang: 'Ruang', Sesi: 'Sesi', Username: 'Username', Password: 'Password', TglLahir: 'Tgl. Lahir', NamaSatdik: 'Nama Satdik',
   Custom1: 'Kolom Kustom 1', Custom2: 'Kolom Kustom 2', Custom3: 'Kolom Kustom 3',
   Custom4: 'Kolom Kustom 4', Custom5: 'Kolom Kustom 5', Custom6: 'Kolom Kustom 6',
 };
