@@ -69,3 +69,24 @@ test('500 synthetic participants are imported without loss and report process me
   assert.equal(participants.length, 500);
   assert.equal(issues.length, 0);
 });
+
+
+test('custom Excel headers round-trip without importing Password data', () => {
+  const selected = ['NoPeserta', 'NamaMurid', 'Custom1'];
+  const excelHeaders = { Custom1: 'NomorBangku' };
+  const template = createTemplate(7, selected, excelHeaders);
+  const generated = readSheet(template, 'Peserta');
+  assert.deepEqual(generated.headers, ['NoPeserta', 'NamaMurid', 'NomorBangku']);
+
+  const bytes = workbook([
+    ['NoPeserta', 'NamaMurid', 'NomorBangku', 'Password'],
+    ['0007', 'Murid Contoh', 'A-12', 'RAHASIA'],
+  ]);
+  const input = readSheet(bytes, 'Peserta');
+  assert.equal(input.rows[0].cells[3], '');
+  const mapping = defaultMapping(input.headers, selected, excelHeaders);
+  const result = validateRows(input, 7, mapping, selected, 'NoPeserta');
+  assert.equal(result.issues.length, 0);
+  assert.equal(result.participants[0].values.Custom1, 'A-12');
+  assert.doesNotMatch(JSON.stringify(result), /RAHASIA/);
+});
