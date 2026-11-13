@@ -7,6 +7,7 @@ import type { AssetName, CardSettings, InstitutionAssets } from '../../lib/cards
 
 import { defaultCard, kopSizes } from '../../lib/cards/settings';
 import { CardImage, KopText } from './card-preview';
+import { ScheduleSettings } from './schedule-settings';
 import { EditorIcon } from './editor-icon';
 
 const kopInputs = [
@@ -243,12 +244,6 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
       </details>
     </div>;
   }
-  return <div className="grid gap-2">
-    <label><input type="checkbox" checked={value.showSchedule} onChange={(event) => update('showSchedule', event.target.checked)} /> Tampilkan jadwal</label>
-    <label className="grid gap-1">Jadwal ujian
-      <textarea className="border rounded p-2" rows={4} maxLength={1000} value={value.schedule}
-        disabled={!value.showSchedule} onChange={(event) => update('schedule', event.target.value)} placeholder="Senin · 08.00 · IPS" />
-    </label>
-    <small>Satu kegiatan per baris.</small>
-  </div>;
+  return <ScheduleSettings initial={value.scheduleTable} legacy={value.schedule}
+    onApply={(scheduleTable) => onChange((previous) => ({ ...previous, scheduleTable }))} />;
 }

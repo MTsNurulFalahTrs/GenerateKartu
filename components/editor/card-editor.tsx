@@ -338,7 +338,6 @@ export function CardEditor() {
                     <button className="action" id={`card-settings-${id}`} key={name} type="button" aria-pressed={setting === id} onClick={() => setSetting(id)}>{name}</button>
                   ))}
                 </div>
-                {setting === 2 && <h2 className="mb-3">{settings[setting]}</h2>}
                 <CardSettingsPanel key={`settings-${revision}`} section={setting} value={card} onChange={setCard} assets={assets}
                   onAssets={(name, asset) => setAssets((previous) => ({ ...previous, [name]: asset }))} />
                 {setting === 1 && <details className="layout-extra layout-card-preview">
@@ -353,11 +352,11 @@ export function CardEditor() {
                   </fieldset>}
                   {format !== null && <div className="layout-card-preview-stage"><CardPreview {...renderCard(previewParticipant)} /></div>}
                 </details>}
-                {setting === 2 && <div className="mt-4"><CardPreview {...renderCard(previewParticipant)} /></div>}
+                {setting === 2 && <details className="print-extra"><summary>Pratinjau kartu</summary><CardPreview {...renderCard(previewParticipant)} /></details>}
                 <button className="action kop-save" type="button" onClick={saveSettings}>Simpan Pengaturan</button>
                 <small className="kop-save-note">Preferensi disimpan di browser. Isi KOP dan aset berlaku selama sesi.</small>
                 <BackupPanel key={`backup-${revision}`} preferences={preferences} heading={heading}
-                  onRestore={restore} storageMessage={storageMessage} compact={setting === 1} />
+                  onRestore={restore} storageMessage={storageMessage} compact={setting !== 0} />
               </div>
               <footer className="data-footer">
                 <button className="action" type="button" onClick={() => setStep(1)}>‹ Kembali</button>

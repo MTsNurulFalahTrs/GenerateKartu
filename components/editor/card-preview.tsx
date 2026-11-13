@@ -63,6 +63,7 @@ export function CardPreview({ format, custom, participant, photo, settings, asse
 
   if (!validCardLayout(settings)) return <p role="alert">Gunakan lebar 60–180 mm, tinggi 40–150 mm, dan teks 6–12 pt.</p>;
   const fields = fieldsFor(format, custom).filter((field) => field === 'NamaMurid' || field === (format === 0 ? 'Username' : 'NoPeserta') || !hidden.includes(field));
+  const scheduleTable = settings.showSchedule ? settings.scheduleTable : null;
   const schedule = settings.showSchedule ? settings.schedule.split('\n').map((line) => line.trim()).filter(Boolean) : [];
   return <div className="card-preview-wrap">
     <article ref={output ? undefined : setElement} className="exam-card" data-bw={settings.monochrome}
@@ -93,7 +94,13 @@ export function CardPreview({ format, custom, participant, photo, settings, asse
             {settings.nip && <span>NIP {settings.nip}</span>}
           </div>
         </div>
-        {!!schedule.length && <section className="exam-card-schedule"><strong>Jadwal Ujian</strong>
+        {scheduleTable ? <section className="exam-card-schedule"><strong>Jadwal Ujian</strong>
+          <table><thead><tr>{scheduleTable.columns.map((column) => <th key={column} scope="col">{column}</th>)}</tr></thead>
+            <tbody>{Array.from({ length: scheduleTable.rowCount }, (_, row) => <tr key={row}>
+              {scheduleTable.columns.map((column, index) => <td key={column}>{scheduleTable.rows[row]?.[index] || '\u00a0'}</td>)}
+            </tr>)}</tbody>
+          </table>
+        </section> : !!schedule.length && <section className="exam-card-schedule"><strong>Jadwal Ujian</strong>
           <ul>{schedule.map((line, index) => <li key={index}>{line}</li>)}</ul>
         </section>}
       </div>

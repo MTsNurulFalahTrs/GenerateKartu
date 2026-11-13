@@ -1,3 +1,5 @@
+export type ScheduleTable = { columns: string[]; rowCount: number; rows: string[][] };
+
 export const kopFields = ['institution', 'exam', 'year', 'address'] as const;
 export type KopField = (typeof kopFields)[number];
 export const kopSizes = [6, 6.5, 7, 7.5, 8, 9, 10, 11, 12, 14] as const;
@@ -27,6 +29,7 @@ export const defaultCard = {
   photo: true,
   qr: false,
   schedule: '',
+  scheduleTable: null as ScheduleTable | null,
   showSchedule: true,
 };
 export type CardSettings = typeof defaultCard;
