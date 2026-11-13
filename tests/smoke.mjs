@@ -204,12 +204,52 @@ try {
       await page.waitForSelector('[data-theme="light"]');
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
       if (output) await page.screenshot({ path: `${output}/format-${name}.jpg`, type: 'jpeg', quality: 65 });
+      if (name === 'desktop') {
+        const key = 'generate-kartu:preferences:v1';
+        await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key))?.format === 7, {}, key);
+        const stored = await page.evaluate((key) => localStorage.getItem(key), key);
+        assert.doesNotMatch(stored, /Madrasah Uji Fase 7|Peserta Uji/);
+        await page.reload({ waitUntil: 'networkidle0' });
+        await page.waitForSelector('#pick-custom-format[aria-pressed=true]');
+        await page.$eval('#step-2', (button) => button.click());
+        await page.waitForSelector('#panel-2', { visible: true });
+        const backupInput = await page.$('#panel-2 input[accept=".json,application/json"]');
+        assert.ok(backupInput);
+        const backupFile = join(fixtureDir, 'settings.json');
+        await writeFile(backupFile, '{rusak');
+        await backupInput.uploadFile(backupFile);
+        await page.waitForFunction(() => document.querySelector('#panel-2 [role=alert]')?.textContent.includes('JSON rusak'));
+        assert.equal(await page.evaluate((key) => localStorage.getItem(key), key), stored);
+        await page.evaluate(() => { window.confirm = () => true; });
+        await writeFile(backupFile, JSON.stringify({ ...JSON.parse(stored), format: 1, heading: { institution: 'Madrasah Pulih', exam: '', year: '' } }));
+        await backupInput.uploadFile(backupFile);
+        await page.waitForFunction(() => document.querySelector('#panel-2 .exam-card-head')?.textContent.includes('Madrasah Pulih'));
+        await page.evaluate(() => {
+          const time = Date.now();
+          Date.now = () => time + 7200001;
+          window.dispatchEvent(new Event('pageshow'));
+        });
+        await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('Sesi kedaluwarsa'));
+        await page.waitForFunction(() => !document.querySelector('#panel-2 .exam-card-head')?.textContent.includes('Madrasah Pulih'));
+        await page.$eval('#reset-card-session', (button) => button.click());
+        await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('direset'));
+      }
       await page.locator('a[href="/bantuan"]').click();
       await page.waitForFunction(() => location.pathname === '/bantuan');
       assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Bantuan');
       assert.deepEqual(errors, []);
       assert.equal((await page.goto(new URL('/halaman-tidak-ada', origin).href))?.status(), 404);
       assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Halaman tidak ditemukan');
+      if (name === 'desktop') {
+        await page.evaluateOnNewDocument(() => {
+          Storage.prototype.setItem = () => { throw new DOMException('Simulasi kuota', 'QuotaExceededError'); };
+        });
+        await page.goto(origin, { waitUntil: 'networkidle0' });
+        await page.$eval('#step-2', (button) => button.click());
+        await page.waitForFunction(() => document.querySelector('#panel-2')?.textContent.includes('Penyimpanan browser penuh atau diblokir'));
+        await page.$eval('.theme', (button) => button.click());
+        await page.waitForSelector('[data-theme=dark]');
+      }
       console.log(`Smoke ${name} ${width}x${height}: OK`);
     } finally {
       await page.close();

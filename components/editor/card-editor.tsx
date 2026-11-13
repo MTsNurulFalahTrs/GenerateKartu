@@ -1,8 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
+import { BackupPanel } from './backup-panel';
+import { defaultCustom, idleLimit, parseBackup, pickHeading, pickOptions, storageKey } from '../../lib/cards/preferences';
+import type { Heading, Preferences } from '../../lib/cards/preferences';
 import { CardSettingsPanel } from './card-settings';
 import { PreviewPanel } from './preview-panel';
 import type { CardRenderModel } from '../../lib/cards/render-model';
@@ -31,13 +35,120 @@ export function CardEditor() {
   const [photos, setPhotos] = useState(new Map<string, Blob>());
   const [assets, setAssets] = useState<InstitutionAssets>({});
   const [card, setCard] = useState(defaultCard);
-  const [custom, setCustom] = useState<Field[]>(['NoPeserta', 'NamaMurid', 'Kelas']);
+  const [custom, setCustom] = useState<Field[]>(defaultCustom);
   const [hidden, setHidden] = useState<Field[]>([]);
   const previewParticipant = dataset.participants.find((participant) => dataset.selected.has(participant.id)) ?? dataset.participants[0] ?? sample;
   function renderCard(participant: Participant, id = format ?? 0): CardRenderModel {
     return { format: id, custom, participant, photo: photos.get(participant.id), settings: card, assets, hidden };
   }
   const [dark, setDark] = useState(false);
+  const [revision, setRevision] = useState(0);
+  const [ready, setReady] = useState(false);
+  const [storageMessage, setStorageMessage] = useState('');
+  const [sessionMessage, setSessionMessage] = useState('');
+  const options = pickOptions(card);
+  const preferences: Preferences = { schemaVersion: 1, dark, format, custom, hidden, settings: options };
+  const serialized = JSON.stringify(preferences);
+  const heading = useMemo(() => pickHeading(card), [card]);
+
+  const restore = useCallback((saved: Preferences, savedHeading?: Heading) => {
+    setDark(saved.dark);
+    setFormat(saved.format);
+    setCustom(saved.custom);
+    setHidden(saved.hidden);
+    setCard((previous) => ({ ...previous, ...saved.settings, ...savedHeading }));
+  }, []);
+
+  const clearSession = useCallback(() => {
+    setDataset({ participants: [], selected: new Set() });
+    setPhotos(new Map());
+    setAssets({});
+    setCard((previous) => ({ ...defaultCard, ...pickOptions(previous) }));
+    setRevision((previous) => previous + 1);
+  }, []);
+
+  function reset() {
+    clearSession();
+    restore({ schemaVersion: 1, dark: false, format: null, custom: defaultCustom, hidden: [], settings: pickOptions(defaultCard) });
+    setSessionMessage('Sesi dan pengaturan telah direset.');
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      setStorageMessage('Penyimpanan browser tidak tersedia. Pengaturan hanya berlaku untuk tab ini.');
+    }
+  }
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) restore(parseBackup(saved, false).preferences);
+      } catch {
+        setStorageMessage('Preferensi tersimpan tidak dapat dibaca. Pengaturan bawaan digunakan.');
+      }
+      setReady(true);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [restore]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const frame = requestAnimationFrame(() => {
+      try {
+        parseBackup(serialized, false);
+      } catch {
+        return; // An incomplete numeric edit should not replace the last valid settings.
+      }
+      try {
+        localStorage.setItem(storageKey, serialized);
+      } catch {
+        setStorageMessage('Penyimpanan browser penuh atau diblokir. Pengaturan hanya berlaku untuk tab ini.');
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [ready, serialized]);
+
+  useEffect(() => {
+    let lastActive = Date.now();
+    let timer: ReturnType<typeof setTimeout>;
+    const check = () => {
+      const remaining = idleLimit - (Date.now() - lastActive);
+      if (remaining <= 0) {
+        clearSession();
+        setSessionMessage('Sesi kedaluwarsa. Data peserta dan aset sesi telah dibersihkan.');
+        lastActive = Date.now();
+      }
+      clearTimeout(timer);
+      timer = setTimeout(check, Math.max(1, idleLimit - (Date.now() - lastActive)));
+    };
+    const activity = () => {
+      if (Date.now() - lastActive >= idleLimit) check();
+      lastActive = Date.now();
+    };
+    const conceal = () => document.documentElement.setAttribute('data-card-session-paused', '');
+    const resume = () => {
+      flushSync(check);
+      requestAnimationFrame(() => document.documentElement.removeAttribute('data-card-session-paused'));
+    };
+    const visibility = () => {
+      if (document.hidden) conceal();
+      else resume();
+    };
+    timer = setTimeout(check, idleLimit);
+    const events = ['pointerdown', 'keydown', 'input', 'wheel'] as const;
+    events.forEach((event) => window.addEventListener(event, activity, { passive: true }));
+    document.addEventListener('visibilitychange', visibility);
+    window.addEventListener('pagehide', conceal);
+    window.addEventListener('pageshow', resume);
+    return () => {
+      clearTimeout(timer);
+      events.forEach((event) => window.removeEventListener(event, activity));
+      document.removeEventListener('visibilitychange', visibility);
+      window.removeEventListener('pagehide', conceal);
+      window.removeEventListener('pageshow', resume);
+      document.documentElement.removeAttribute('data-card-session-paused');
+    };
+  }, [clearSession]);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   function onTabKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
@@ -80,6 +191,7 @@ export function CardEditor() {
         </div>
       </header>
       <main className="content">
+        {sessionMessage && <p role="status">{sessionMessage}</p>}
         {steps.map((label, index) => (
           <section key={label} id={`panel-${index}`} role="tabpanel" aria-labelledby={`step-${index}`}
             tabIndex={0} hidden={step !== index}>
@@ -120,7 +232,7 @@ export function CardEditor() {
               </li>)}</ol>
             </div>}
             {index === 1 && (
-              <ParticipantPanel format={format} custom={custom} onDataset={setDataset} onPhotos={setPhotos} />
+              <ParticipantPanel key={revision} format={format} custom={custom} onDataset={setDataset} onPhotos={setPhotos} />
             )}
             {index === 2 && (
               <div className="panel">
@@ -130,7 +242,7 @@ export function CardEditor() {
                   ))}
                 </div>
                 <h2 className="mb-3">{settings[setting]}</h2>
-                <CardSettingsPanel section={setting} value={card} onChange={setCard} assets={assets}
+                <CardSettingsPanel key={revision} section={setting} value={card} onChange={setCard} assets={assets}
                   onAssets={(name, asset) => setAssets((previous) => ({ ...previous, [name]: asset }))} />
                 {setting === 1 && format !== null && <fieldset className="mt-4">
                   <legend>Kolom kartu</legend>
@@ -141,6 +253,8 @@ export function CardEditor() {
                     } /> {field}</label>)}</div>
                 </fieldset>}
                 <div className="mt-4">{step === 2 && <CardPreview {...renderCard(previewParticipant)} />}</div>
+                <BackupPanel key={revision} preferences={preferences} heading={heading}
+                  onRestore={restore} onReset={reset} storageMessage={storageMessage} />
               </div>
             )}
             {index === 3 && (
@@ -149,7 +263,7 @@ export function CardEditor() {
                 {format === null ? <p>Pilih format kartu untuk membuka pratinjau.</p> : <>
                   <p>Format terpilih: {formats[format] ?? 'Format Kustom'}.</p>
                   {dataset.participants.length
-                    ? <PreviewPanel key={format} active={step === 3} participants={dataset.participants} selected={dataset.selected} renderCard={renderCard} />
+                    ? <PreviewPanel key={`${format}:${revision}`} active={step === 3} participants={dataset.participants} selected={dataset.selected} renderCard={renderCard} />
                     : <><p>Contoh kartu. Impor data untuk melihat kartu peserta.</p>{step === 3 && <CardPreview {...renderCard(sample)} />}</>}
                 </>}
               </div>
