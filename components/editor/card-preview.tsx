@@ -11,6 +11,8 @@ import { qrPath } from '../../lib/cards/qr';
 const labels: Record<Field, string> = {
   NamaMurid: 'Nama', NoPeserta: 'No. Peserta', NISN: 'NISN', Kelas: 'Kelas',
   Ruang: 'Ruang', Sesi: 'Sesi', Username: 'Username', TglLahir: 'Tgl. Lahir', NamaSatdik: 'Satdik',
+  Custom1: 'Kolom 1', Custom2: 'Kolom 2', Custom3: 'Kolom 3',
+  Custom4: 'Kolom 4', Custom5: 'Kolom 5', Custom6: 'Kolom 6',
 };
 
 export function CardImage({ blob, label }: { blob?: Blob; label: string }) {
@@ -77,7 +79,7 @@ export function CardPreview({ format, custom, customAppearance, participant, pho
         <div className="exam-card-body">
           <div className="min-w-0">
             <dl style={{ textAlign: settings.align }}>
-              {fields.map((field) => <div key={field}><dt>{labels[field]}</dt><dd className={format === 7 && customAppearance?.mono.includes(field) ? "font-mono" : undefined}>{participant.values[field] || '—'}</dd></div>)}
+              {fields.map((field) => <div key={field}><dt>{format === 7 ? customAppearance?.labels?.[field] || labels[field] : labels[field]}</dt><dd className={format === 7 && customAppearance?.mono.includes(field) ? "font-mono" : undefined}>{participant.values[field] || '—'}</dd></div>)}
             </dl>
             <div className="flex gap-2 items-end mt-1">
               {settings.photo && (photo ? <CardImage blob={photo} label="Foto peserta" /> : <span className="card-photo-empty">Foto</span>)}
