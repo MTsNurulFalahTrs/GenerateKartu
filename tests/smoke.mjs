@@ -134,8 +134,22 @@ try {
       await page.waitForFunction(() => !document.querySelector('.format-dialog[open]'));
       await page.$eval('.format-library-filters button:nth-child(2)', (button) => button.click());
       await page.waitForSelector('.format-library-filters button:nth-child(2)[aria-pressed="true"]');
-      await page.locator('input[aria-label="Cari format"]').fill('');
-      await page.waitForFunction(() => document.querySelectorAll('#panel-0 .format-grid article').length === 8);
+      await page.focus('input[aria-label="Cari format"]');
+      await page.keyboard.down('Control');
+      await page.keyboard.press('A');
+      await page.keyboard.up('Control');
+      await page.keyboard.press('Backspace');
+      await page.waitForFunction(() => document.querySelectorAll('#panel-0 .format-grid article').length === 8,
+        { timeout: 5000 }).catch(async () => {
+          console.log('Filter debugging:', await page.evaluate(() => ({
+            search: document.querySelector('input[aria-label="Cari format"]')?.value,
+            categories: Array.from(document.querySelectorAll('.format-library-filters button'))
+              .map((item) => [item.textContent, item.getAttribute('aria-pressed')]),
+            builtins: document.querySelectorAll('#panel-0 .format-grid .format').length,
+            community: document.querySelectorAll('.community-card').length,
+          })));
+          throw new Error('Built-in cards should return after clearing the search query.');
+        });
       await page.$eval('#pick-format-1', (button) => button.click());
       await page.waitForSelector('#pick-format-1[aria-pressed="true"]');
       await page.$eval('.format-library-filters button:nth-child(1)', (button) => button.click());
