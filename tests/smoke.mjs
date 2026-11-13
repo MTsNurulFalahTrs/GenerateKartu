@@ -116,8 +116,10 @@ try {
       if (output) await page.screenshot({ path: `${output}/data-murid-awal-${name}.png`, fullPage: true });
       const fileInput = await page.$('input[type="file"]');
       assert.ok(fileInput);
+      assert.equal(await page.$('.import-dialog[open]'), null);
       for (const file of [valid, duplicate]) {
         await fileInput.uploadFile(file);
+        await page.waitForSelector('.import-dialog[open]');
         await page.waitForFunction(() => {
           const sheet = document.querySelector('#participant-sheet');
           return sheet && !sheet.disabled && sheet.value === 'Petunjuk';
@@ -128,12 +130,15 @@ try {
           await page.waitForSelector('#apply-participant-import:enabled');
           await page.focus('#apply-participant-import');
           await page.keyboard.press('Space');
+          await page.waitForSelector('.import-dialog[open]', { hidden: true });
           await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('500 terpilih'));
           await page.locator('input[placeholder="Nama atau ID"]').fill('0002');
           await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('1 cocok'));
         } else {
-          await page.waitForFunction(() => document.querySelector('[role="alert"]')?.textContent.includes('Gunakan ID unik'));
+          await page.waitForFunction(() => document.querySelector('.import-dialog [role="alert"]')?.textContent.includes('Gunakan ID unik'));
           assert.equal(await page.$eval('#apply-participant-import', (button) => button.disabled), true);
+          await page.keyboard.press('Escape');
+          await page.waitForSelector('.import-dialog[open]', { hidden: true });
           assert.match(await page.$eval('#panel-1', (panel) => panel.textContent), /500 peserta/);
         }
       }
@@ -161,9 +166,11 @@ try {
       assert.ok(signatureInput);
       await signatureInput.uploadFile(photo);
       await page.waitForSelector('.kop-asset-image img[alt="Tanda Tangan Digital (opsional)"]');
-      await page.locator('.kop-signature button:nth-child(3)').click();
-      await page.locator('.kop-signature input[role="switch"]').click();
-      await page.locator('.kop-save').click();
+      await page.$eval('.kop-signature button:nth-child(3)', (button) => button.click());
+      await page.waitForFunction(() => document.querySelector('.kop-signature output')?.textContent?.includes('1.2 cm'));
+      await page.$eval('.kop-signature input[role="switch"]', (input) => input.click());
+      await page.waitForFunction(() => document.querySelector('.kop-signature input[role="switch"]')?.checked === true);
+      await page.$eval('.kop-save', (button) => button.click());
       await page.waitForFunction(() => document.querySelector('.kop-page-meta [role=status]')?.textContent === 'Disimpan');
       const savedAppearance = await page.evaluate(() => JSON.parse(localStorage.getItem('generate-kartu:preferences:v1')).settings);
       assert.deepEqual(savedAppearance.kopStyles.institution, { size: 12, bold: true, italic: true });
