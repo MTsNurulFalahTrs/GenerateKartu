@@ -581,8 +581,8 @@ try {
         await writeFile(backupFile, JSON.stringify({ ...JSON.parse(stored), format: 1, heading: { institution: 'Madrasah Pulih', exam: '', year: '' } }));
         await backupInput.uploadFile(backupFile);
         await page.waitForSelector('.backup-confirm-dialog[open]');
-        assert.match(await page.$eval('.backup-confirm-content', (item) => item.textContent), /settings.json/);
-        await page.$eval('#confirm-backup-restore', (button) => button.click());
+        assert.match(await dialogValue(page, '.backup-confirm-content'), /settings.json/);
+        await dialogAction(page, '#confirm-backup-restore');
         await page.waitForFunction(() => document.querySelector('#kop-institution')?.value === 'Madrasah Pulih');
         await page.$eval('.kop-save', (button) => button.click());
         await page.waitForFunction(() => document.querySelector('.kop-save-message')?.textContent.includes('berhasil disimpan'));
@@ -606,8 +606,8 @@ try {
       await page.waitForSelector('#editor-help-faq details[open] p', { visible: true });
       await page.$eval('.help-release-button', (button) => button.click());
       await page.waitForSelector('.release-notes-dialog[open]', { visible: true });
-      assert.match(await page.$eval('.release-notes-dialog', (dialog) => dialog.textContent), /Format dan komunitas/);
-      await page.$eval('.release-notes-footer button', (button) => button.click());
+      assert.match(await dialogValue(page, '.release-notes-dialog'), /Format dan komunitas/);
+      await dialogAction(page, '.release-notes-footer button');
       await page.waitForSelector('.release-notes-dialog[open]', { hidden: true });
       assert.equal(await page.$eval('.help-nav', (button) => button.getAttribute('aria-pressed')), 'true');
       assert.equal((await page.goto(new URL('/bantuan', origin).href))?.status(), 404);
