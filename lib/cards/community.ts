@@ -4,7 +4,22 @@ import type { CustomAppearance } from './preferences.ts';
 import type { Field } from '../participants/model.ts';
 
 export type CommunityFormat = CustomAppearance & { fields: Field[] };
-export type CatalogFormat = CommunityFormat & { id: number };
+export type CatalogFormat = CommunityFormat & { id: number; contributor?: string };
+export type CommunityAttribution = { anonymous: boolean; contributorName: string };
+
+export function parseCommunityAttribution(value: unknown): CommunityAttribution | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const data = value as Record<string, unknown>;
+  // Backward compatibility for formats submitted before contributor confirmation existed.
+  if (!Object.hasOwn(data, 'anonymous') && !Object.hasOwn(data, 'contributorName')) {
+    return { anonymous: true, contributorName: 'Anonim' };
+  }
+  if (typeof data.anonymous !== 'boolean') return null;
+  if (data.anonymous) return { anonymous: true, contributorName: 'Anonim' };
+  if (!safeValue(data.contributorName, 60)) return null;
+  return { anonymous: false, contributorName: data.contributorName.trim() };
+}
+
 
 const safeValue = (value: unknown, max: number): value is string =>
   typeof value === 'string' && !!value.trim() && value.trim().length <= max &&

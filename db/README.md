@@ -11,3 +11,9 @@ The historical Supabase migration under supabase/migrations is an earlier altern
 
 When DATABASE_URL is missing, GET returns [] plus X-Community-Unavailable: true; POST cannot publish. Merging this code does not mean a database has been provisioned or migrated.
 Only public format definitions are sent. Names, field labels, and Excel headers should not contain participant information.
+
+## Konfirmasi publikasi dan atribusi
+
+Setelah migrasi awal `001_community_formats.sql`, terapkan `002_community_contributors.sql` pada branch Neon yang digunakan target deployment **sebelum** merilis UI konfirmasi.
+Migrasi kedua menambahkan `contributor_name` (default `Anonim` untuk baris lama) dan memperbarui fungsi publikasi. Metadata kontributor tidak menjadi bagian dari `definition` JSONB sehingga identitas kontributor tidak mengubah deduplikasi format.
+Uji pemuatan katalog, berbagi dengan nama/inisial, berbagi anonim, pembatalan, dan validasi nilai sebelum mempromosikan ke production.

@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless';
-import { parseCommunityFormat } from '../../../lib/cards/community';
+import { parseCommunityAttribution, parseCommunityFormat } from '../../../lib/cards/community';
 
 const maxBodyBytes = 4096;
 
@@ -19,13 +19,14 @@ export async function GET() {
   }
   try {
     const sql = database();
-    const rows = await sql`select id, definition from public.community_formats order by id desc limit 100` as {
+    const rows = await sql`select id, definition, contributor_name from public.community_formats order by id desc limit 100` as {
       id: number;
       definition: unknown;
+      contributor_name: string;
     }[];
-    return Response.json(rows.flatMap(({ id, definition }) => {
+    return Response.json(rows.flatMap(({ id, definition, contributor_name }) => {
       const format = parseCommunityFormat(definition);
-      return format ? [{ id, ...format }] : [];
+      return format ? [{ id, ...format, contributor: contributor_name }] : [];
     }), { headers: { 'Cache-Control': 'no-store' } });
   } catch {
     return failure('Katalog komunitas belum dapat dimuat. Coba lagi.', 503);
@@ -43,6 +44,7 @@ export async function POST(req: Request) {
   let body = '';
   let bytes = 0;
   let format;
+  let attribution;
   try {
     for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
       bytes += chunk.value.byteLength;
@@ -52,15 +54,17 @@ export async function POST(req: Request) {
       }
       body += decoder.decode(chunk.value, { stream: true });
     }
-    format = parseCommunityFormat(JSON.parse(body + decoder.decode()));
+    const input = JSON.parse(body + decoder.decode());
+    format = parseCommunityFormat(input);
+    attribution = parseCommunityAttribution(input);
   } catch {
     return failure('Format tidak valid.', 400);
   }
-  if (!format) return failure('Format tidak valid.', 400);
+  if (!format || !attribution) return failure('Format atau identitas kontributor tidak valid.', 400);
 
   try {
     const sql = database();
-    const [result] = await sql`select public.publish_community_format(${JSON.stringify(format)}::jsonb) as id`;
+    const [result] = await sql`select public.publish_community_format(${JSON.stringify({ ...format, ...attribution })}::jsonb) as id`;
     return Response.json({ id: result.id });
   } catch (error) {
     if (error && typeof error === 'object' && 'code' in error && error.code === 'PT429') {
