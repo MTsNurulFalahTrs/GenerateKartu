@@ -86,7 +86,12 @@ try {
       const searchFormats = 'input[aria-label="Cari format"]';
       await page.locator(searchFormats).fill('Lengkap');
       await page.waitForFunction(() => document.querySelectorAll('.format-grid article').length === 1);
-      await page.locator(searchFormats).fill('');
+      await page.focus(searchFormats);
+      await page.keyboard.down('Control');
+      await page.keyboard.press('A');
+      await page.keyboard.up('Control');
+      await page.keyboard.press('Backspace');
+      await page.waitForFunction(() => document.querySelectorAll('.format-grid article').length === 8);
       const trigger = 'button[aria-label="Preview Format 2"]';
       await page.locator(trigger).click();
       await page.waitForSelector('.format-dialog[open] .exam-card');
