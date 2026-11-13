@@ -39,9 +39,9 @@ a { color: var(--indigo-700); }
 .content h1 { font-size: clamp(1.55rem, 4vw, 2rem); font-weight: 800; margin-block: 0 1rem; }
 .content h2 { font-size: 1.12rem; font-weight: 750; }
 .content p { color: var(--muted); margin-block: .35rem 1rem; }
-.panel { padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: .85rem; box-shadow: 0 2px 8px rgb(15 23 42 / 6%); }
+.panel { padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 1rem; box-shadow: 0 2px 8px rgb(15 23 42 / 6%); }
 .subtabs { flex-wrap: wrap; margin-bottom: 1rem; }
-.action { border: 1px solid var(--line); border-radius: .55rem; padding: .5rem .75rem; min-height: 44px; }
+.action { border: 1px solid var(--line); border-radius: .65rem; padding: .5rem .75rem; min-height: 44px; }
 @media (max-width: 767px) {
   .header-inner { flex-direction: column; align-items: stretch; }
   .navigation { justify-content: space-between; }
@@ -161,7 +161,6 @@ html[data-card-session-paused] .card-print-root { visibility: hidden; }
 .brand small { text-transform: uppercase; font-weight: 700; letter-spacing: .045em; }
 .stepper button span[data-complete="true"] { background: #087e63; color: white; border-color: transparent; }
 .stepper button[aria-selected="true"] { background: linear-gradient(115deg, var(--indigo-600), #5551db); }
-.content:has(#panel-0:not([hidden])) { padding-top: .4rem; }
 
 .format-summary, .format-toolbar {
   display: flex;
@@ -272,7 +271,7 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 .data-excel { border-inline-start-color: #059669; }
 .data-zip { border-inline-start-color: #d97706; }
 .data-title { display: flex; align-items: center; gap: .65rem; }
-.data-title small, .data-drop small, .data-empty small, .data-footer small { color: var(--muted); }
+.data-title small, .data-drop small, .data-empty small, .page-footer small { color: var(--muted); }
 .data-grid .data-title h2 { font-size: .98rem; }
 .data-icon { display: inline-grid; place-items: center; width: 2.25rem; height: 2.25rem; flex: none; border-radius: .7rem; background: #e4e7ff; color: #4338ca; }
 .data-excel .data-icon { background: #ccf7e6; color: #09664f; }
@@ -293,13 +292,11 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 .data-preview :is(th, td) { padding-inline: .7rem; }
 .data-preview th { background: var(--canvas); color: var(--muted); font-size: .74rem; text-transform: uppercase; }
 .data-preview tr:last-child td { border-bottom: 0; }
-.data-badges, .data-footer { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+.data-badges, .page-footer { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
 .data-badges span { padding: .2rem .55rem; border-radius: 2rem; background: #e4e7ff; color: #3730a3; font-size: .75rem; }
 .data-badges span + span { background: #ccf7e6; color: #09664f; }
-#panel-1 h1 { margin-block: .4rem 0; }
-#panel-1 .data-intro { margin-bottom: 1.75rem; }
-.data-footer { justify-content: flex-end; margin-top: 1.8rem; }
-.data-footer small { margin-inline-end: auto; }
+.page-footer { justify-content: flex-end; margin-top: 1.8rem; }
+.page-footer small { margin-inline-end: auto; }
 .data-next { background: var(--indigo-600); color: white; font-weight: 700; }
 @media (max-width: 639px) { .data-grid { grid-template-columns: minmax(0, 1fr); } }
 .format-heading .format-icon { background: var(--format-icon-bg, #e9e7ff); color: var(--format-icon-ink, #4f46e5); }
@@ -313,9 +310,6 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 .format[data-selected="true"] .format-icon, .format.custom .format-icon { background: rgb(255 255 255 / 20%); color: white; }
 
 #panel-2 { max-width: 48rem; margin-inline: auto; }
-#panel-2 > h1 { margin-bottom: 0; }
-#panel-2 > p { margin-bottom: 1.75rem; }
-.kop-page-meta, .kop-page-meta > div { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
 .kop-shell { border-radius: 1.15rem; }
 .kop-shell .subtabs { border-bottom: 1px solid var(--line); margin: -.9rem -.95rem 0; padding: .25rem .6rem 0; gap: 0; background: color-mix(in srgb, var(--surface) 70%, var(--canvas)); border-radius: 1rem 1rem 0 0; }
 .kop-shell .subtabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; font-weight: 650; color: var(--muted); }
@@ -443,7 +437,6 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 
 .content:has(#panel-3:not([hidden])) { max-width: 94rem; padding-inline: clamp(.65rem, 2vw, 1.5rem); }
 #panel-3 { position: relative; }
-#panel-3 > h1 { margin: .4rem 0; }
 .print-workspace { display: grid; gap: 1rem; }
 .print-actions, .print-chips { display: flex; flex-wrap: wrap; gap: .55rem; align-items: center; }
 .print-actions .action { background: var(--surface); font-weight: 650; }
@@ -469,9 +462,23 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 .print-a4-scroll .print-sheet { background: white; }
 .print-a4-controls { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem; }
 @media (min-width: 960px) {
-  .print-actions { position: absolute; inset: .75rem 0 auto auto; justify-content: flex-end; }
+  .print-actions { justify-content: flex-end; }
 }
 .print-actions .action, .print-filters > strong { display: inline-flex; align-items: center; gap: .45rem; }
 .print-search { position: relative; }
 .print-search > svg { position: absolute; inset: 50% auto auto .85rem; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 .print-search input { padding-inline-start: 2.5rem; }
+
+.page-heading { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: .75rem 1rem; margin-bottom: 1.25rem; }
+.page-heading > div:first-child { min-width: 0; }
+.content .page-heading h1 { margin: .35rem 0 .15rem; }
+.content .page-heading p { margin: 0; }
+.page-heading-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; }
+.editor a.action { display: inline-flex; align-items: center; width: fit-content; color: var(--indigo-700); text-decoration: none; }
+.help-content { max-width: 48rem; }
+.help-steps { list-style: decimal; padding-inline-start: 1.5rem; margin-top: .75rem; }
+.help-steps li::marker { color: var(--indigo-700); font-weight: 700; }
+.help-steps p { margin: .2rem 0 .75rem; }
+.help-shell .header-inner { flex-direction: row; align-items: center; flex-wrap: wrap; }
+.help-shell .header::after { width: 100%; }
+#help-content { scroll-margin-top: 8rem; }
