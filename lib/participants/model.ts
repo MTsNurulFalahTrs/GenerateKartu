@@ -18,8 +18,8 @@ export type Row = { number: number; cells: string[] };
 export type WorkbookRows = { headers: string[]; rows: Row[]; headerRow: number };
 export type Mapping = Partial<Record<Field, number>>;
 
-export function fieldsFor(format: number) {
-  return builtins[format] ?? builtins[0];
+export function fieldsFor(format: number, custom: readonly Field[] = []) {
+  return format === 7 ? custom : builtins[format] ?? builtins[0];
 }
 
 export function defaultMapping(headers: string[], fields: readonly Field[]): Mapping {
@@ -31,8 +31,8 @@ export function defaultMapping(headers: string[], fields: readonly Field[]): Map
   return mapping;
 }
 
-export function validateRows(input: WorkbookRows, format: number, mapping: Mapping) {
-  const fields = fieldsFor(format);
+export function validateRows(input: WorkbookRows, format: number, mapping: Mapping, custom: readonly Field[] = []) {
+  const fields = fieldsFor(format, custom);
   const idField = format === 0 ? 'Username' : 'NoPeserta';
   const issues: Issue[] = [];
   const participants: Participant[] = [];

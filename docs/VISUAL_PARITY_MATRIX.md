@@ -26,3 +26,7 @@ Acuan komponen, token dan markup tersedia di [inventaris legacy](LEGACY_INVENTOR
 | Cetak dan PDF untuk 1/9/10/60/132/500 | Menunggu capture | Menunggu capture | Belum dibandingkan | Menunggu bukti pembanding | BASELINE_UNVERIFIED |
 
 Untuk cetak, rekam orientasi dan ukuran kertas, margin, dimensi kartu, urutan dan jumlah kartu per halaman, clipping, foto, logo, tanda tangan dan QR. Untuk UI, rekam keadaan kosong, terisi dan error serta interaksi keyboard dan sentuh. G-UI tetap menunggu capture dan pembandingan atau pengecualian tertulis sesuai roadmap.
+
+## Urutan pembandingan
+
+Sesuai arahan pengguna pada 13 November 2026, pembandingan hasil terhadap aplikasi original dijadwalkan setelah seluruh fase pengembangan. Opsi B tetap menjadi acuan implementasi. Bukti perbandingan dan status G-UI dicatat setelah observasi tersebut.

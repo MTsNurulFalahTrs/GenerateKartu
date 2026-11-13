@@ -1,16 +1,17 @@
+import type { Field } from './model';
 import { createTemplate, inspectWorkbook, readSheet } from './workbook';
 
 export type WorkbookRequest =
   | { action: 'inspect'; file: File }
   | { action: 'read'; sheet: string }
-  | { action: 'template'; format: number };
+  | { action: 'template'; format: number; custom: readonly Field[] };
 
 let bytes: ArrayBuffer | undefined;
 let names: string[] = [];
 self.onmessage = async ({ data }: MessageEvent<WorkbookRequest>) => {
   try {
     if (data.action === 'template') {
-      const template = createTemplate(data.format);
+      const template = createTemplate(data.format, data.custom);
       self.postMessage({ action: 'template', template }, { transfer: [template] });
     } else if (data.action === 'inspect') {
       const candidate = await data.file.arrayBuffer();

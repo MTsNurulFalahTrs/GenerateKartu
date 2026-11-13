@@ -86,10 +86,36 @@ try {
         }
       }
       await page.locator('#step-2').click();
+      await page.evaluate(() => {
+        const input = [...document.querySelectorAll('#panel-2 input')].find((element) => element.labels?.[0]?.textContent.includes('Nama sekolah'));
+        if (!input) throw new Error('Input institusi hilang');
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+        setter.call(input, 'Madrasah Uji Fase 7');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await page.waitForFunction(() => document.querySelector('#panel-2 .exam-card-head')?.textContent.includes('Madrasah Uji Fase 7'));
+      await page.locator('button::-p-text(Tata Letak)').click();
+      await page.evaluate(() => {
+        const input = [...document.querySelectorAll('#panel-2 input[type=checkbox]')].find((element) => element.labels?.[0]?.textContent.includes('Tampilkan QR'));
+        if (!input) throw new Error('Toggle QR hilang');
+        input.click();
+      });
+      await page.waitForSelector('#panel-2 svg[aria-label="QR referensi kartu"]');
       await page.locator('button::-p-text(Jadwal)').click();
       await page.waitForSelector('button[aria-pressed="true"]::-p-text(Jadwal)');
       await page.locator('#step-3').click();
       assert.match(await page.locator('#panel-3').map((el) => el.textContent).wait(), /Lengkap Ruang/);
+      for (let format = 1; format <= 7; format++) {
+        await page.locator('#step-0').click();
+        await page.locator(`[aria-label="Pilih Format ${format}"]`).click();
+        await page.locator('#step-3').click();
+        await page.waitForSelector('#panel-3 .exam-card');
+        assert.ok(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length >= 4));
+      }
+      await page.locator('#step-0').click();
+      await page.locator('button::-p-text(Pilih format kustom)').click();
+      await page.locator('#step-3').click();
+      assert.equal(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length), 3);
       await page.locator('.theme').click();
       await page.waitForSelector('[data-theme="dark"]');
       await page.locator('#step-0').click();
