@@ -58,13 +58,27 @@ try {
     const page = await browser.newPage();
     await page.setCacheEnabled(false);
     const errors = [];
+    const externalRequests = [];
+    page.on('request', (request) => {
+      const url = new URL(request.url());
+      if (['http:', 'https:'].includes(url.protocol) &&
+        (url.origin !== new URL(origin).origin || request.method() !== 'GET' || /Peserta(?:%20|\+)Uji|Madrasah(?:%20|\+)Uji/i.test(url.href))) {
+        externalRequests.push({ origin: url.origin, method: request.method() });
+      }
+    });
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('console', (entry) => {
       if (entry.type() === 'error') errors.push(entry.text());
     });
     try {
       await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: name === 'mobile', hasTouch: name === 'mobile' });
-      assert.equal((await page.goto(origin, { waitUntil: 'networkidle0' }))?.status(), 200);
+      const home = await page.goto(origin, { waitUntil: 'networkidle0' });
+      assert.equal(home?.status(), 200);
+      const headers = home.headers();
+      assert.equal(headers['x-content-type-options'], 'nosniff');
+      assert.equal(headers['x-frame-options'], 'DENY');
+      assert.equal(headers['referrer-policy'], 'no-referrer');
+      assert.match(headers['content-security-policy'], /frame-ancestors 'none'/);
       assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Pilih Format Kartu');
       assert.equal(await page.$$eval('.format-grid article', (cards) => cards.length), 8);
       await page.locator('#pick-format-2').click();
@@ -165,6 +179,10 @@ try {
           })).violations.map(({ id, nodes }) => ({ id, targets: nodes.map((node) => node.target) })));
           assert.deepEqual(violations, [], `Axe panel ${index}`);
         }
+        await page.setOfflineMode(true);
+        await page.select('#preview-Ruang', 'Ruang 60');
+        await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('60 dari 500'));
+        await page.setOfflineMode(false);
         for (const count of [60, 132, 500]) {
           const start = performance.now();
           await page.select('#preview-Ruang', count === 500 ? '' : `Ruang ${count}`);
@@ -280,6 +298,7 @@ try {
       await page.waitForFunction(() => location.pathname === '/bantuan');
       assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Bantuan');
       assert.deepEqual(errors, []);
+      assert.deepEqual(externalRequests, [], 'No external requests or HTTP uploads during editor flow');
       assert.equal((await page.goto(new URL('/halaman-tidak-ada', origin).href))?.status(), 404);
       assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Halaman tidak ditemukan');
       if (name === 'desktop') {

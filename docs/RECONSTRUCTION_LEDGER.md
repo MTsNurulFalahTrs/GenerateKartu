@@ -1,6 +1,6 @@
 # Ledger kewajiban rekonstruksi
 
-Sumber dikunci pada `623ce1280692d7c431ead92fdbdbd8427b0cba61`. Keputusan di bawah adalah pemetaan awal untuk G1. Status seluruh baris **STATIC_MAPPED / UNOBSERVED** sampai skenario perilakunya dijalankan. Kategori “Ubah” menetapkan sasaran perbaikan sesuai roadmap. Perubahan visual mayor tetap mengikuti persetujuan Opsi B. Fitur komunitas bergantung keputusan cakupan Fase 11.
+Sumber dikunci pada `623ce1280692d7c431ead92fdbdbd8427b0cba61`. Keputusan di bawah adalah pemetaan awal untuk G1. Status awal **STATIC_MAPPED / UNOBSERVED** direkonsiliasi pada bagian Fase 13. Kategori “Ubah” menetapkan sasaran perbaikan sesuai roadmap. Perubahan visual mayor tetap mengikuti persetujuan Opsi B. Fitur komunitas bergantung keputusan cakupan Fase 11.
 
 | ID | Perilaku | Keputusan | Bukti statis | Input → output | Verifikasi berikutnya |
 | --- | --- | --- | --- | --- | --- |
@@ -36,3 +36,14 @@ Sumber dikunci pada `623ce1280692d7c431ead92fdbdbd8427b0cba61`. Keputusan di baw
 | RE-30 | PIN bawaan | Pensiunkan | [Code 18–57](https://github.com/r4nd1pr4t4m4-arch/generatorkartu/blob/623ce1280692d7c431ead92fdbdbd8427b0cba61/Code.gs#L18-L57) | PIN bersama → penghapusan server | Pastikan penghapusan bergantung pada identitas dan izin, tanpa PIN statis. |
 
 Untuk setiap kewajiban, tambahkan referensi fixture, hasil observasi, kode implementasi dan hasil uji ketika tersedia. Gunakan `UX_DELTA` untuk perbedaan minor yang terlihat dan `DESIGN_DECISION` untuk persetujuan perubahan visual mayor.
+
+## Rekonsiliasi Fase 13
+
+| Status | Kewajiban | Bukti dan batas |
+| --- | --- | --- |
+| Diuji pada aplikasi baru | RE-03, RE-04, RE-05, RE-10, RE-11, RE-15, RE-16, RE-19, RE-21, RE-22, RE-27, RE-29 | Regresi workbook, foto, filter, preview, backup, privasi, kesiapan render dan keluaran. Rincian serta batas fixture ada di laporan UAT. |
+| Parsial | RE-01, RE-02, RE-06, RE-07, RE-08, RE-09, RE-12, RE-13, RE-14, RE-24, RE-25, RE-26 | Perlu penutupan per kewajiban. Jadwal terstruktur, operasi foto, rekap dan shortcut legacy masih perlu rekonsiliasi. Dimensi fisik, scan QR dan baseline visual menunggu bukti. |
+| Ditunda | RE-17, RE-18, RE-23, RE-28 | Komunitas dikeluarkan dari MVP berdasarkan D-006. |
+| Dipensiunkan | RE-20, RE-30 | Runtime Apps Script dan PIN bawaan tidak masuk arsitektur baru. |
+
+Lihat [laporan UAT](UAT_REPORT.md). Bukti aplikasi baru belum mengesahkan kesetaraan terhadap original.

@@ -30,3 +30,7 @@ Untuk cetak, rekam orientasi dan ukuran kertas, margin, dimensi kartu, urutan da
 ## Urutan pembandingan
 
 Sesuai arahan pengguna pada 13 November 2026, pembandingan hasil terhadap aplikasi original dijadwalkan setelah seluruh fase pengembangan. Opsi B tetap menjadi acuan implementasi. Bukti perbandingan dan status G-UI dicatat setelah observasi tersebut.
+
+## Bukti aplikasi baru pada Fase 13
+
+Suite browser memeriksa format 1–7 dan kustom, panel editor, kondisi kosong dan data 500 peserta, serta keluaran cetak/PDF. Artefak screenshot desktop/mobile berasal dari pipeline Quality. Status baseline di atas tetap berlaku. Perubahan keamanan terlihat pada penolakan pembingkaian aplikasi. Perubahan desain besar masih membutuhkan persetujuan.
