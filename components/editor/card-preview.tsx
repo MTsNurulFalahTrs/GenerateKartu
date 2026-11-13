@@ -10,7 +10,7 @@ import { qrPath } from '../../lib/cards/qr';
 
 const labels: Record<Field, string> = {
   NamaMurid: 'Nama', NoPeserta: 'No. Peserta', NISN: 'NISN', Kelas: 'Kelas',
-  Ruang: 'Ruang', Sesi: 'Sesi', Username: 'Username', TglLahir: 'Tgl. Lahir', NamaSatdik: 'Satdik',
+  Ruang: 'Ruang', Sesi: 'Sesi', Username: 'Username', Password: 'Password', TglLahir: 'Tgl. Lahir', NamaSatdik: 'Satdik',
   Custom1: 'Kolom 1', Custom2: 'Kolom 2', Custom3: 'Kolom 3',
   Custom4: 'Kolom 4', Custom5: 'Kolom 5', Custom6: 'Kolom 6',
 };

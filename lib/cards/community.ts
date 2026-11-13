@@ -7,6 +7,21 @@ export type CommunityFormat = CustomAppearance & { fields: Field[] };
 export type CatalogFormat = CommunityFormat & { id: number; contributor?: string; createdAt?: string };
 export type CommunityAttribution = { anonymous: boolean; contributorName: string };
 
+// New community publications use an ASCII slug. Previously published names
+// may contain spaces and must remain readable for backwards compatibility.
+export function validCommunityName(value: unknown): value is string {
+  return typeof value === 'string' && /^[A-Za-z0-9_-]{1,60}$/.test(value);
+}
+
+export function properContributorName(value: string): string {
+  return value.toLocaleLowerCase('id').replace(/(^| )\p{L}/gu, (part) => part.toLocaleUpperCase('id'));
+}
+
+export function cleanContributorInput(value: string): string {
+  const letters = value.replace(/[^\p{L} ]/gu, '').replace(/ +/g, ' ').replace(/^ +/, '');
+  return properContributorName(letters).slice(0, 60);
+}
+
 export function parseCommunityAttribution(value: unknown): CommunityAttribution | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const data = value as Record<string, unknown>;
@@ -16,8 +31,9 @@ export function parseCommunityAttribution(value: unknown): CommunityAttribution 
   }
   if (typeof data.anonymous !== 'boolean') return null;
   if (data.anonymous) return { anonymous: true, contributorName: 'Anonim' };
-  if (!safeValue(data.contributorName, 60)) return null;
-  return { anonymous: false, contributorName: data.contributorName.trim() };
+  const contributorName = typeof data.contributorName === 'string' ? data.contributorName.trim() : '';
+  if (!safeValue(contributorName, 60) || !/^\p{L}+(?: \p{L}+)*$/u.test(contributorName)) return null;
+  return { anonymous: false, contributorName: properContributorName(contributorName) };
 }
 
 
@@ -25,15 +41,15 @@ const safeValue = (value: unknown, max: number): value is string =>
   typeof value === 'string' && !!value.trim() && value.trim().length <= max &&
   !/[\p{Cc}\p{Cf}]/u.test(value);
 
-export function parseCommunityFormat(value: unknown): CommunityFormat | null {
+export function parseCommunityFormat(value: unknown, forPublication = false): CommunityFormat | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const data = value as Record<string, unknown>;
   const { name, fields, photoKey, mono, labels, excelHeaders } = data;
   const validFields = (items: unknown): items is Field[] => Array.isArray(items) &&
     items.every((item) => typeof item === 'string' && customFields.includes(item as Field)) &&
     new Set(items).size === items.length;
-  if (!safeValue(name, 60) || !validFields(fields) || !fields.length || fields.length > 6 ||
-    !fields.includes(photoKey as Field) || !validFields(mono) || mono.some((field) => !fields.includes(field))) return null;
+  if (!safeValue(name, 60) || (forPublication && !validCommunityName(name)) || !validFields(fields) || !fields.length || fields.length > 6 ||
+    !fields.includes(photoKey as Field) || photoKey === 'Password' || !validFields(mono) || mono.some((field) => !fields.includes(field))) return null;
 
   const selectedFields: Field[] = fields;
 
@@ -43,7 +59,7 @@ export function parseCommunityFormat(value: unknown): CommunityFormat | null {
     const result: Partial<Record<Field, string>> = {};
     for (const [field, text] of Object.entries(input)) {
       if (!selectedFields.includes(field as Field) || !safeValue(text, max) ||
-        (max === 64 && text.trim().toLowerCase() === 'password')) return null;
+        (max === 64 && text.trim().toLowerCase() === 'password' && field !== 'Password')) return null;
       result[field as Field] = text.trim();
     }
     return result;

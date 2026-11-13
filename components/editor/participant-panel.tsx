@@ -61,12 +61,13 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
   const formatId = format ?? 0;
   const fields = fieldsFor(formatId, custom);
   const photoKey = photoFieldFor(formatId, customPhotoKey);
+  const allowPasswords = formatId === 7 && custom.includes('Password');
   const excelHeaders = formatId === 7 ? customAppearance?.excelHeaders ?? {} : {};
   const displayLabels = formatId === 7 ? customAppearance?.labels ?? {} : {};
   const schema = formatId === 7
     ? `7:${photoKey}:${JSON.stringify(fields.map((field) => [field, excelHeaders[field] || field]))}`
     : String(formatId);
-  const mapping = useMemo(() => mapped.schema === schema ? mapped.values : defaultMapping(input?.headers ?? [], fields, excelHeaders), [mapped, schema, input, fields]);
+  const mapping = useMemo(() => mapped.schema === schema ? mapped.values : defaultMapping(input?.headers ?? [], fields, excelHeaders, formatId === 7), [mapped, schema, input, fields]);
   const validation = useMemo(() => input ? validateRows(input, formatId, mapping, custom, customPhotoKey) : null, [input, formatId, mapping, custom, customPhotoKey]);
   const participants = dataset?.schema === schema ? dataset?.rows : undefined;
   const rows = useMemo(() => (participants ?? []).filter((p) =>
@@ -128,9 +129,9 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
       } else if (data.action === 'inspect') {
         setNames(data.names);
         setSheet(data.names[0]);
-        send(current, { action: 'read', sheet: data.names[0] });
+        send(current, { action: 'read', sheet: data.names[0], allowPasswords });
       } else if (data.action === 'read') {
-        setMapped({ schema, values: defaultMapping(data.input.headers, fields, excelHeaders) });
+        setMapped({ schema, values: defaultMapping(data.input.headers, fields, excelHeaders, formatId === 7) });
         setInput(data.input);
       } else {
         download(new Blob([data.template], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `template-format-${formatId + 1}.xlsx`);
@@ -241,7 +242,7 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
             setSheet(event.target.value);
             setInput(null);
             setMessage('');
-            if (worker.current) send(worker.current, { action: 'read', sheet: event.target.value });
+            if (worker.current) send(worker.current, { action: 'read', sheet: event.target.value, allowPasswords });
           }}>{names.map((name) => <option key={name}>{name}</option>)}</select></label>}
           {input && validation && (
             <div className="mt-4 grid gap-3">
@@ -252,7 +253,7 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
                   setMapped({ schema, values: { ...mapping, [field]: value === '' ? undefined : Number(value) } });
                 }}>
                   <option value="">Pilih kolom</option>
-                  {input.headers.map((header, index) => header.trim().toLowerCase() === 'password' ? null :
+                  {input.headers.map((header, index) => header.trim().toLowerCase() === 'password' && field !== 'Password' ? null :
                     <option key={index} value={index}>{header || 'Tanpa judul'} (kolom {index + 1})</option>)}
                 </select></label>)}
               </div>

@@ -32,7 +32,7 @@ const sample: Participant = {
 };
 const formatFieldLabels: Record<Field, string> = {
   NamaMurid: 'Nama Murid', NoPeserta: 'No. Peserta', NISN: 'NISN', Kelas: 'Kelas',
-  Ruang: 'Ruang', Sesi: 'Sesi', Username: 'Username', TglLahir: 'Tgl. Lahir', NamaSatdik: 'Nama Satdik',
+  Ruang: 'Ruang', Sesi: 'Sesi', Username: 'Username', Password: 'Password', TglLahir: 'Tgl. Lahir', NamaSatdik: 'Nama Satdik',
   Custom1: 'Kolom Kustom 1', Custom2: 'Kolom Kustom 2', Custom3: 'Kolom Kustom 3',
   Custom4: 'Kolom Kustom 4', Custom5: 'Kolom Kustom 5', Custom6: 'Kolom Kustom 6',
 };

@@ -17,3 +17,9 @@ Only public format definitions are sent. Names, field labels, and Excel headers 
 Setelah migrasi awal `001_community_formats.sql`, terapkan `002_community_contributors.sql` pada branch Neon yang digunakan target deployment **sebelum** merilis UI konfirmasi.
 Migrasi kedua menambahkan `contributor_name` (default `Anonim` untuk baris lama) dan memperbarui fungsi publikasi. Metadata kontributor tidak menjadi bagian dari `definition` JSONB sehingga identitas kontributor tidak mengubah deduplikasi format.
 Uji pemuatan katalog, berbagi dengan nama/inisial, berbagi anonim, pembatalan, dan validasi nilai sebelum mempromosikan ke production.
+
+## Validasi nama dan field Password (migrasi 003)
+
+Terapkan `db/migrations/003_unique_community_names_password.sql` terlebih dahulu pada salinan branch Neon, lalu di branch target sebelum deployment. Migrasi membuat indeks unik nama format secara case-insensitive (`lower(btrim(name))`), menolak nama publikasi baru selain `[A-Za-z0-9_-]`, dan menambahkan field bawaan `Password` **hanya sebagai metadata definisi format**. Tidak ada data akun/Password peserta yang dikirim ke API komunitas. Nama lama yang berisi spasi tetap dapat dibaca tanpa pengubahan/penulisan ulang. Bila sudah ada duplikasi nama lama, indeks akan menolak migrasi: tinjau dan selesaikan tanpa menghapus data secara otomatis. Nama kontributor diperiksa hanya huruf dan spasi lalu dinormalisasi ke Proper Case. Error publikasi nama duplikat dipetakan menjadi HTTP 409.
+
+Kolom Password di spreadsheet hanya dibaca di browser ketika pengguna sengaja menambahkan field `Password` pada format kustom; format bawaan tetap mengabaikannya. Password tidak boleh dipakai sebagai **Acuan Foto**, sehingga tidak menjadi nama berkas foto. Cetakan dan PDF format kustom yang memilih Password akan memuat nilainya dan perlu dijaga kerahasiaannya.

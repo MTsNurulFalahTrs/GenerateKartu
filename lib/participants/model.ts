@@ -12,7 +12,7 @@ const builtins = [
 ] as const;
 
 export const customFieldIds = ['Custom1', 'Custom2', 'Custom3', 'Custom4', 'Custom5', 'Custom6'] as const;
-export type Field = (typeof builtins)[number][number] | (typeof customFieldIds)[number];
+export type Field = (typeof builtins)[number][number] | (typeof customFieldIds)[number] | 'Password';
 export type Participant = { id: string; name: string; cardReference?: string; values: Partial<Record<Field, string>> };
 export type Issue = { row: number; column: string; message: string };
 export type Row = { number: number; cells: string[] };
@@ -24,11 +24,11 @@ export function fieldsFor(format: number, custom: readonly Field[] = []) {
 }
 
 export function defaultMapping(
-  headers: string[], fields: readonly Field[], excelHeaders: Partial<Record<Field, string>> = {},
+  headers: string[], fields: readonly Field[], excelHeaders: Partial<Record<Field, string>> = {}, exact = false,
 ): Mapping {
   const mapping: Mapping = {};
   for (const field of fields) {
-    const matches = headers.flatMap((header, index) => header.trim().toLowerCase() === (excelHeaders[field]?.trim() || field).toLowerCase() ? [index] : []);
+    const matches = headers.flatMap((header, index) => (exact ? header === (excelHeaders[field] || field) : header.trim().toLowerCase() === (excelHeaders[field]?.trim() || field).toLowerCase()) ? [index] : []);
     if (matches.length === 1) mapping[field] = matches[0];
   }
   return mapping;
@@ -41,6 +41,7 @@ export function photoFieldFor(format: number, customPhotoKey?: Field): Field {
 export function validateRows(input: WorkbookRows, format: number, mapping: Mapping, custom: readonly Field[] = [], customPhotoKey?: Field) {
   const fields = fieldsFor(format, custom);
   const idField = photoFieldFor(format, customPhotoKey);
+  if (idField === 'Password') return { participants: [] as Participant[], issues: [{ row: input.headerRow, column: 'Password', message: 'Password tidak boleh menjadi Acuan Foto.' }] as Issue[] };
   const issues: Issue[] = [];
   const participants: Participant[] = [];
   const usedColumns = new Set<number>();
@@ -50,7 +51,7 @@ export function validateRows(input: WorkbookRows, format: number, mapping: Mappi
       issues.push({ row: input.headerRow, column: field, message: 'Pilih kolom sumber yang sesuai.' });
     } else if (usedColumns.has(index)) {
       issues.push({ row: input.headerRow, column: field, message: 'Pilih kolom sumber yang berbeda.' });
-    } else if (input.headers[index].trim().toLowerCase() === 'password') {
+    } else if (input.headers[index].trim().toLowerCase() === 'password' && field !== 'Password') {
       issues.push({ row: input.headerRow, column: field, message: 'Pilih kolom selain Password.' });
     } else {
       usedColumns.add(index);

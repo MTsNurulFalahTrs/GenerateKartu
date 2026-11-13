@@ -3,7 +3,7 @@ import { createTemplate, inspectWorkbook, readSheet } from './workbook';
 
 export type WorkbookRequest =
   | { action: 'inspect'; file: File }
-  | { action: 'read'; sheet: string }
+  | { action: 'read'; sheet: string; allowPasswords?: boolean }
   | { action: 'template'; format: number; custom: readonly Field[]; excelHeaders?: Partial<Record<Field, string>> };
 
 let bytes: ArrayBuffer | undefined;
@@ -20,7 +20,7 @@ self.onmessage = async ({ data }: MessageEvent<WorkbookRequest>) => {
       self.postMessage({ action: 'inspect', names });
     } else {
       if (!bytes || !names.includes(data.sheet)) throw new Error('Pilih sheet yang tersedia.');
-      self.postMessage({ action: 'read', input: readSheet(bytes, data.sheet) });
+      self.postMessage({ action: 'read', input: readSheet(bytes, data.sheet, undefined, undefined, !data.allowPasswords) });
     }
   } catch (error) {
     self.postMessage({ action: 'error', message: error instanceof Error ? error.message : 'Workbook gagal diproses.' });
