@@ -216,6 +216,13 @@ export function CardEditor() {
     try {
       const response = await fetch('/api/community-formats', { signal: signal ?? AbortSignal.timeout(12000) });
       if (!response.ok) throw new Error('Katalog tidak tersedia');
+      if (response.headers.get('X-Community-Unavailable') === 'true') {
+        if (!signal?.aborted) {
+          setCatalog([]);
+          setCatalogStatus('error');
+        }
+        return;
+      }
       const result: CatalogFormat[] = await response.json();
       if (!signal?.aborted) {
         setCatalog(result);
