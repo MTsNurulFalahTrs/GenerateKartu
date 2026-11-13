@@ -19,12 +19,12 @@ export async function inspectWorkbook(bytes: ArrayBuffer, name: string) {
   return names;
 }
 
-export function readSheet(bytes: ArrayBuffer, name: string): WorkbookRows {
+export function readSheet(bytes: ArrayBuffer, name: string, maxRows = maxParticipants, columnLimit = maxColumns, omitPasswords = true): WorkbookRows {
   const sheet = read(bytes, { type: 'array', sheets: name, cellFormula: false, nodim: true, dateNF: 'yyyy-mm-dd' }).Sheets[name];
   if (!sheet?.['!ref']) throw new Error('Sheet kosong. Isi header dan minimal satu baris.');
   const range = utils.decode_range(sheet['!ref']);
   const width = range.e.c - range.s.c + 1;
-  if (width > maxColumns || range.e.r - range.s.r > maxParticipants) throw new Error('Batas 1.000 baris peserta dan 64 kolom per sheet.');
+  if (width > columnLimit || range.e.r - range.s.r > maxRows) throw new Error(`Batas ${maxRows} baris data dan ${columnLimit} kolom per sheet.`);
   function cellsAt(r: number) {
     return Array.from({ length: width }, (_, index) => {
       const address = utils.encode_cell({ r, c: range.s.c + index });
@@ -37,7 +37,7 @@ export function readSheet(bytes: ArrayBuffer, name: string): WorkbookRows {
     });
   }
   const headers = cellsAt(range.s.r);
-  const ignored = headers.map((header) => header.trim().toLowerCase() === 'password');
+  const ignored = headers.map((header) => omitPasswords && header.trim().toLowerCase() === 'password');
   const rows: WorkbookRows['rows'] = [];
   for (let r = range.s.r + 1; r <= range.e.r; r++) {
     const cells = cellsAt(r);
@@ -55,4 +55,26 @@ export function createTemplate(format: number, custom?: readonly Field[]) {
   const workbook = utils.book_new();
   utils.book_append_sheet(workbook, utils.aoa_to_sheet([[...fields], fields.map((field) => examples[field])]), 'Peserta');
   return write(workbook, { type: 'array', bookType: 'xlsx', compression: true }) as ArrayBuffer;
+}
+
+export function createScheduleTemplate(columns: string[], rowCount: number) {
+  const workbook = utils.book_new();
+  const rows = Array.from({ length: rowCount }, () => columns.map(() => ''));
+  utils.book_append_sheet(workbook, utils.aoa_to_sheet([columns, ...rows]), 'Jadwal');
+  return write(workbook, { type: 'array', bookType: 'xlsx', compression: true }) as ArrayBuffer;
+}
+
+export async function readScheduleWorkbook(file: File, columns: string[]) {
+  if (file.size > 5 * 1024 * 1024) throw new Error('Ukuran file jadwal maksimum 5 MiB.');
+  const bytes = await file.arrayBuffer();
+  const [sheet] = await inspectWorkbook(bytes, file.name);
+  const { headers, rows } = readSheet(bytes, sheet, 20, 6, false);
+  if (headers.length !== columns.length || headers.some((header, index) => header.trim() !== columns[index])) {
+    throw new Error('Header Excel harus sama dengan kolom jadwal, termasuk urutannya.');
+  }
+  if (!rows.length) throw new Error('Isi minimal satu baris jadwal pada sheet pertama.');
+  return rows.map(({ cells }) => cells.map((cell) => {
+    if (cell.length > 100) throw new Error('Isi setiap sel jadwal maksimum 100 karakter.');
+    return cell.trim();
+  }));
 }

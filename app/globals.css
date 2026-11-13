@@ -411,3 +411,32 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
   .layout-custom-dimensions, .layout-advanced-grid, .layout-backup-actions { grid-template-columns: minmax(0, 1fr); }
   .editor .kop-shell label.layout-toggle { padding: .8rem; }
 }
+
+.schedule-settings { display: grid; gap: 1.5rem; }
+.schedule-settings h3 { font-weight: 700; }
+.schedule-settings small { display: block; color: var(--muted); }
+.schedule-callout, .schedule-download, .schedule-drop { padding: 1rem; border: 1px solid var(--line); border-radius: .9rem; }
+.schedule-callout, .schedule-drop { background: color-mix(in srgb, #f59e0b 10%, var(--surface)); }
+.schedule-download { background: color-mix(in srgb, #3b82f6 9%, var(--surface)); }
+.schedule-download button { margin-top: .6rem; background: #1d4ed8; color: white; }
+.schedule-heading, .schedule-column, .schedule-range { display: flex; align-items: center; gap: .6rem; }
+.schedule-heading, .schedule-range { justify-content: space-between; }
+.schedule-column { margin-top: .45rem; padding: .35rem .55rem; border: 1px solid var(--line); border-radius: .7rem; }
+.schedule-column input, .schedule-range input { flex: 1; min-width: 0; }
+.schedule-column span, .schedule-range output, .schedule-heading > span { background: #fef3c7; color: #92400e; padding: .25rem .55rem; border-radius: .6rem; }
+.schedule-range input { accent-color: #d97706; }
+.schedule-add, .schedule-drop { width: 100%; margin-top: .55rem; border: 1px dashed #d97706; }
+.schedule-drop { display: grid; justify-items: center; gap: .3rem; text-align: center; cursor: pointer; }
+.schedule-drop:focus-within { outline: 2px solid var(--indigo-500); }
+.schedule-table { margin-top: .5rem; border: 1px solid var(--line); border-radius: .7rem; }
+.schedule-table table, .exam-card-schedule table { width: 100%; table-layout: fixed; border-collapse: collapse; overflow-wrap: anywhere; }
+.schedule-table th, .schedule-table td { padding: .3rem .45rem; border: 1px solid var(--line); font-size: .8rem; }
+.schedule-table th { background: #fef3c7; color: #78350f; }
+.schedule-table tr[data-example="true"] { color: var(--muted); font-style: italic; }
+.schedule-table tr[data-example="false"] { background: color-mix(in srgb, #16a34a 12%, var(--surface)); }
+.schedule-apply { width: 100%; color: white; background: #a65005; font-weight: 700; }
+.exam-card-schedule th, .exam-card-schedule td { border: 1px solid currentColor; padding: .25mm; }
+
+.schedule-settings > section, .schedule-settings .table-scroll { min-width: 0; }
+.schedule-settings .schedule-column input { width: 0; }
+.schedule-range input { width: 0; }
