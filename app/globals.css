@@ -89,3 +89,28 @@ a { color: var(--indigo-700); }
 .editor .subtabs { position: relative; }
 .editor textarea { max-width: 100%; color: var(--ink); background: var(--surface); }
 .editor [role="tabpanel"] { scroll-margin-top: 8rem; }
+
+.card-print-root {
+  position: fixed;
+  left: -12000px;
+  top: 0;
+  width: 297mm;
+  pointer-events: none;
+}
+.print-sheet {
+  display: grid;
+  width: 297mm;
+  height: 210mm;
+  padding: 8mm;
+  align-content: start;
+}
+.print-sheet .card-preview-wrap { overflow: visible; padding: 0; }
+.print-sheet .card-preview-wrap > p { display: none; }
+
+@page { size: A4 landscape; margin: 0; }
+@media print {
+  body.card-print-ready > :not(.card-print-root) { display: none !important; }
+  .card-print-root { position: static; width: 297mm; }
+  .print-sheet { break-inside: avoid; print-color-adjust: exact; }
+  .print-sheet:not(:last-child) { break-after: page; }
+}
