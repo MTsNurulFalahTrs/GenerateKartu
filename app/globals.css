@@ -1184,3 +1184,5 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
   .import-footer-buttons { width: 100%; }
   .import-footer-buttons > .action { flex: 1; }
 }
+
+.community-delete { color: #b42318; background: #fff1f0; }

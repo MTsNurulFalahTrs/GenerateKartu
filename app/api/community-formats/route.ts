@@ -84,3 +84,50 @@ export async function POST(req: Request) {
     return failure('Format belum berhasil dibagikan. Coba lagi atau simpan secara lokal.', 503);
   }
 }
+
+export async function DELETE(req: Request) {
+  if (req.headers.get('sec-fetch-site') === 'cross-site' ||
+    !req.headers.get('content-type')?.startsWith('application/json')) {
+    return failure('Permintaan hapus tidak valid.', 400);
+  }
+
+  const reader = req.body?.getReader();
+  if (!reader) return failure('Permintaan hapus tidak valid.', 400);
+  let id: unknown;
+  let pin: unknown;
+  try {
+    const decoder = new TextDecoder();
+    let body = '';
+    let size = 0;
+    for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
+      size += chunk.value.byteLength;
+      if (size > 128) {
+        await reader.cancel();
+        return failure('Permintaan hapus terlalu besar.', 413);
+      }
+      body += decoder.decode(chunk.value, { stream: true });
+    }
+    ({ id, pin } = JSON.parse(body + decoder.decode()));
+  } catch {
+    return failure('Permintaan hapus tidak valid.', 400);
+  }
+  if (typeof id !== 'number' || !Number.isInteger(id) || id < 1 || id > 2147483647 ||
+    typeof pin !== 'string' || !/^[0-9]{8,16}$/.test(pin)) {
+    return failure('Masukkan PIN pemilik yang terdiri dari 8–16 angka.', 400);
+  }
+
+  try {
+    const sql = database();
+    const [result] = await sql`select public.delete_community_format(${id}::integer, ${pin}::text) as status`;
+    switch (result?.status) {
+      case 'deleted': return new Response(null, { status: 204 });
+      case 'missing': return failure('Format sudah tidak tersedia di katalog.', 404);
+      case 'invalid': return failure('PIN pemilik salah.', 403);
+      case 'locked': return failure('Terlalu banyak percobaan. Coba lagi dalam beberapa menit.', 429);
+      case 'unconfigured': return failure('PIN pemilik belum dikonfigurasi.', 503);
+      default: return failure('Format belum berhasil dihapus. Coba lagi.', 503);
+    }
+  } catch {
+    return failure('Format belum berhasil dihapus. Coba lagi.', 503);
+  }
+}
