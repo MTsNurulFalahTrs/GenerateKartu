@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
+import { ParticipantPanel } from './participant-panel';
 import { formats, moveStep, steps } from '../../lib/editor';
 
 const settings = ['Kop', 'Tata Letak', 'Jadwal'] as const;
@@ -16,6 +17,7 @@ export function CardEditor() {
   const [step, setStep] = useState(0);
   const [format, setFormat] = useState<number | null>(null);
   const [setting, setSetting] = useState(0);
+  const [selectedCount, setSelectedCount] = useState(0);
   const [dark, setDark] = useState(false);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -77,10 +79,7 @@ export function CardEditor() {
               </div>
             )}
             {index === 1 && (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="panel"><h2>1. Data Excel</h2><p>Impor XLS dan XLSX tersedia pada fase data peserta.</p></div>
-                <div className="panel"><h2>2. Foto Peserta</h2><p>Foto individual dan ZIP tersedia pada fase pengolahan aset.</p></div>
-              </div>
+              <ParticipantPanel format={format} onSelection={setSelectedCount} />
             )}
             {index === 2 && (
               <div className="panel">
@@ -93,7 +92,7 @@ export function CardEditor() {
               </div>
             )}
             {index === 3 && (
-              <div className="panel"><h2>Pratinjau Kartu</h2><p>Belum ada data peserta untuk ditampilkan.</p>
+              <div className="panel"><h2>Pratinjau Kartu</h2><p>{selectedCount ? `${selectedCount} peserta terpilih untuk kartu.` : 'Belum ada peserta terpilih.'}</p>
                 {format !== null && <p>Format terpilih: {formats[format]}.</p>}
               </div>
             )}

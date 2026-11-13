@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { utils, write } from 'xlsx';
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 
@@ -20,6 +23,20 @@ async function waitForServer() {
 
 await waitForServer();
 if (output) await mkdir(output, { recursive: true });
+const fixtureDir = await mkdtemp(join(tmpdir(), 'generate-kartu-excel-'));
+async function fixture(name, ids) {
+  const book = utils.book_new();
+  utils.book_append_sheet(book, utils.aoa_to_sheet([['Petunjuk']]), 'Petunjuk');
+  utils.book_append_sheet(book, utils.aoa_to_sheet([
+    ['NoPeserta', 'NISN', 'NamaMurid', 'Kelas', 'Ruang'],
+    ...ids.map((id, index) => [id, '0000000123', 'Peserta Uji ' + index, 'IX-A', 'Ruang 1']),
+  ]), 'Peserta');
+  const file = join(fixtureDir, name);
+  await writeFile(file, write(book, { type: 'buffer', bookType: 'xlsx', compression: true }));
+  return file;
+}
+const valid = await fixture('valid.xlsx', ['0001', '0002']);
+const duplicate = await fixture('duplikat.xlsx', ['0001', '0001']);
 const browser = await puppeteer.launch({
   executablePath: await chromium.executablePath(),
   args: chromium.args,
@@ -45,6 +62,29 @@ try {
       await page.focus('#step-0');
       await page.keyboard.press('ArrowRight');
       await page.waitForSelector('#step-1[aria-selected="true"]');
+      const fileInput = await page.$('input[type="file"]');
+      assert.ok(fileInput);
+      for (const file of [valid, duplicate]) {
+        await fileInput.uploadFile(file);
+        await page.waitForFunction(() => {
+          const sheet = document.querySelector('#participant-sheet');
+          return sheet && !sheet.disabled && sheet.value === 'Petunjuk';
+        });
+        await page.select('#participant-sheet', 'Peserta');
+        await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('Pratinjau impor · 2 baris'));
+        if (file === valid) {
+          await page.waitForSelector('#apply-participant-import:enabled');
+          await page.focus('#apply-participant-import');
+          await page.keyboard.press('Space');
+          await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('2 terpilih'));
+          await page.locator('input[placeholder="Nama atau ID"]').fill('0002');
+          await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('1 cocok'));
+        } else {
+          await page.waitForFunction(() => document.querySelector('[role="alert"]')?.textContent.includes('Gunakan ID unik'));
+          assert.equal(await page.$eval('#apply-participant-import', (button) => button.disabled), true);
+          assert.match(await page.$eval('#panel-1', (panel) => panel.textContent), /2 peserta/);
+        }
+      }
       await page.locator('#step-2').click();
       await page.locator('button::-p-text(Jadwal)').click();
       await page.waitForSelector('button[aria-pressed="true"]::-p-text(Jadwal)');
@@ -70,4 +110,5 @@ try {
   }
 } finally {
   await browser.close();
+  await rm(fixtureDir, { recursive: true, force: true });
 }
