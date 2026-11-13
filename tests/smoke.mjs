@@ -117,6 +117,29 @@ try {
       const fileInput = await page.$('input[type="file"]');
       assert.ok(fileInput);
       assert.equal(await page.$('.import-dialog[open]'), null);
+      // Hold the first workbook request until the user has switched tabs.
+      const workerGate = await page.evaluateHandle(() => {
+        const postMessage = Worker.prototype.postMessage;
+        let release = () => {};
+        Worker.prototype.postMessage = function (request) {
+          if (request.action !== 'inspect') return postMessage.call(this, request);
+          Worker.prototype.postMessage = postMessage;
+          release = () => postMessage.call(this, request);
+        };
+        return () => release();
+      });
+      await fileInput.uploadFile(valid);
+      await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('Memproses Excel'));
+      await page.locator('#step-2').click();
+      await page.waitForSelector('#panel-2', { visible: true });
+      await workerGate.evaluate((release) => release());
+      await workerGate.dispose();
+      await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('Pratinjau impor'));
+      assert.equal(await page.$('.import-dialog[open]'), null);
+      await page.locator('#step-1').click();
+      await page.waitForSelector('.import-dialog[open]', { visible: true });
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('.import-dialog[open]', { hidden: true });
       for (const file of [valid, duplicate]) {
         await fileInput.uploadFile(file);
         await page.waitForSelector('.import-dialog[open]');
