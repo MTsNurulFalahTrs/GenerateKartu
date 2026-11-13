@@ -7,6 +7,7 @@ import { PDFDocument, PDFName as pdfName } from 'pdf-lib';
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 import axe from 'axe-core';
+import { execFileSync } from 'node:child_process';
 
 const origin = process.env.SMOKE_ORIGIN ?? 'http://127.0.0.1:3000';
 const output = process.env.SMOKE_SCREENSHOTS;
@@ -41,6 +42,11 @@ const valid = await fixture('valid.xlsx', Array.from({ length: 500 }, (_, index)
 const duplicate = await fixture('duplikat.xlsx', ['0001', '0001']);
 const photo = join(fixtureDir, '0001.png');
 await writeFile(photo, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGNkYPjPQApgIkn1qIZRDUNKAwA+MAEfWiW9ygAAAABJRU5ErkJggg==', 'base64'));
+const archive = join(fixtureDir, 'foto.zip');
+const photoNames = Array.from({ length: 20 }, (_, index) => String(index + 1).padStart(4, '0') + '.png');
+const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGNkYPjPQApgIkn1qIZRDUNKAwA+MAEfWiW9ygAAAABJRU5ErkJggg==', 'base64');
+await Promise.all(photoNames.map((name) => writeFile(join(fixtureDir, name), png)));
+execFileSync('zip', ['-q', archive, ...photoNames], { cwd: fixtureDir });
 const browser = await puppeteer.launch({
   executablePath: await chromium.executablePath(),
   args: chromium.args,
@@ -93,6 +99,15 @@ try {
       assert.ok(photoInput);
       await photoInput.uploadFile(photo);
       await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('1 foto diterapkan'));
+      if (name === 'desktop') {
+        const zipInput = await page.$('#panel-1 input[accept=".zip"]');
+        assert.ok(zipInput);
+        const zipStart = performance.now();
+        await zipInput.uploadFile(archive);
+        await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('20 foto diterapkan'));
+        const heap = (await page.metrics()).JSHeapUsedSize / 1048576;
+        console.log(`Impor ZIP 20 foto: ${Math.round(performance.now() - zipStart)} ms; heap JS ${heap.toFixed(1)} MiB`);
+      }
       await page.$eval('#step-2', (button) => button.click());
       await page.waitForSelector('#panel-2', { visible: true });
       await page.evaluate(() => {

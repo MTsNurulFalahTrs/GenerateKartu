@@ -12,6 +12,6 @@ Penyempurnaan mengikuti struktur Opsi B. Perbandingan dengan aplikasi original t
 
 Audit mencakup tab Format, Data Murid, Pengaturan dan Cetak, dialog konfirmasi backup/reset dan status output. Aplikasi memakai dialog konfirmasi browser. Axe memeriksa aturan WCAG 2/2.1 A dan AA pada empat panel dengan data sintetis. Smoke test memeriksa lebar 320 px, tablet 768 px, lanskap 844 × 390 dan desktop 1440 px. Artefak CI menyertakan screenshot desktop/mobile.
 
-Log smoke test mencatat waktu perubahan filter preview untuk 60/132/500 peserta, heap JS saat pengambilan sampel, pencetakan Chromium 500 kartu, serta PDF 10 kartu. Angka adalah sampel runner, tanpa klaim puncak memori atau SLA. Worker impor XLSX dan pemuatan dinamis modul PDF tetap dipakai.
+Log smoke test mencatat waktu perubahan filter preview untuk 60/132/500 peserta, heap JS saat pengambilan sampel, impor ZIP 20 foto sintetis, pencetakan Chromium 500 kartu, serta PDF 10 kartu. Angka adalah sampel runner, tanpa klaim puncak memori atau SLA. Worker impor XLSX dan pemuatan dinamis modul PDF tetap dipakai.
 
 G12 masih memerlukan pembandingan visual akhir dan penerimaan sasaran performa. Uji pembaca layar dan printer fisik tetap dicatat sebagai verifikasi manual.
