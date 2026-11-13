@@ -15,7 +15,7 @@ npm run local
 
 Jika repositori sudah ada di komputer, jalankan `npm ci` dan `npm run local` dari folder repositori. Instalasi pertama membutuhkan koneksi internet untuk mengunduh dependensi. Editor lokal berjalan tanpa akun Vercel atau file `.env`.
 
-Buka [http://localhost:3000](http://localhost:3000) atau [http://127.0.0.1:3000](http://127.0.0.1:3000). Pertahankan terminal tetap terbuka. Tekan Ctrl+C untuk menghentikan server. Jika port 3000 sudah digunakan, jalankan `npm run local -- --port 3001` dan buka `http://localhost:3001`.
+Buka [http://localhost:5500](http://localhost:5500) atau [http://127.0.0.1:5500](http://127.0.0.1:5500). Pertahankan terminal tetap terbuka. Tekan Ctrl+C untuk menghentikan server. Jika port 5500 sudah digunakan, jalankan `npm run local -- --port 5501` dan buka `http://localhost:5501`.
 
 Jalankan `npm run lint`, `npm run typecheck`, `npm test`, dan `npm run build` untuk memeriksa perubahan. Untuk smoke test, jalankan `npm start` setelah build, lalu `npm run smoke` di terminal lain.
 
