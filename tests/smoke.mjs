@@ -444,9 +444,13 @@ try {
       const customDialog = '.custom-format-dialog[open]';
       await page.waitForSelector(customDialog, { visible: true });
       console.log('Smoke trace: custom modal visible');
-      assert.equal(await page.$$eval(`${customDialog} .custom-format-rows li`, (items) => items.length), 3);
-      const options = await page.$$eval(`${customDialog} li:first-child select option`,
-        (items) => items.map((item) => ({ text: item.textContent.trim(), disabled: item.disabled })));
+      console.log('Smoke trace: checking custom row count with direct document query');
+      assert.equal(await page.evaluate(() => document.querySelectorAll('.custom-format-dialog[open] .custom-format-rows li').length), 3);
+      console.log('Smoke trace: custom row count passed');
+      const options = await page.evaluate(() => Array.from(
+        document.querySelectorAll('.custom-format-dialog[open] li:first-child select option'))
+        .map((item) => ({ text: item.textContent.trim(), disabled: item.disabled })));
+      console.log('Smoke trace: custom options retrieved');
       assert.deepEqual(options.map((item) => item.text), [
         '— Pilih —', 'Nama Murid', 'NISN', 'No. Peserta', 'Kelas', 'Ruang', 'Tgl. Lahir',
         'Sesi', 'Username', 'Password', 'Nama Satdik', '-- Tulis Sendiri',
