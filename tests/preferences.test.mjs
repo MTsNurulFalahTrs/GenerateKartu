@@ -54,3 +54,23 @@ test('custom format retains display labels and Excel headers while rejecting sen
   assert.throws(() => parseBackup(bad({ ...configured.customAppearance, excelHeaders: { Custom1: 'NomorBangku', Unlisted: 'Kolom' } })));
   assert.throws(() => parseBackup(JSON.stringify({ ...configured, customAppearance: undefined })));
 });
+
+test('custom Password field persists only as field and label metadata', () => {
+  const custom = ['NoPeserta', 'NamaMurid', 'Password'];
+  const backup = {
+    ...preferences, custom,
+    customAppearance: {
+      name: 'Kartu_Password', photoKey: 'NoPeserta', mono: ['Password'],
+      labels: { Password: 'Sandi Ujian' }, excelHeaders: { Password: 'Password' },
+    },
+  };
+  assert.deepEqual(parseBackup(JSON.stringify(backup)).preferences.custom, custom);
+  assert.throws(() => parseBackup(JSON.stringify({
+    ...backup, customAppearance: { ...backup.customAppearance, photoKey: 'Password' },
+  })), /kustom/);
+  assert.throws(() => parseBackup(JSON.stringify({
+    ...backup, customAppearance: {
+      ...backup.customAppearance, excelHeaders: { Password: 'Pwd', NamaMurid: 'Password' },
+    },
+  })), /Metadata/);
+});
