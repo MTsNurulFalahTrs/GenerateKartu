@@ -16,3 +16,12 @@
 - Pantau kegagalan build, status HTTP dan umpan balik operator. Laporan insiden hanya memuat kode galat, lingkungan dan waktu. Jangan sertakan workbook, foto atau PDF peserta.
 
 [Dokumentasi Instant Rollback Vercel](https://vercel.com/docs/instant-rollback).
+
+## Operasional dan pemeliharaan
+
+- Setiap minggu, tinjau hasil workflow Quality, laporan audit produksi, dan permintaan pembaruan dependensi. Jalankan ulang Quality secara manual bila perlu. Periksa status staging dan rute utama saat pergantian kandidat rilis.
+- Ukur dengan fixture sintetis yang sama. Catat jumlah peserta, waktu impor/preview/cetak/PDF, versi browser, SHA, dan status uji. Bandingkan angka pada runner dan kondisi yang setara.
+- Untuk laporan operator, minta versi aplikasi, browser, tahapan, hasil yang diharapkan, hasil aktual, dan contoh sintetis. Catat waktu dan kode galat. Hindari menyimpan identitas peserta, workbook, foto, hasil PDF, serta rahasia.
+- Triase P0 untuk insiden paparan data atau keluaran salah secara luas, P1 untuk alur utama terblokir, P2 untuk gangguan dengan cara pemulihan, dan P3 untuk penyempurnaan. Untuk P0/P1, hentikan promosi dan verifikasi perbaikan di staging dengan uji regresi.
+- Perubahan mengikuti PR → CI → staging/preview → penerimaan. Sinkronkan changelog, ledger REA, matriks visual, dan keputusan arsitektur bila cakupan terkait berubah.
+- Tinjau retensi dan pemulihan pada setiap rilis. Uji penghapusan sesi dan pemulihan backup preferensi. Pengelola meninjau akses repositori dan proyek Vercel serta biaya hosting saat penerimaan rilis. Tinjauan akses dan audit kontributor komunitas berlaku jika fitur dibuka kembali.
