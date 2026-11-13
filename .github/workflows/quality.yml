@@ -18,6 +18,11 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Audit dependensi produksi
+        run: |
+          mkdir -p artifacts
+          npm audit --omit=dev --json > artifacts/npm-audit.json || true
+          node -e 'const r=require("./artifacts/npm-audit.json"); console.log(r.metadata?.vulnerabilities ?? r.error ?? r)'
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
@@ -27,6 +32,7 @@ jobs:
           npm run start -- --hostname 127.0.0.1 &
           SMOKE_SCREENSHOTS=artifacts npm run smoke
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: phase-05-screenshots
+          name: quality-evidence
           path: artifacts/
