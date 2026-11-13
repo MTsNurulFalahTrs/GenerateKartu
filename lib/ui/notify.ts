@@ -12,7 +12,7 @@ function remove(node: HTMLElement) {
   if (index === -1) return;
   visible.splice(index, 1);
   node.remove();
-  if (!visible.length && stack?.matches(':popover-open')) stack.hidePopover();
+  if (!visible.length && stack?.hasAttribute('popover') && stack.matches(':popover-open')) stack.hidePopover();
 }
 
 export function notify(icon: SweetAlertIcon, message: string) {
@@ -20,7 +20,8 @@ export function notify(icon: SweetAlertIcon, message: string) {
   if (!stack) {
     stack = document.createElement('div');
     stack.className = 'app-toast-stack';
-    stack.setAttribute('popover', 'manual');
+    if (typeof stack.showPopover === 'function') stack.setAttribute('popover', 'manual');
+    else stack.classList.add('app-toast-fallback');
     stack.setAttribute('aria-label', 'Notifikasi');
     document.body.append(stack);
   }
@@ -30,7 +31,7 @@ export function notify(icon: SweetAlertIcon, message: string) {
   // and manage each toast's expiry independently.
   void Swal.fire({
     target, toast: true, icon, text: message, showConfirmButton: false,
-    showClass: { popup: '', backdrop: '', icon: '' },
+    animation: false,
     hideClass: { popup: '', backdrop: '', icon: '' },
     returnFocus: false,
   });
@@ -47,7 +48,9 @@ export function notify(icon: SweetAlertIcon, message: string) {
   if (visible.length === 3) remove(visible[0]);
   visible.push(popup);
   stack.append(popup);
-  if (stack.matches(':popover-open')) stack.hidePopover();
-  stack.showPopover();
+  if (stack.hasAttribute('popover')) {
+    if (stack.matches(':popover-open')) stack.hidePopover();
+    stack.showPopover();
+  }
   window.setTimeout(() => remove(popup), duration);
 }

@@ -552,12 +552,30 @@ try {
       assert.ok((await dialogValue(page, `${shareDialog} .community-share-notice`)).includes('Format_Baru_2026'));
       await dialogAction(page, `${shareDialog} .community-share-confirm`);
       await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('Nama atau inisial')));
-      await page.evaluate(() => {
+      const toastState = await page.evaluate(() => {
         const confirm = document.querySelector('.community-share-dialog[open] .community-share-confirm');
-        for (let index = 0; index < 4; index++) confirm.click();
+        const original = window.setTimeout;
+        const expirations = [];
+        // Chromium can throttle timers in background targets on CI.
+        window.setTimeout = (callback, delay, ...args) => {
+          if (delay !== 2000) return original(callback, delay, ...args);
+          expirations.push(() => callback(...args));
+          return 0;
+        };
+        try {
+          for (let index = 0; index < 4; index++) confirm.click();
+        } finally {
+          window.setTimeout = original;
+        }
+        const visible = [...document.querySelectorAll('.app-toast-stack:popover-open .app-toast')].map((item) => {
+          const style = getComputedStyle(item);
+          const bounds = item.getBoundingClientRect();
+          return style.opacity === '1' && style.visibility === 'visible' && bounds.width > 0 && bounds.height > 0;
+        });
+        expirations.forEach((expire) => expire());
+        return { visible, timers: expirations.length, remaining: document.querySelectorAll('.app-toast').length };
       });
-      assert.equal(await page.$$eval('.app-toast-stack:popover-open .app-toast', (items) => items.length), 3);
-      await page.waitForFunction(() => !document.querySelector('.app-toast'), { timeout: 3500 });
+      assert.deepEqual(toastState, { visible: [true, true, true], timers: 4, remaining: 0 });
       await dialogAction(page, '#community-contributor-name', 'fill', 'rANDY uJI123!');
       assert.equal(await dialogValue(page, '#community-contributor-name', 'value'), 'Randy Uji');
       await dialogAction(page, `${shareDialog} .community-share-anonymous input`);
