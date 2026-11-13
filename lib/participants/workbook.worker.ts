@@ -4,14 +4,14 @@ import { createTemplate, inspectWorkbook, readSheet } from './workbook';
 export type WorkbookRequest =
   | { action: 'inspect'; file: File }
   | { action: 'read'; sheet: string }
-  | { action: 'template'; format: number; custom: readonly Field[] };
+  | { action: 'template'; format: number; custom: readonly Field[]; excelHeaders?: Partial<Record<Field, string>> };
 
 let bytes: ArrayBuffer | undefined;
 let names: string[] = [];
 self.onmessage = async ({ data }: MessageEvent<WorkbookRequest>) => {
   try {
     if (data.action === 'template') {
-      const template = createTemplate(data.format, data.custom);
+      const template = createTemplate(data.format, data.custom, data.excelHeaders);
       self.postMessage({ action: 'template', template }, { transfer: [template] });
     } else if (data.action === 'inspect') {
       const candidate = await data.file.arrayBuffer();
