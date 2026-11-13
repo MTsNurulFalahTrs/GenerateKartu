@@ -372,7 +372,7 @@ export function CardEditor() {
                     {visibleCommunity.map((entry) => <article className="format custom" key={entry.id}>
                       <header className="format-heading">
                         <span className="format-icon"><EditorIcon name="users" /></span>
-                        <div><h2>{entry.name}</h2><span>Format Komunitas</span></div>
+                        <div><h2>{entry.name}</h2><span>Format Komunitas{entry.contributor ? ' · Oleh: ' + entry.contributor : ''}</span></div>
                         <span className="format-count">{entry.fields.length} field</span>
                       </header>
                       <ul className="format-fields">{entry.fields.map((field) => <li key={field}>
@@ -465,13 +465,13 @@ export function CardEditor() {
             else document.querySelector<HTMLButtonElement>('#pick-custom-format')?.focus();
           });
         }}
-        onSave={async (fields, appearance, share) => {
+        onSave={async (fields, appearance, attribution) => {
           setPublished('');
-          if (share) {
+          if (attribution) {
             const response = await fetch('/api/community-formats', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...appearance, fields }),
+              body: JSON.stringify({ ...appearance, fields, ...attribution }),
               signal: AbortSignal.timeout(12000),
             }).catch(() => null);
             if (!response?.ok) {

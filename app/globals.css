@@ -695,3 +695,89 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 .community-formats > p { margin-bottom: .75rem; color: var(--muted); }
 .community-formats .format-heading h2 { overflow-wrap: anywhere; }
 
+
+
+/* Modal konfirmasi publikasi komunitas — mengikuti dialog aplikasi original. */
+.community-share-dialog {
+  width: min(25.2rem, calc(100% - 1.25rem));
+  max-height: calc(100dvh - 1.4rem);
+  border: 0;
+  border-radius: 1.45rem;
+  box-shadow: 0 24px 70px rgb(20 25 48 / 27%);
+}
+.community-share-dialog .community-share-header {
+  display: flex; gap: .7rem; align-items: center; padding: 1.35rem 1.4rem 1.05rem;
+}
+.community-share-dialog .community-share-header > div { flex: 1; min-width: 0; }
+.community-share-dialog .community-share-header h2 {
+  font-size: 1rem; font-weight: 800; color: var(--ink); line-height: 1.4;
+}
+.community-share-dialog .community-share-header p {
+  margin-top: .1rem; font-size: .7rem; line-height: 1.45; color: var(--muted);
+}
+.community-share-icon {
+  display: inline-grid; flex: none; place-items: center;
+  width: 2.75rem; height: 2.75rem; border-radius: .9rem;
+  background: linear-gradient(145deg, #8940f5, #a43ff7); color: white;
+}
+.community-share-icon svg { width: 1.5rem; height: 1.5rem; }
+.community-share-body { display: grid; gap: .85rem; padding: .1rem 1.4rem 1.2rem; }
+.community-share-notice {
+  display: flex; align-items: flex-start; gap: .55rem;
+  padding: .8rem .85rem; border: 1px solid #dcc6ff; border-radius: .75rem;
+  background: #f2eafe; color: #783de0; font-size: .75rem; line-height: 1.6;
+}
+.community-share-notice > svg { flex: none; margin-top: .1rem; }
+.community-share-notice p { min-width: 0; overflow-wrap: anywhere; }
+.community-share-notice strong { font-weight: 800; }
+.community-share-name { display: grid; gap: .35rem; margin-top: .05rem; }
+.community-share-name strong { font-size: .83rem; font-weight: 750; }
+.community-share-name > span { font-size: .73rem; line-height: 1.5; color: var(--muted); }
+.community-share-dialog #community-contributor-name {
+  display: block; width: 100%; min-width: 0; min-height: 2.5rem;
+  padding: .65rem .85rem; border: 1px solid var(--line); border-radius: .75rem;
+  background: var(--surface); color: var(--ink); font-size: .83rem;
+}
+.community-share-dialog #community-contributor-name::placeholder { color: #9da8bb; }
+.community-share-dialog #community-contributor-name:focus-visible {
+  outline: 2px solid #8052f7; outline-offset: 0;
+  box-shadow: 0 0 0 4px rgb(132 81 246 / 10%);
+}
+.community-share-dialog #community-contributor-name:disabled { opacity: .55; }
+.community-share-anonymous {
+  display: flex; align-items: center; gap: .8rem;
+  padding: .8rem .7rem; border: 1px solid var(--line);
+  border-radius: .75rem; cursor: pointer;
+}
+.community-share-anonymous input {
+  flex: none; width: .88rem; height: .88rem; margin: 0; accent-color: #8747f2;
+}
+.community-share-anonymous > span { display: grid; gap: .1rem; }
+.community-share-anonymous strong { font-size: .79rem; line-height: 1.4; font-weight: 750; }
+.community-share-anonymous small { color: var(--muted); font-size: .7rem; line-height: 1.4; }
+.community-share-error { color: #c2410c; font-size: .75rem; font-weight: 700; }
+.community-share-dialog .community-share-footer {
+  display: grid; grid-template-columns: 1fr 1fr; gap: .7rem;
+  padding: .9rem 1.4rem; margin: 0; border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 96%, var(--canvas));
+}
+.community-share-dialog .community-share-footer .action {
+  display: flex; align-items: center; justify-content: center;
+  gap: .5rem; min-width: 0; min-height: 3.3rem;
+  border-radius: .7rem; font-size: .82rem; font-weight: 750;
+  text-align: center; line-height: 1.25;
+}
+.community-share-cancel { background: var(--surface); border: 1px solid var(--line); color: var(--ink); }
+.community-share-dialog .community-share-confirm {
+  border: 0; background: linear-gradient(110deg, #8239ed, #a342f2);
+  color: #fff; box-shadow: 0 3px 10px rgb(119 49 223 / 22%);
+}
+.community-share-dialog .community-share-confirm:disabled { opacity: .65; cursor: wait; }
+.editor[data-theme="dark"] .community-share-notice {
+  color: #d9beff; background: #301d4b; border-color: #6b469a;
+}
+@media (max-width: 370px) {
+  .community-share-dialog .community-share-header { padding: 1rem 1rem .7rem; }
+  .community-share-body { padding-inline: 1rem; }
+  .community-share-dialog .community-share-footer { padding-inline: 1rem; }
+}

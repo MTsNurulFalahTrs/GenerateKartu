@@ -4,6 +4,8 @@ import { customFieldIds } from '../../lib/participants/model';
 import type { Field } from '../../lib/participants/model';
 import type { CustomAppearance } from '../../lib/cards/preferences';
 import { EditorIcon } from './editor-icon';
+import { CommunityShareDialog } from './community-share-dialog';
+import type { CommunityAttribution } from '../../lib/cards/community';
 
 const maxRows = 6;
 const builtInOptions: { value: Field | 'Password'; label: string }[] = [
@@ -31,7 +33,7 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
   fields: readonly Field[];
   appearance?: CustomAppearance;
   labels: Record<Field, string>;
-  onSave: (fields: Field[], appearance: CustomAppearance, share: boolean) => Promise<void>;
+  onSave: (fields: Field[], appearance: CustomAppearance, attribution?: CommunityAttribution) => Promise<void>;
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -57,6 +59,8 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
   const [error, setError] = useState('');
   const [share, setShare] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pendingShare, setPendingShare] = useState<{ fields: Field[]; appearance: CustomAppearance }>();
+  const [shareError, setShareError] = useState('');
 
   useEffect(() => { dialog.current?.showModal(); }, []);
 
@@ -111,9 +115,26 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
     setError('');
   }
 
-  async function save(event: FormEvent<HTMLFormElement>) {
-    if (saving) return;
+  async function commit(fields: Field[], appearance: CustomAppearance, attribution?: CommunityAttribution) {
+    setSaving(true);
+    setShareError('');
+    setError('');
+    try {
+      await onSave(fields, appearance, attribution);
+      setPendingShare(undefined);
+      dialog.current?.close();
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : 'Format belum berhasil disimpan.';
+      if (attribution) setShareError(message);
+      else setError(message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving || pendingShare) return;
     const selected = rows.filter((row) => row.field !== '');
     if (!name.trim() || !rows.length || rows.length > maxRows || selected.length !== rows.length ||
       selected.some((row) => !row.label.trim() || !row.excel.trim() ||
@@ -128,25 +149,23 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
     const entries = selected as (FormatRow & { field: Field })[];
     const fields = entries.map((row) => row.field);
     const photoKey = entries.find((row) => row.id === photoRow)!.field;
+    const appearance: CustomAppearance = {
+      name: name.trim(),
+      photoKey,
+      mono: entries.filter((row) => row.mono).map((row) => row.field),
+      labels: Object.fromEntries(entries.map((row) => [row.field, row.label.trim()])),
+      excelHeaders: Object.fromEntries(entries.map((row) => [row.field, row.excel.trim()])),
+    };
     setError('');
-    setSaving(true);
-    try {
-      await onSave(fields, {
-        name: name.trim(),
-        photoKey,
-        mono: entries.filter((row) => row.mono).map((row) => row.field),
-        labels: Object.fromEntries(entries.map((row) => [row.field, row.label.trim()])),
-        excelHeaders: Object.fromEntries(entries.map((row) => [row.field, row.excel.trim()])),
-      }, share);
-      dialog.current?.close();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Format belum berhasil dibagikan.');
-    } finally {
-      setSaving(false);
+    if (share) {
+      setShareError('');
+      setPendingShare({ fields, appearance });
+    } else {
+      void commit(fields, appearance);
     }
   }
 
-  return <dialog ref={dialog} className="format-dialog custom-format-dialog" aria-labelledby="custom-format-title" onClose={onClose}
+  return <><dialog ref={dialog} className="format-dialog custom-format-dialog" aria-labelledby="custom-format-title" onClose={onClose}
     onCancel={(event) => { if (saving) event.preventDefault(); }}>
     <header>
       <span className="format-icon"><EditorIcon name="edit" /></span>
@@ -248,5 +267,9 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
         </div>
       </footer>
     </form>
-  </dialog>;
+  </dialog>
+    {pendingShare && <CommunityShareDialog formatName={pendingShare.appearance.name} busy={saving} error={shareError}
+      onCancel={() => setPendingShare(undefined)}
+      onConfirm={(attribution) => void commit(pendingShare.fields, pendingShare.appearance, attribution)} />}
+  </>;
 }
