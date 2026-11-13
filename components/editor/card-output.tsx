@@ -4,10 +4,15 @@ import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { createPortal } from 'react-dom';
 import { CardPreview } from './card-preview';
+import type { Participant } from '../../lib/participants/model';
 import type { CardRenderModel } from '../../lib/cards/render-model';
 import { cardPages, paper } from '../../lib/cards/print-layout';
 
-export function CardOutput({ cards, pending }: { cards: CardRenderModel[]; pending: boolean }) {
+export function CardOutput({ participants, renderCard, pending }: {
+  participants: Participant[];
+  renderCard: (participant: Participant) => CardRenderModel;
+  pending: boolean;
+}) {
   const [job, setJob] = useState<CardRenderModel[][] | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState(false);
@@ -19,7 +24,8 @@ export function CardOutput({ cards, pending }: { cards: CardRenderModel[]; pendi
   useEffect(() => () => controller.current?.abort(), []);
 
   async function output(kind: 'print' | 'pdf') {
-    if (!cards.length || controller.current) return;
+    if (!participants.length || controller.current) return;
+    const cards = participants.map((participant) => renderCard(participant));
     const current = new AbortController();
     controller.current = current;
     setBusy(true);
@@ -106,8 +112,8 @@ export function CardOutput({ cards, pending }: { cards: CardRenderModel[]; pendi
 
   return <>
     <div className="flex flex-wrap items-center gap-2">
-      <button id="print-cards" type="button" className="action" disabled={busy || pending || !cards.length} onClick={() => void output('print')}>Cetak semua hasil</button>
-      <button id="download-card-pdf" type="button" className="action" disabled={busy || pending || !cards.length} onClick={() => void output('pdf')}>Unduh PDF</button>
+      <button id="print-cards" type="button" className="action" disabled={busy || pending || !participants.length} onClick={() => void output('print')}>Cetak semua hasil</button>
+      <button id="download-card-pdf" type="button" className="action" disabled={busy || pending || !participants.length} onClick={() => void output('pdf')}>Unduh PDF</button>
       {busy && <button type="button" className="action" onClick={() => controller.current?.abort(new Error('Pembuatan keluaran dibatalkan.'))}>Batalkan keluaran</button>}
     </div>
     {message && <p role={error ? 'alert' : 'status'}>{message}</p>}
@@ -115,7 +121,7 @@ export function CardOutput({ cards, pending }: { cards: CardRenderModel[]; pendi
       {job.map((page, index) => <div key={index} className="print-sheet" style={{
         gridTemplateColumns: `repeat(${columns}, ${page[0].settings.width}mm)`,
         gap: `${paper.gap}mm`,
-      }}>{page.map((card) => <CardPreview key={card.participant.id} {...card} />)}</div>)}
+      }}>{page.map((card) => <CardPreview key={card.participant.id} {...card} output />)}</div>)}
     </div>, document.body)}
   </>;
 }

@@ -117,3 +117,33 @@ a { color: var(--indigo-700); }
 
 html[data-card-session-paused] .editor .content,
 html[data-card-session-paused] .card-print-root { visibility: hidden; }
+
+.editor .content, .editor [role="tabpanel"], .editor .panel { min-width: 0; }
+.editor .panel :is(input, select, textarea) { max-width: 100%; }
+.editor .panel :is(input:not([type="checkbox"]), select) { min-height: 44px; }
+.editor :is(input, select, textarea) { accent-color: var(--indigo-600); }
+.editor .panel label:has(input[type="checkbox"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  min-height: 44px;
+}
+.editor .table-scroll { max-width: 100%; overflow: auto; padding: .25rem; }
+.editor .table-scroll td { overflow-wrap: anywhere; }
+.editor [role="alert"] { color: #9f1239; overflow-wrap: anywhere; }
+.editor[data-theme="dark"] [role="alert"] { color: #fda4af; }
+.editor .skip-editor {
+  position: fixed;
+  inset: .5rem auto auto .5rem;
+  z-index: 10;
+  padding: .65rem;
+  background: var(--surface);
+  transform: translateY(-200%);
+}
+.editor .skip-editor:focus { transform: none; }
+#editor-content { scroll-margin-top: 8rem; }
+
+@media (max-height: 480px) {
+  .editor .header { position: relative; }
+  #editor-content { scroll-margin-top: 0; }
+}

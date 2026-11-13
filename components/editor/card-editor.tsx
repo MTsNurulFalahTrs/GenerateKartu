@@ -162,6 +162,7 @@ export function CardEditor() {
 
   return (
     <div className="editor" data-theme={dark ? 'dark' : 'light'}>
+      <a className="skip-editor" href="#editor-content">Lewati ke isi editor</a>
       <header className="header">
         <div className="header-inner">
           <Link className="brand" href="/" aria-label="Kartu Ujian Pro, editor">
@@ -190,7 +191,7 @@ export function CardEditor() {
           </div>
         </div>
       </header>
-      <main className="content">
+      <main className="content" id="editor-content" tabIndex={-1}>
         {sessionMessage && <p role="status">{sessionMessage}</p>}
         {steps.map((label, index) => (
           <section key={label} id={`panel-${index}`} role="tabpanel" aria-labelledby={`step-${index}`}

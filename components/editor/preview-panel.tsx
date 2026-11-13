@@ -21,6 +21,9 @@ export function PreviewPanel({ participants, selected, renderCard, active }: {
   const deferredQuery = useDeferredValue(query);
   const filtered = useMemo(() => filterPreview(participants, selected, scope, deferredQuery, facets),
     [participants, selected, scope, deferredQuery, facets]);
+  const filterOptions = useMemo(() => previewFilters.map((field) => ({
+    field, values: [...new Set(participants.map((participant) => participant.values[field]).filter(Boolean))].sort(),
+  })), [participants]);
   const size = mode === 'single' ? 1 : 9;
   const pages = Math.ceil(filtered.length / size);
   const current = Math.min(page, Math.max(0, pages - 1));
@@ -52,8 +55,7 @@ export function PreviewPanel({ participants, selected, renderCard, active }: {
           setPage(0);
         }} />
       </label>
-      {previewFilters.map((field) => {
-        const values = [...new Set(participants.map((participant) => participant.values[field]).filter(Boolean))].sort();
+      {filterOptions.map(({ field, values }) => {
         if (!values.length) return null;
         return <label key={field} className="grid min-w-0 gap-1">{field} pratinjau
           <select id={`preview-${field}`} className="max-w-full" value={facets[field] ?? ''} onChange={(event) => {
@@ -70,7 +72,7 @@ export function PreviewPanel({ participants, selected, renderCard, active }: {
     {!filtered.length && <p>{scope === 'selected' && !selected.size
       ? 'Belum ada peserta terpilih. Pilih peserta di Data Murid atau ubah cakupan.'
       : 'Tidak ada kartu yang cocok dengan pencarian dan filter.'}</p>}
-    <CardOutput cards={filtered.map((participant) => renderCard(participant))} pending={query !== deferredQuery} />
+    <CardOutput participants={filtered} renderCard={renderCard} pending={query !== deferredQuery} />
     <div className="card-batch" aria-busy={query !== deferredQuery}>
       {active && visible.map((participant) => <CardPreview key={participant.id} {...renderCard(participant)} />)}
     </div>

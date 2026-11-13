@@ -35,11 +35,11 @@ function CardQr({ reference }: { reference: string }) {
   </svg>;
 }
 
-export function CardPreview({ format, custom, participant, photo, settings, assets, hidden }: CardRenderModel) {
+export function CardPreview({ format, custom, participant, photo, settings, assets, hidden, output = false }: CardRenderModel & { output?: boolean }) {
   const [overflow, setOverflow] = useState(false);
   const [element, setElement] = useState<HTMLElement | null>(null);
   useEffect(() => {
-    if (!element) return;
+    if (output || !element) return;
     const content = element.firstElementChild;
     function check() {
       if (element && element.clientHeight > 0) setOverflow(element.scrollHeight > element.clientHeight + 1);
@@ -48,14 +48,14 @@ export function CardPreview({ format, custom, participant, photo, settings, asse
     observer.observe(element);
     if (content) observer.observe(content);
     return () => observer.disconnect();
-  }, [element]);
+  }, [element, output]);
 
   const valid = settings.width >= 60 && settings.width <= 180 && settings.height >= 40 && settings.height <= 150 && settings.fontSize >= 6 && settings.fontSize <= 12;
   if (!valid) return <p role="alert">Gunakan lebar 60–180 mm, tinggi 40–150 mm, dan teks 6–12 pt.</p>;
   const fields = fieldsFor(format, custom).filter((field) => field === 'NamaMurid' || field === (format === 0 ? 'Username' : 'NoPeserta') || !hidden.includes(field));
   const schedule = settings.showSchedule ? settings.schedule.split('\n').map((line) => line.trim()).filter(Boolean) : [];
   return <div className="card-preview-wrap">
-    <article ref={setElement} className="exam-card" data-bw={settings.monochrome}
+    <article ref={output ? undefined : setElement} className="exam-card" data-bw={settings.monochrome}
       style={{ width: `${settings.width}mm`, height: `${settings.height}mm`, fontSize: `${settings.fontSize}pt` }} aria-label={`Kartu ujian ${participant.name}`}>
       <div className="exam-card-content">
         <header className="exam-card-head">
