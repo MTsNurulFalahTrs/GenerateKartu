@@ -134,7 +134,8 @@ try {
       await page.waitForFunction(() => !document.querySelector('.format-dialog[open]'));
       await page.$eval('.format-library-filters button:nth-child(2)', (button) => button.click());
       await page.waitForSelector('.format-library-filters button:nth-child(2)[aria-pressed="true"]');
-      await page.waitForFunction(() => document.querySelectorAll('.community-card').length === 0);
+      await page.locator('input[aria-label="Cari format"]').fill('');
+      await page.waitForFunction(() => document.querySelectorAll('#panel-0 .format-grid article').length === 8);
       await page.$eval('#pick-format-1', (button) => button.click());
       await page.waitForSelector('#pick-format-1[aria-pressed="true"]');
       await page.$eval('.format-library-filters button:nth-child(1)', (button) => button.click());
