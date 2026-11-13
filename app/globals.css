@@ -355,3 +355,54 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 @media (max-width: 639px) { .kop-grid { grid-template-columns: minmax(0, 1fr); } }
 
 .kop-save-note { display: block; margin-top: .45rem; color: var(--muted); }
+
+
+/* Layout & Cetak — original control hierarchy with accessible, responsive switches. */
+.layout-body { display: grid; gap: 1.25rem; padding: clamp(.35rem, 2vw, 1rem); padding-top: 1.25rem; }
+.layout-field { display: grid; gap: .45rem; min-width: 0; }
+.layout-label { font-size: .9rem; line-height: 1.35; font-weight: 750; }
+.editor .layout-help { margin: -.12rem 0 .2rem; color: var(--muted); font-size: .79rem; line-height: 1.5; }
+.editor .layout-field > select { width: 100%; min-height: 44px; padding: .5rem .75rem; border-radius: .7rem; background: color-mix(in srgb, var(--surface) 78%, var(--canvas)); }
+.layout-custom-dimensions, .layout-advanced-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; min-width: 0; }
+.layout-custom-dimensions { padding: .8rem; border: 1px solid var(--line); border-radius: .75rem; background: var(--canvas); }
+.layout-custom-dimensions label, .layout-advanced-grid label { display: grid; gap: .4rem; min-width: 0; font-size: .83rem; font-weight: 650; }
+.layout-custom-dimensions small { grid-column: 1 / -1; font-size: .76rem; color: var(--muted); }
+.layout-switches { display: grid; gap: .85rem; }
+.editor .kop-shell label.layout-toggle { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 1rem; min-height: 72px; padding: .9rem 1rem; border: 1px solid color-mix(in srgb, var(--line) 78%, var(--surface)); border-radius: .8rem; background: color-mix(in srgb, var(--canvas) 62%, var(--surface)); cursor: pointer; }
+.layout-toggle-copy { display: grid; gap: .24rem; min-width: 0; }
+.layout-toggle-copy strong { font-size: .88rem; line-height: 1.35; font-weight: 700; }
+.layout-toggle-copy small { display: block; color: var(--muted); font-size: .78rem; line-height: 1.45; }
+.editor .kop-shell .layout-toggle input[type="checkbox"] { appearance: none; flex: 0 0 auto; position: relative; width: 44px; height: 25px; margin: 0; padding: 0; border: 1px solid color-mix(in srgb, var(--line) 80%, transparent); border-radius: 99px; background: color-mix(in srgb, var(--line) 70%, var(--surface)); cursor: pointer; transition: background .15s ease; }
+.editor .kop-shell .layout-toggle input[type="checkbox"]::before { content: ""; position: absolute; top: 2px; left: 2px; width: 19px; height: 19px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(15 23 42 / 12%); transition: transform .15s ease; }
+.editor .kop-shell .layout-toggle input[type="checkbox"]:checked { background: #10b981; border-color: #10b981; }
+.editor .kop-shell .layout-toggle[data-tone="schedule"] input[type="checkbox"]:checked { background: #f59e0b; border-color: #f59e0b; }
+.editor .kop-shell .layout-toggle input[type="checkbox"]:checked::before { transform: translateX(19px); }
+.editor .kop-shell .layout-toggle input[type="checkbox"]:focus-visible { outline: 2px solid var(--indigo-500); outline-offset: 4px; }
+.layout-print-tips { border: 1px solid #d9dfff; border-radius: .8rem; padding: 1rem; background: color-mix(in srgb, #e7ebff 76%, var(--surface)); }
+.layout-print-tips > strong { color: var(--indigo-700); text-transform: uppercase; font-size: .77rem; font-weight: 800; letter-spacing: .065em; }
+.layout-print-tips ul { display: grid; gap: .35rem; margin: .55rem 0 0; padding-left: 1.1rem; font-size: .78rem; line-height: 1.55; color: var(--muted); }
+.layout-print-tips li::marker { color: #818cf8; }
+.layout-extra { min-width: 0; border: 1px solid var(--line); border-radius: .72rem; background: var(--surface); font-size: .83rem; }
+.layout-extra > summary { cursor: pointer; padding: .75rem .85rem; font-weight: 700; color: var(--muted); }
+.layout-extra[open] > summary { border-bottom: 1px solid var(--line); }
+.layout-advanced-grid { padding: .8rem; }
+.layout-card-preview { margin-top: 1rem; }
+.layout-card-preview fieldset { padding: .8rem; margin: 0; border-bottom: 1px solid var(--line); }
+.layout-card-preview legend { padding-inline: .25rem; font-weight: 650; }
+.layout-card-preview-stage { padding: .8rem; overflow: auto; }
+.layout-backup { margin-top: .75rem; }
+.layout-backup-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.layout-backup-actions .action { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-width: 0; font-size: .84rem; font-weight: 650; }
+.layout-backup-actions .action span { font-size: 1.1rem; font-weight: 800; }
+.layout-export-options { margin-top: .6rem; padding: .25rem .6rem; color: var(--muted); font-size: .78rem; }
+.layout-export-options summary { width: fit-content; cursor: pointer; }
+.layout-export-options label { margin-top: .35rem; }
+.editor .layout-export-options p { margin: .4rem 0; font-size: .77rem; }
+.editor .layout-backup > [role="status"], .editor .layout-backup > [role="alert"] { margin: .5rem 0 0; font-size: .82rem; overflow-wrap: anywhere; }
+.kop-shell .kop-save { background: linear-gradient(110deg, var(--indigo-600), var(--indigo-500)); }
+.editor[data-theme="dark"] .layout-print-tips { background: color-mix(in srgb, #303c7b 35%, var(--surface)); border-color: var(--line); }
+@media (max-width: 520px) {
+  .layout-body { padding-inline: 0; }
+  .layout-custom-dimensions, .layout-advanced-grid, .layout-backup-actions { grid-template-columns: minmax(0, 1fr); }
+  .editor .kop-shell label.layout-toggle { padding: .8rem; }
+}
