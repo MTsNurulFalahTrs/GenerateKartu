@@ -969,3 +969,44 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
   line-height: 1.45;
 }
 .custom-format-note ul { display: grid; gap: .3rem; }
+
+
+/* Ringkasan pembaruan ditampilkan langsung pada tab Bantuan. */
+.help-release-button { display: inline-flex; align-items: center; gap: .5rem; margin-top: .5rem; font-weight: 700; }
+.release-notes-dialog {
+  width: min(37rem, calc(100% - 1.1rem)); max-height: min(90dvh, 44rem);
+  padding: 0; overflow: auto; border-radius: 1.15rem; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink);
+  box-shadow: 0 25px 85px rgb(15 23 42 / 30%);
+}
+.release-notes-dialog .release-notes-header {
+  display: flex; align-items: center; gap: .85rem;
+  padding: 1.15rem 1.3rem; border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, #8b5cf6 7%, var(--surface));
+}
+.release-notes-header > div { flex: 1; min-width: 0; }
+.release-notes-header h2 { font-weight: 800; font-size: 1.12rem; }
+.release-notes-header p { font-size: .75rem; color: var(--muted); margin: .2rem 0 0; }
+.release-notes-icon { display: grid; place-items: center; flex: none; width: 2.7rem; height: 2.7rem;
+  background: linear-gradient(125deg,#6d4aff,#a34df2); border-radius: .8rem; color: #fff; }
+.release-notes-body { padding: 1.1rem 1.3rem; display: grid; gap: 1rem; }
+.release-notes-summary { display: grid; gap: .3rem; padding: .85rem 1rem; border-radius: .8rem;
+  border: 1px solid color-mix(in srgb, #8b5cf6 28%, var(--line));
+  background: color-mix(in srgb, #8b5cf6 8%, var(--surface)); }
+.release-notes-summary strong { font-weight: 800; color: var(--ink); }
+.release-notes-summary span, .release-notes-privacy { color: var(--muted); font-size: .78rem; line-height: 1.55; }
+.release-notes-group { padding: .6rem .15rem; border-bottom: 1px solid var(--line); }
+.release-notes-group-heading { display: flex; align-items: center; gap: .6rem; }
+.release-notes-group-heading span { color: #7940d9; background: color-mix(in srgb, #8b5cf6 12%, var(--surface));
+  border-radius: .55rem; padding: .25rem .45rem; font-weight: 800; font-size: .7rem; }
+.release-notes-group-heading h3 { font-weight: 800; font-size: .86rem; }
+.release-notes-group ul { list-style: none; display: grid; gap: .5rem; margin: .7rem 0 0; padding: 0; }
+.release-notes-group li { color: var(--muted); font-size: .79rem; line-height: 1.5; padding-left: 1.25rem;
+  position: relative; }
+.release-notes-group li::before { content: "✓"; color: #08916e; font-weight: 800; position: absolute; left: .15rem; }
+.release-notes-footer { display: flex; justify-content: flex-end; padding: .85rem 1.3rem;
+  border-top: 1px solid var(--line); background: var(--surface); }
+.release-notes-footer .action { min-width: 8rem; font-weight: 750; }
+@media(max-width: 390px) {
+  .release-notes-dialog .release-notes-header, .release-notes-body, .release-notes-footer { padding-inline: .85rem; }
+}
