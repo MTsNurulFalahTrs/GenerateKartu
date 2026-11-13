@@ -93,7 +93,7 @@ export function CardEditor() {
                 <article className="panel format custom" data-selected={format === 7}>
                   <h2>Format Kustom</h2>
                   <p>Susun kolom dan urutan biodata.</p>
-                  <button type="button" className="action" aria-pressed={format === 7} onClick={() => setFormat(7)}>Pilih format kustom</button>
+                  <button type="button" id="pick-custom-format" className="action" aria-pressed={format === 7} onClick={() => setFormat(7)}>Pilih format kustom</button>
                 </article>
               </div>
             )}
@@ -121,7 +121,7 @@ export function CardEditor() {
               <div className="panel">
                 <div className="subtabs" role="group" aria-label="Bagian pengaturan">
                   {settings.map((name, id) => (
-                    <button className="action" key={name} type="button" aria-pressed={setting === id} onClick={() => setSetting(id)}>{name}</button>
+                    <button className="action" id={`card-settings-${id}`} key={name} type="button" aria-pressed={setting === id} onClick={() => setSetting(id)}>{name}</button>
                   ))}
                 </div>
                 <h2 className="mb-3">{settings[setting]}</h2>
