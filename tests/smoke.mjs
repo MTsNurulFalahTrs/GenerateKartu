@@ -163,7 +163,8 @@ try {
       await page.waitForSelector('.kop-asset-image img[alt="Tanda Tangan Digital (opsional)"]');
       await page.$eval('.kop-signature button:nth-child(3)', (button) => button.click());
       await page.waitForFunction(() => document.querySelector('.kop-signature output')?.textContent?.includes('1.2 cm'));
-      await page.locator('.kop-signature input[role="switch"]').click();
+      await page.$eval('.kop-signature input[role="switch"]', (input) => input.click());
+      await page.waitForFunction(() => document.querySelector('.kop-signature input[role="switch"]')?.checked === true);
       await page.locator('.kop-save').click();
       await page.waitForFunction(() => document.querySelector('.kop-page-meta [role=status]')?.textContent === 'Disimpan');
       const savedAppearance = await page.evaluate(() => JSON.parse(localStorage.getItem('generate-kartu:preferences:v1')).settings);
