@@ -432,9 +432,7 @@ try {
           input.dispatchEvent(new Event('input', { bubbles: true }));
         });
       }
-      console.log('Smoke trace: entering 7-format regression checks');
       for (let format = 1; format <= 7; format++) {
-        console.log('Smoke trace: begin format', format);
         await page.$eval('#step-0', (button) => button.click());
         await page.waitForSelector('#panel-0', { visible: true });
         await page.$eval(`#pick-format-${format}`, (button) => button.click());
@@ -442,7 +440,6 @@ try {
         await page.waitForSelector('#panel-3', { visible: true });
         await page.waitForSelector('#panel-3 .exam-card');
         assert.ok(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length >= 4));
-        console.log('Smoke trace: completed format', format);
       }
       // Isolate interactive form tests in a new Chromium process: the full
       // PDF/print regression leaves considerable DOM and renderer activity.
@@ -465,140 +462,89 @@ try {
       page.on('console', (entry) => { if (entry.type() === 'error') errors.push(entry.text()); });
       await page.goto(origin, { waitUntil: 'domcontentloaded' });
       await page.waitForSelector('#pick-custom-format');
-      console.log('Smoke trace: clean-page custom editor after 500-card print regression');
-      console.log('Smoke trace: returning to format panel before custom');
       await page.$eval('#step-0', (button) => button.click());
-      console.log('Smoke trace: step-0 click completed');
       await page.waitForSelector('#panel-0', { visible: true });
-      console.log('Smoke trace: format panel visible');
       await page.$eval('#pick-custom-format', (button) => button.click());
-      console.log('Smoke trace: custom trigger click completed');
       const customDialog = '.custom-format-dialog[open]';
       await page.waitForFunction((selector) => !!document.querySelector(selector), {}, customDialog);
-      console.log('Smoke trace: custom modal visible');
-      console.log('Smoke trace: checking custom row count with direct document query');
       assert.equal(await page.evaluate(() => document.querySelectorAll('.custom-format-dialog[open] .custom-format-rows li').length), 3);
-      console.log('Smoke trace: custom row count passed');
       const options = await page.evaluate(() => Array.from(
         document.querySelectorAll('.custom-format-dialog[open] li:first-child select option'))
         .map((item) => ({ text: item.textContent.trim(), disabled: item.disabled })));
-      console.log('Smoke trace: custom options retrieved');
       assert.deepEqual(options.map((item) => item.text), [
         '— Pilih —', 'Nama Murid', 'NISN', 'No. Peserta', 'Kelas', 'Ruang', 'Tgl. Lahir',
         'Sesi', 'Username', 'Password', 'Nama Satdik', '-- Tulis Sendiri',
       ]);
       assert.equal(options[9].disabled, false, 'Password should be available for custom formats');
-      console.log('Smoke custom: before select Password');
       await dialogAction(page, `${customDialog} li:nth-child(2) select`, 'select', 'Password');
-      console.log('Smoke custom: after select Password');
       assert.equal(await dialogValue(page, `${customDialog} [aria-label="Kolom Excel baris 2"]`, 'value'), 'Password');
-      console.log('Smoke custom: after Excel header 2 check');
       assert.equal(await dialogValue(page, `${customDialog} [aria-label="Acuan Foto Password"]`, 'disabled'), true);
       assert.match(await dialogValue(page, `${customDialog} .custom-format-note`), /case-sensitive, tanpa spasi/);
       assert.match(await dialogValue(page, `${customDialog} .custom-format-note`), /sesi lokal/);
       assert.equal(await dialogValue(page, `${customDialog} [aria-label="Kolom Excel baris 1"]`, 'value'), 'NamaMurid');
-      console.log('Smoke custom: before add row');
       await dialogAction(page, `${customDialog} .custom-add`);
-      console.log('Smoke custom: after add row');
       assert.equal(await dialogCount(page, `${customDialog} .custom-format-rows li`), 4);
-      console.log('Smoke custom: before Escape');
       await page.keyboard.press('Escape');
       await page.waitForFunction((selector) => !document.querySelector(selector), {}, customDialog);
-      console.log('Smoke custom: after Escape');
       await page.waitForFunction(() => document.activeElement?.id === 'pick-custom-format');
-      console.log('Smoke custom: before reopening');
       await dialogAction(page, '#pick-custom-format');
       await page.waitForFunction((selector) => !!document.querySelector(selector), {}, customDialog);
-      console.log('Smoke custom: after reopening');
       assert.equal(await dialogCount(page, `${customDialog} .custom-format-rows li`), 3);
-      console.log('Smoke custom checkpoint 1 - assert.equal(await dialogCount(page, ${customDialog} .custom-format-row');
       await dialogAction(page, `${customDialog} li:nth-child(2) select`, 'select', 'NoPeserta');
-      console.log('Smoke custom checkpoint 2 - await dialogAction(page, ${customDialog} li:nth-child(2) select, sele');
       await dialogAction(page, `${customDialog} li:nth-child(3) select`, 'select', 'Kelas');
-      console.log('Smoke custom checkpoint 3 - await dialogAction(page, ${customDialog} li:nth-child(3) select, sele');
       await dialogAction(page, `${customDialog} [aria-label="Naikkan No. Peserta"]`);
-      console.log('Smoke custom checkpoint 4 - await dialogAction(page, ${customDialog} [aria-label="Naikkan No. Peser');
       await dialogAction(page, `${customDialog} [aria-label="Acuan Foto No. Peserta"]`);
-      console.log('Smoke custom checkpoint 5 - await dialogAction(page, ${customDialog} [aria-label="Acuan Foto No. Pe');
       await dialogAction(page, `${customDialog} [aria-label="Monospace No. Peserta"]`);
-      console.log('Smoke custom checkpoint 6 - await dialogAction(page, ${customDialog} [aria-label="Monospace No. Pes');
       await dialogAction(page, `${customDialog} .custom-add`);
-      console.log('Smoke custom checkpoint 7 - await dialogAction(page, ${customDialog} .custom-add);');
       await dialogAction(page, `${customDialog} li:nth-child(4) select`, 'select', 'manual');
-      console.log('Smoke custom checkpoint 8 - await dialogAction(page, ${customDialog} li:nth-child(4) select, sele');
       await dialogAction(page, `${customDialog} [aria-label="Label Tampilan baris 4"]`, 'fill', 'Nomor Bangku');
-      console.log('Smoke custom checkpoint 9 - await dialogAction(page, ${customDialog} [aria-label="Label Tampilan ba');
       await dialogAction(page, `${customDialog} [aria-label="Kolom Excel baris 4"]`, 'fill', 'nopeserta');
-      console.log('Smoke custom checkpoint 10 - await dialogAction(page, ${customDialog} [aria-label="Kolom Excel baris');
       await page.waitForFunction((selector) => !!document.querySelector(selector), {}, `${customDialog} .custom-excel-duplicate`);
-      console.log('Smoke custom checkpoint 11 - await page.waitForSelector(${customDialog} .custom-excel-duplicate);');
       assert.equal(await dialogCount(page, `${customDialog} .custom-excel-duplicate`), 2);
-      console.log('Smoke custom checkpoint 12 - assert.equal(await dialogCount(page, ${customDialog} .custom-excel-dupl');
       await dialogAction(page, `${customDialog} .custom-save`);
-      console.log('Smoke custom checkpoint 13 - await dialogAction(page, ${customDialog} .custom-save);');
       await page.waitForFunction(() => document.querySelector('.custom-format-error')?.textContent.includes('Kolom Excel'));
-      console.log('Smoke custom checkpoint 14 - await page.waitForFunction(() => document.querySelector(.custom-format-');
       await dialogAction(page, `${customDialog} [aria-label="Kolom Excel baris 4"]`, 'fill', 'NomorBangku');
-      console.log('Smoke custom checkpoint 15 - await dialogAction(page, ${customDialog} [aria-label="Kolom Excel baris');
       await page.waitForFunction(() => document.querySelectorAll('.custom-excel-duplicate').length === 0);
-      console.log('Smoke custom checkpoint 16 - await page.waitForFunction(() => document.querySelectorAll(.custom-exce');
       await dialogAction(page, `${customDialog} .custom-community input`);
-      console.log('Smoke custom checkpoint 17 - await dialogAction(page, ${customDialog} .custom-community input);');
       assert.equal(await dialogValue(page, `${customDialog} .custom-format-name input`, 'value'), 'Format_Kustom');
-      console.log('Smoke custom checkpoint 18 - assert.equal(await dialogValue(page, ${customDialog} .custom-format-nam');
-      await page.setRequestInterception(true);
-      let nameChecks = 0;
-      const checkNameRequest = (request) => {
-        const target = new URL(request.url());
-        if (request.method() === 'GET' && target.pathname === '/api/community-formats' && target.searchParams.has('name')) {
-          nameChecks += 1;
-          void request.respond({ status: 200, contentType: 'application/json',
-            body: JSON.stringify({ exists: nameChecks === 1 }) });
-        } else void request.continue();
-      };
-      page.on('request', checkNameRequest);
+      await page.evaluate(() => {
+        const fetchCatalog = window.fetch.bind(window);
+        let nameChecks = 0;
+        window.fetch = (input, options) => {
+          const url = new URL(input instanceof Request ? input.url : input, location.href);
+          if (url.origin === location.origin && url.pathname === '/api/community-formats' && url.searchParams.has('name')) {
+            return Promise.resolve(Response.json({ exists: ++nameChecks === 1 }));
+          }
+          return fetchCatalog(input, options);
+        };
+      });
       await dialogAction(page, `${customDialog} .custom-save`);
-      console.log('Smoke custom checkpoint 19 - await dialogAction(page, ${customDialog} .custom-save);');
       await page.waitForFunction((selector) => !!document.querySelector(selector), {}, `${customDialog} .custom-format-error`);
-      console.log('Smoke custom checkpoint 20 - await page.waitForSelector(${customDialog} .custom-format-error);');
       assert.match(await dialogValue(page, `${customDialog} .custom-format-error`), /sudah digunakan/);
-      console.log('Smoke custom checkpoint 21 - assert.match(await dialogValue(page, ${customDialog} .custom-format-err');
       await dialogAction(page, `${customDialog} .custom-format-name input`, 'fill', 'Format_Baru_2026');
-      console.log('Smoke custom checkpoint 22 - await dialogAction(page, ${customDialog} .custom-format-name input, f');
       await dialogAction(page, `${customDialog} .custom-save`);
-      console.log('Smoke custom checkpoint 23 - await dialogAction(page, ${customDialog} .custom-save);');
       const shareDialog = '.community-share-dialog[open]';
       await page.waitForFunction((selector) => !!document.querySelector(selector), {}, shareDialog);
-      console.log('Smoke custom checkpoint 24 - await page.waitForFunction((selector) => !!document.querySelector(selector), {}, shareDialog);');
       assert.equal(await dialogValue(page, `${shareDialog} h2`), 'Bagikan ke Komunitas?');
-      console.log('Smoke custom checkpoint 25 - assert.equal(await dialogValue(page, ${shareDialog} h2), Bagikan ke K');
       assert.ok((await dialogValue(page, `${shareDialog} .community-share-notice`)).includes('Format_Baru_2026'));
       await dialogAction(page, `${shareDialog} .community-share-confirm`);
-      console.log('Smoke custom checkpoint 26 - await dialogAction(page, ${shareDialog} .community-share-confirm);');
       await page.waitForFunction((selector) => !!document.querySelector(selector), {}, `${shareDialog} [role=alert]`);
-      console.log('Smoke custom checkpoint 27 - await page.waitForSelector(${shareDialog} [role=alert]);');
       await dialogAction(page, '#community-contributor-name', 'fill', 'rANDY uJI123!');
-      console.log('Smoke custom checkpoint 28 - await dialogAction(page, #community-contributor-name, fill, rANDY u');
       assert.equal(await dialogValue(page, '#community-contributor-name', 'value'), 'Randy Uji');
-      console.log('Smoke custom checkpoint 29 - assert.equal(await dialogValue(page, #community-contributor-name, val');
       await dialogAction(page, `${shareDialog} .community-share-anonymous input`);
-      console.log('Smoke custom checkpoint 30 - await dialogAction(page, ${shareDialog} .community-share-anonymous inpu');
       assert.equal(await dialogValue(page, '#community-contributor-name', 'disabled'), true);
-      console.log('Smoke custom checkpoint 31 - assert.equal(await dialogValue(page, #community-contributor-name, dis');
       await dialogAction(page, `${shareDialog} .community-share-cancel`);
-      console.log('Smoke custom checkpoint 32 - await dialogAction(page, ${shareDialog} .community-share-cancel);');
-      page.off('request', checkNameRequest);
-      await page.setRequestInterception(false);
       await page.waitForFunction((selector) => !document.querySelector(selector), {}, shareDialog);
-      console.log('Smoke custom checkpoint 33 - await page.waitForFunction((selector) => !document.querySelector(selector), {}, shareDialog);');
       assert.equal(await dialogValue(page, customDialog, 'open'), true);
-      console.log('Smoke custom checkpoint 34 - assert.equal(await dialogValue(page, customDialog, open), true);');
       await dialogAction(page, `${customDialog} .custom-community input`);
-      console.log('Smoke custom checkpoint 35 - await dialogAction(page, ${customDialog} .custom-community input);');
       await dialogAction(page, `${customDialog} .custom-save`);
-      console.log('Smoke custom checkpoint 36 - await dialogAction(page, ${customDialog} .custom-save);');
-      await page.waitForFunction(() => !!document.querySelector('#pick-custom-format[aria-pressed=true]'));
-      console.log('Smoke custom checkpoint 37 - await page.waitForSelector(#pick-custom-format[aria-pressed=true]);');
+      // The dialog closes asynchronously after the local save callback.
+      await page.waitForFunction((selector) => {
+        const error = document.querySelector(selector + ' .custom-format-error');
+        if (error) throw new Error(error.textContent);
+        return !document.querySelector(selector);
+      }, { polling: 100, timeout: 10000 }, customDialog);
+      assert.equal(await dialogValue(page, '#pick-custom-format', 'ariaPressed'), 'true');
       await page.$eval('#step-3', (button) => button.click());
       await page.waitForSelector('#panel-3', { visible: true });
       assert.equal(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length), 4);
@@ -613,7 +559,10 @@ try {
       if (output) await page.screenshot({ path: `${output}/format-${name}.jpg`, type: 'jpeg', quality: 65 });
       if (name === 'desktop') {
         const key = 'generate-kartu:preferences:v1';
-        await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key))?.format === 7, {}, key);
+        await page.waitForFunction((key) => {
+          const preferences = JSON.parse(localStorage.getItem(key));
+          return preferences?.format === 7 && preferences.dark === false;
+        }, {}, key);
         const stored = await page.evaluate((key) => localStorage.getItem(key), key);
         assert.doesNotMatch(stored, /Madrasah Uji Fase 7|Peserta Uji/);
         await page.reload({ waitUntil: 'domcontentloaded' });
@@ -627,7 +576,6 @@ try {
         await backupInput.uploadFile(backupFile);
         await page.waitForFunction(() => document.querySelector('#panel-2 [role=alert]')?.textContent.includes('JSON rusak'));
         assert.equal(await page.evaluate((key) => localStorage.getItem(key), key), stored);
-        await page.evaluate(() => { window.confirm = () => true; });
         await writeFile(backupFile, JSON.stringify({ ...JSON.parse(stored), format: 1, heading: { institution: 'Madrasah Pulih', exam: '', year: '' } }));
         await backupInput.uploadFile(backupFile);
         await page.waitForSelector('.backup-confirm-dialog[open]');
@@ -647,7 +595,12 @@ try {
         });
         await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('Sesi kedaluwarsa'));
         await page.waitForFunction(() => document.querySelector('#kop-institution')?.value !== 'Madrasah Pulih');
-        await page.$eval('#reset-card-session', (button) => button.click());
+        const resetDialog = new Promise((resolve, reject) => {
+          page.once('dialog', (dialog) => {
+            void dialog.accept().then(resolve, reject);
+          });
+        });
+        await Promise.all([resetDialog, page.click('#reset-card-session')]);
         await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('direset'));
       }
       await page.locator('.help-nav').click();
