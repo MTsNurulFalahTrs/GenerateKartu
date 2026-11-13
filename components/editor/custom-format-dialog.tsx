@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { customFieldIds } from '../../lib/participants/model';
+import { findDuplicateExcelColumns } from '../../lib/cards/custom-format-order';
 import type { Field } from '../../lib/participants/model';
 import type { CustomAppearance } from '../../lib/cards/preferences';
 import { EditorIcon } from './editor-icon';
@@ -66,6 +67,7 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
   const [saving, setSaving] = useState(false);
   const [pendingShare, setPendingShare] = useState<{ fields: Field[]; appearance: CustomAppearance }>();
   const [shareError, setShareError] = useState('');
+  const duplicateExcelColumns = findDuplicateExcelColumns(rows);
 
   useEffect(() => { dialog.current?.showModal(); }, []);
 
@@ -99,6 +101,7 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
   }
 
   function move(index: number, delta: -1 | 1) {
+    setError('');
     const target = index + delta;
     if (target < 0 || target >= rows.length) return;
     setRows((previous) => {
@@ -141,6 +144,13 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
     event.preventDefault();
     if (saving || pendingShare) return;
     const selected = rows.filter((row) => row.field !== '');
+    const duplicated = findDuplicateExcelColumns(rows);
+    if (duplicated.size) {
+      const first = [...duplicated.entries()][0];
+      setError('Kolom Excel pada baris ' + first[1].join(' dan ') +
+        ' sama. Setiap baris harus menggunakan header Excel yang unik; urutan 1–6 mengikuti posisi baris.');
+      return;
+    }
     if (!name.trim() || !rows.length || rows.length > maxRows || selected.length !== rows.length ||
       selected.some((row) => !row.label.trim() || !row.excel.trim() ||
         row.label.trim().length > 60 || row.excel.trim().length > 64 ||
@@ -206,7 +216,8 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
           {share && <small className="custom-public-name-help">Hanya huruf, angka, minus (-) dan underscore (_). Nama harus unik di komunitas.</small>}
         </label>
         <div className="custom-format-fields-heading">
-          <div><h3>Field yang Tampil di Kartu</h3><p>Susun field sesuai urutan yang diinginkan.</p></div>
+          <div><h3>Field yang Tampil di Kartu</h3>
+            <p>Urutan kartu mengikuti posisi baris. Setiap Kolom Excel harus unik, termasuk huruf besar/kecil.</p></div>
           <span className="format-count" aria-live="polite">{rows.length} / {maxRows}</span>
           <button className="action custom-add" type="button" disabled={rows.length >= maxRows} onClick={addRow}>
             <span aria-hidden="true">＋</span> Tambah Baris
@@ -246,7 +257,14 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
               <span className="custom-row-caption">Kolom Excel <small>(header .xlsx)</small></span>
               <input type="text" maxLength={64} placeholder="e.g. NamaMurid"
                 aria-label={`Kolom Excel baris ${index + 1}`} value={row.excel}
+                aria-invalid={duplicateExcelColumns.has(row.id)}
+                aria-describedby={duplicateExcelColumns.has(row.id) ? 'custom-excel-error-' + row.id : undefined}
                 onChange={(event) => updateRow(row.id, { excel: event.currentTarget.value })} />
+              {duplicateExcelColumns.has(row.id) && <small className="custom-excel-duplicate"
+                id={'custom-excel-error-' + row.id} role="alert">
+                Header ini digunakan pada baris {duplicateExcelColumns.get(row.id)?.join(' dan ')}.
+                Gunakan Kolom Excel yang berbeda.
+              </small>}
             </label>
             <div className="custom-row-meta">
               <label><input type="radio" name="custom-photo-key" checked={photoRow === row.id}

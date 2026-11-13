@@ -9,6 +9,34 @@ import puppeteer from 'puppeteer-core';
 import axe from 'axe-core';
 import { execFileSync } from 'node:child_process';
 
+
+async function dialogAction(page, selector, action = 'click', value = '') {
+  return page.evaluate(({ selector, action, value }) => {
+    const el = document.querySelector(selector);
+    if (!el) throw new Error('Missing dialog element: ' + selector);
+    if (action === 'click') el.click();
+    else if (action === 'fill') {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, value);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    } else if (action === 'select') {
+      el.value = value;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }, { selector, action, value });
+}
+async function dialogValue(page, selector, property = 'textContent') {
+  return page.evaluate(({ selector, property }) => {
+    const element = document.querySelector(selector);
+    if (!element) throw new Error('Missing dialog element: ' + selector);
+    return element[property];
+  }, { selector, property });
+}
+async function dialogCount(page, selector) {
+  return page.evaluate((selector) => document.querySelectorAll(selector).length, selector);
+}
+
 const origin = process.env.SMOKE_ORIGIN ?? 'http://127.0.0.1:3000';
 const output = process.env.SMOKE_SCREENSHOTS;
 
@@ -47,7 +75,7 @@ const photoNames = Array.from({ length: 20 }, (_, index) => String(index + 1).pa
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGNkYPjPQApgIkn1qIZRDUNKAwA+MAEfWiW9ygAAAABJRU5ErkJggg==', 'base64');
 await Promise.all(photoNames.map((name) => writeFile(join(fixtureDir, name), png)));
 execFileSync('zip', ['-q', archive, ...photoNames], { cwd: fixtureDir });
-const browser = await puppeteer.launch({
+let browser = await puppeteer.launch({
   executablePath: await chromium.executablePath(),
   args: chromium.args,
   headless: 'shell',
@@ -55,7 +83,7 @@ const browser = await puppeteer.launch({
 
 try {
   for (const [name, width, height] of [['desktop', 1440, 1000], ['mobile', 390, 844]]) {
-    const page = await browser.newPage();
+    let page = await browser.newPage();
     await page.setCacheEnabled(false);
     const errors = [];
     const externalRequests = [];
@@ -207,7 +235,7 @@ try {
       await page.waitForSelector('#panel-2', { visible: true });
       await workerGate.evaluate((release) => release());
       await workerGate.dispose();
-      await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('Pratinjau impor'));
+      await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('Pratinjau Data'));
       assert.equal(await page.$('.import-dialog[open]'), null);
       await page.locator('#step-1').click();
       await page.waitForSelector('.import-dialog[open]', { visible: true });
@@ -216,14 +244,17 @@ try {
       for (const file of [valid, duplicate]) {
         await fileInput.uploadFile(file);
         await page.waitForSelector('.import-dialog[open]');
+        assert.equal(await page.$$eval('.import-steps li', (items) => items.length), 3);
+        assert.match(await page.$eval('.import-dialog-private', (item) => item.textContent), /Diproses lokal/);
         await page.waitForFunction(() => {
           const sheet = document.querySelector('#participant-sheet');
           return sheet && !sheet.disabled && sheet.value === 'Petunjuk';
         });
         await page.select('#participant-sheet', 'Peserta');
-        await page.waitForFunction((count) => document.querySelector('#panel-1')?.textContent.includes('Pratinjau impor · ' + count + ' baris'), {}, file === valid ? 500 : 2);
+        await page.waitForFunction((count) => document.querySelector('#panel-1')?.textContent.includes('Lima baris pertama dari ' + count + ' baris data'), {}, file === valid ? 500 : 2);
         if (file === valid) {
           await page.waitForSelector('#apply-participant-import:enabled');
+          assert.equal(await page.$eval('.import-validation-ok', (item) => item.textContent.includes('500 murid')), true);
           await page.focus('#apply-participant-import');
           await page.keyboard.press('Space');
           await page.waitForSelector('.import-dialog[open]', { hidden: true });
@@ -410,79 +441,110 @@ try {
         await page.waitForSelector('#panel-3 .exam-card');
         assert.ok(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length >= 4));
       }
+      // Isolate interactive form tests in a new Chromium process: the full
+      // PDF/print regression leaves considerable DOM and renderer activity.
+      await page.close();
+      await browser.close();
+      browser = await puppeteer.launch({
+        executablePath: await chromium.executablePath(), args: chromium.args, headless: 'shell',
+      });
+      page = await browser.newPage();
+      await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: name === 'mobile', hasTouch: name === 'mobile' });
+      await page.setCacheEnabled(false);
+      page.on('request', (request) => {
+        const url = new URL(request.url());
+        if (['http:', 'https:'].includes(url.protocol) &&
+          (url.origin !== new URL(origin).origin || request.method() !== 'GET' || /Peserta(?:%20|\+)Uji|Madrasah(?:%20|\+)Uji/i.test(url.href))) {
+          externalRequests.push({ origin: url.origin, method: request.method() });
+        }
+      });
+      page.on('pageerror', (error) => errors.push(error.message));
+      page.on('console', (entry) => { if (entry.type() === 'error') errors.push(entry.text()); });
+      await page.goto(origin, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('#pick-custom-format');
       await page.$eval('#step-0', (button) => button.click());
       await page.waitForSelector('#panel-0', { visible: true });
       await page.$eval('#pick-custom-format', (button) => button.click());
       const customDialog = '.custom-format-dialog[open]';
-      await page.waitForSelector(customDialog, { visible: true });
-      assert.equal(await page.$$eval(`${customDialog} .custom-format-rows li`, (items) => items.length), 3);
-      const options = await page.$$eval(`${customDialog} li:first-child select option`,
-        (items) => items.map((item) => ({ text: item.textContent.trim(), disabled: item.disabled })));
+      await page.waitForFunction((selector) => !!document.querySelector(selector), {}, customDialog);
+      assert.equal(await page.evaluate(() => document.querySelectorAll('.custom-format-dialog[open] .custom-format-rows li').length), 3);
+      const options = await page.evaluate(() => Array.from(
+        document.querySelectorAll('.custom-format-dialog[open] li:first-child select option'))
+        .map((item) => ({ text: item.textContent.trim(), disabled: item.disabled })));
       assert.deepEqual(options.map((item) => item.text), [
         '— Pilih —', 'Nama Murid', 'NISN', 'No. Peserta', 'Kelas', 'Ruang', 'Tgl. Lahir',
         'Sesi', 'Username', 'Password', 'Nama Satdik', '-- Tulis Sendiri',
       ]);
       assert.equal(options[9].disabled, false, 'Password should be available for custom formats');
-      await page.select(`${customDialog} li:nth-child(2) select`, 'Password');
-      assert.equal(await page.$eval(`${customDialog} [aria-label="Kolom Excel baris 2"]`, (input) => input.value), 'Password');
-      assert.equal(await page.$eval(`${customDialog} [aria-label="Acuan Foto Password"]`, (input) => input.disabled), true);
-      assert.match(await page.$eval(`${customDialog} .custom-format-note`, (note) => note.textContent), /case-sensitive, tanpa spasi/);
-      assert.match(await page.$eval(`${customDialog} .custom-format-note`, (note) => note.textContent), /sesi lokal/);
-      assert.equal(await page.$eval(`${customDialog} [aria-label="Kolom Excel baris 1"]`,
-        (input) => input.value), 'NamaMurid');
-      await page.click(`${customDialog} .custom-add`);
-      assert.equal(await page.$$eval(`${customDialog} .custom-format-rows li`, (items) => items.length), 4);
+      await dialogAction(page, `${customDialog} li:nth-child(2) select`, 'select', 'Password');
+      assert.equal(await dialogValue(page, `${customDialog} [aria-label="Kolom Excel baris 2"]`, 'value'), 'Password');
+      assert.equal(await dialogValue(page, `${customDialog} [aria-label="Acuan Foto Password"]`, 'disabled'), true);
+      assert.match(await dialogValue(page, `${customDialog} .custom-format-note`), /case-sensitive, tanpa spasi/);
+      assert.match(await dialogValue(page, `${customDialog} .custom-format-note`), /sesi lokal/);
+      assert.equal(await dialogValue(page, `${customDialog} [aria-label="Kolom Excel baris 1"]`, 'value'), 'NamaMurid');
+      await dialogAction(page, `${customDialog} .custom-add`);
+      assert.equal(await dialogCount(page, `${customDialog} .custom-format-rows li`), 4);
       await page.keyboard.press('Escape');
-      await page.waitForSelector(customDialog, { hidden: true });
+      await page.waitForFunction((selector) => !document.querySelector(selector), {}, customDialog);
       await page.waitForFunction(() => document.activeElement?.id === 'pick-custom-format');
-      await page.click('#pick-custom-format');
-      await page.waitForSelector(customDialog, { visible: true });
-      assert.equal(await page.$$eval(`${customDialog} .custom-format-rows li`, (items) => items.length), 3);
-      await page.select(`${customDialog} li:nth-child(2) select`, 'NoPeserta');
-      await page.select(`${customDialog} li:nth-child(3) select`, 'Kelas');
-      await page.click(`${customDialog} [aria-label="Naikkan No. Peserta"]`);
-      await page.click(`${customDialog} [aria-label="Acuan Foto No. Peserta"]`);
-      await page.click(`${customDialog} [aria-label="Monospace No. Peserta"]`);
-      await page.click(`${customDialog} .custom-add`);
-      await page.select(`${customDialog} li:nth-child(4) select`, 'manual');
-      await page.locator(`${customDialog} [aria-label="Label Tampilan baris 4"]`).fill('Nomor Bangku');
-      await page.locator(`${customDialog} [aria-label="Kolom Excel baris 4"]`).fill('NomorBangku');
-      await page.$eval(`${customDialog} .custom-community input`, (input) => input.click());
-      assert.equal(await page.$eval(`${customDialog} .custom-format-name input`, (input) => input.value), 'Format_Kustom');
-      await page.setRequestInterception(true);
-      let nameChecks = 0;
-      const checkNameRequest = (request) => {
-        const target = new URL(request.url());
-        if (request.method() === 'GET' && target.pathname === '/api/community-formats' && target.searchParams.has('name')) {
-          nameChecks += 1;
-          void request.respond({ status: 200, contentType: 'application/json',
-            body: JSON.stringify({ exists: nameChecks === 1 }) });
-        } else void request.continue();
-      };
-      page.on('request', checkNameRequest);
-      await page.$eval(`${customDialog} .custom-save`, (button) => button.click());
-      await page.waitForSelector(`${customDialog} .custom-format-error`);
-      assert.match(await page.$eval(`${customDialog} .custom-format-error`, (node) => node.textContent), /sudah digunakan/);
-      await page.locator(`${customDialog} .custom-format-name input`).fill('Format_Baru_2026');
-      await page.$eval(`${customDialog} .custom-save`, (button) => button.click());
+      await dialogAction(page, '#pick-custom-format');
+      await page.waitForFunction((selector) => !!document.querySelector(selector), {}, customDialog);
+      assert.equal(await dialogCount(page, `${customDialog} .custom-format-rows li`), 3);
+      await dialogAction(page, `${customDialog} li:nth-child(2) select`, 'select', 'NoPeserta');
+      await dialogAction(page, `${customDialog} li:nth-child(3) select`, 'select', 'Kelas');
+      await dialogAction(page, `${customDialog} [aria-label="Naikkan No. Peserta"]`);
+      await dialogAction(page, `${customDialog} [aria-label="Acuan Foto No. Peserta"]`);
+      await dialogAction(page, `${customDialog} [aria-label="Monospace No. Peserta"]`);
+      await dialogAction(page, `${customDialog} .custom-add`);
+      await dialogAction(page, `${customDialog} li:nth-child(4) select`, 'select', 'manual');
+      await dialogAction(page, `${customDialog} [aria-label="Label Tampilan baris 4"]`, 'fill', 'Nomor Bangku');
+      await dialogAction(page, `${customDialog} [aria-label="Kolom Excel baris 4"]`, 'fill', 'nopeserta');
+      await page.waitForFunction((selector) => !!document.querySelector(selector), {}, `${customDialog} .custom-excel-duplicate`);
+      assert.equal(await dialogCount(page, `${customDialog} .custom-excel-duplicate`), 2);
+      await dialogAction(page, `${customDialog} .custom-save`);
+      await page.waitForFunction(() => document.querySelector('.custom-format-error')?.textContent.includes('Kolom Excel'));
+      await dialogAction(page, `${customDialog} [aria-label="Kolom Excel baris 4"]`, 'fill', 'NomorBangku');
+      await page.waitForFunction(() => document.querySelectorAll('.custom-excel-duplicate').length === 0);
+      await dialogAction(page, `${customDialog} .custom-community input`);
+      assert.equal(await dialogValue(page, `${customDialog} .custom-format-name input`, 'value'), 'Format_Kustom');
+      await page.evaluate(() => {
+        const fetchCatalog = window.fetch.bind(window);
+        let nameChecks = 0;
+        window.fetch = (input, options) => {
+          const url = new URL(input instanceof Request ? input.url : input, location.href);
+          if (url.origin === location.origin && url.pathname === '/api/community-formats' && url.searchParams.has('name')) {
+            return Promise.resolve(Response.json({ exists: ++nameChecks === 1 }));
+          }
+          return fetchCatalog(input, options);
+        };
+      });
+      await dialogAction(page, `${customDialog} .custom-save`);
+      await page.waitForFunction((selector) => !!document.querySelector(selector), {}, `${customDialog} .custom-format-error`);
+      assert.match(await dialogValue(page, `${customDialog} .custom-format-error`), /sudah digunakan/);
+      await dialogAction(page, `${customDialog} .custom-format-name input`, 'fill', 'Format_Baru_2026');
+      await dialogAction(page, `${customDialog} .custom-save`);
       const shareDialog = '.community-share-dialog[open]';
-      await page.waitForSelector(shareDialog, { visible: true });
-      assert.equal(await page.$eval(`${shareDialog} h2`, (title) => title.textContent), 'Bagikan ke Komunitas?');
-      assert.ok(await page.$eval(`${shareDialog} .community-share-notice`, (panel) => panel.textContent.includes('Format_Baru_2026')));
-      await page.$eval(`${shareDialog} .community-share-confirm`, (button) => button.click());
-      await page.waitForSelector(`${shareDialog} [role=alert]`);
-      await page.locator('#community-contributor-name').fill('rANDY uJI123!');
-      assert.equal(await page.$eval('#community-contributor-name', (input) => input.value), 'Randy Uji');
-      await page.$eval(`${shareDialog} .community-share-anonymous input`, (input) => input.click());
-      assert.equal(await page.$eval('#community-contributor-name', (input) => input.disabled), true);
-      await page.$eval(`${shareDialog} .community-share-cancel`, (button) => button.click());
-      page.off('request', checkNameRequest);
-      await page.setRequestInterception(false);
-      await page.waitForSelector(shareDialog, { hidden: true });
-      assert.equal(await page.$eval(customDialog, (dialog) => dialog.open), true);
-      await page.$eval(`${customDialog} .custom-community input`, (input) => input.click());
-      await page.$eval(`${customDialog} .custom-save`, (button) => button.click());
-      await page.waitForSelector('#pick-custom-format[aria-pressed=true]');
+      await page.waitForFunction((selector) => !!document.querySelector(selector), {}, shareDialog);
+      assert.equal(await dialogValue(page, `${shareDialog} h2`), 'Bagikan ke Komunitas?');
+      assert.ok((await dialogValue(page, `${shareDialog} .community-share-notice`)).includes('Format_Baru_2026'));
+      await dialogAction(page, `${shareDialog} .community-share-confirm`);
+      await page.waitForFunction((selector) => !!document.querySelector(selector), {}, `${shareDialog} [role=alert]`);
+      await dialogAction(page, '#community-contributor-name', 'fill', 'rANDY uJI123!');
+      assert.equal(await dialogValue(page, '#community-contributor-name', 'value'), 'Randy Uji');
+      await dialogAction(page, `${shareDialog} .community-share-anonymous input`);
+      assert.equal(await dialogValue(page, '#community-contributor-name', 'disabled'), true);
+      await dialogAction(page, `${shareDialog} .community-share-cancel`);
+      await page.waitForFunction((selector) => !document.querySelector(selector), {}, shareDialog);
+      assert.equal(await dialogValue(page, customDialog, 'open'), true);
+      await dialogAction(page, `${customDialog} .custom-community input`);
+      await dialogAction(page, `${customDialog} .custom-save`);
+      // The dialog closes asynchronously after the local save callback.
+      await page.waitForFunction((selector) => {
+        const error = document.querySelector(selector + ' .custom-format-error');
+        if (error) throw new Error(error.textContent);
+        return !document.querySelector(selector);
+      }, { polling: 100, timeout: 10000 }, customDialog);
+      assert.equal(await dialogValue(page, '#pick-custom-format', 'ariaPressed'), 'true');
       await page.$eval('#step-3', (button) => button.click());
       await page.waitForSelector('#panel-3', { visible: true });
       assert.equal(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length), 4);
@@ -497,7 +559,10 @@ try {
       if (output) await page.screenshot({ path: `${output}/format-${name}.jpg`, type: 'jpeg', quality: 65 });
       if (name === 'desktop') {
         const key = 'generate-kartu:preferences:v1';
-        await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key))?.format === 7, {}, key);
+        await page.waitForFunction((key) => {
+          const preferences = JSON.parse(localStorage.getItem(key));
+          return preferences?.format === 7 && preferences.dark === false;
+        }, {}, key);
         const stored = await page.evaluate((key) => localStorage.getItem(key), key);
         assert.doesNotMatch(stored, /Madrasah Uji Fase 7|Peserta Uji/);
         await page.reload({ waitUntil: 'domcontentloaded' });
@@ -511,9 +576,17 @@ try {
         await backupInput.uploadFile(backupFile);
         await page.waitForFunction(() => document.querySelector('#panel-2 [role=alert]')?.textContent.includes('JSON rusak'));
         assert.equal(await page.evaluate((key) => localStorage.getItem(key), key), stored);
-        await page.evaluate(() => { window.confirm = () => true; });
         await writeFile(backupFile, JSON.stringify({ ...JSON.parse(stored), format: 1, heading: { institution: 'Madrasah Pulih', exam: '', year: '' } }));
         await backupInput.uploadFile(backupFile);
+        await page.waitForSelector('.backup-confirm-dialog[open]');
+        assert.match(await dialogValue(page, '.backup-confirm-content'), /settings.json/);
+        await dialogAction(page, '#confirm-backup-restore');
+        await page.waitForFunction(() => document.querySelector('#kop-institution')?.value === 'Madrasah Pulih');
+        await page.$eval('.kop-save', (button) => button.click());
+        await page.waitForFunction(() => document.querySelector('.kop-save-message')?.textContent.includes('berhasil disimpan'));
+        assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('generate-kartu:card-session:v1'))?.data?.institution), 'Madrasah Pulih');
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.$eval('#step-2', (button) => button.click());
         await page.waitForFunction(() => document.querySelector('#kop-institution')?.value === 'Madrasah Pulih');
         await page.evaluate(() => {
           const time = Date.now();
@@ -522,20 +595,28 @@ try {
         });
         await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('Sesi kedaluwarsa'));
         await page.waitForFunction(() => document.querySelector('#kop-institution')?.value !== 'Madrasah Pulih');
-        await page.$eval('#reset-card-session', (button) => button.click());
+        await page.$eval('#reset-card-session', (button) => {
+          window.confirm = () => true;
+          button.click();
+        });
         await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('direset'));
       }
       await page.locator('.help-nav').click();
       await page.waitForSelector('#editor-help-panel .help-stats', { visible: true });
       await page.locator('#editor-help-faq details:first-of-type summary').click();
       await page.waitForSelector('#editor-help-faq details[open] p', { visible: true });
-      await page.locator('#editor-help-panel a[href="/bantuan"]').click();
-      await page.waitForFunction(() => location.pathname === '/bantuan');
-      assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Pusat Informasi & Bantuan');
+      await page.$eval('.help-release-button', (button) => button.click());
+      await page.waitForSelector('.release-notes-dialog[open]', { visible: true });
+      assert.match(await dialogValue(page, '.release-notes-dialog'), /Format dan komunitas/);
+      await dialogAction(page, '.release-notes-footer button');
+      await page.waitForSelector('.release-notes-dialog[open]', { hidden: true });
+      assert.equal(await page.$eval('.help-nav', (button) => button.getAttribute('aria-pressed')), 'true');
       assert.deepEqual(errors, []);
       assert.deepEqual(externalRequests, [], 'No external requests or HTTP uploads during editor flow');
-      assert.equal((await page.goto(new URL('/halaman-tidak-ada', origin).href))?.status(), 404);
-      assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Halaman tidak ditemukan');
+      for (const path of ['/bantuan', '/halaman-tidak-ada']) {
+        assert.equal((await page.goto(new URL(path, origin).href))?.status(), 404);
+        assert.equal(await page.locator('h1').map((el) => el.textContent).wait(), 'Halaman tidak ditemukan');
+      }
       if (name === 'desktop') {
         await page.evaluateOnNewDocument(() => {
           Storage.prototype.setItem = () => { throw new DOMException('Simulasi kuota', 'QuotaExceededError'); };

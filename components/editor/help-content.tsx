@@ -1,4 +1,6 @@
-import Link from 'next/link';
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
 import { PageHeading } from './page-chrome';
 import { EditorIcon } from './editor-icon';
 import { formats } from '../../lib/editor';
@@ -24,6 +26,52 @@ const faq = [
   ['Apakah format komunitas tersedia?', 'Ya. Centang opsi berbagi saat menyimpan Format Kustom untuk menambahkannya ke katalog publik di tab Format.'],
 ];
 
+const releaseNotes = [
+  { title: 'Format dan komunitas', entries: [
+    'Membuat format kartu kustom dengan pengaturan field, label tampilan, header Excel, urutan, dan Acuan Foto.',
+    'Membagikan format ke katalog komunitas dengan konfirmasi serta nama kontributor atau opsi anonim.',
+    'Mencari format, memfilter format bawaan/komunitas, dan melihat pratinjau sebelum memilih.',
+  ] },
+  { title: 'Data murid dan hasil kartu', entries: [
+    'Mengimpor XLS/XLSX, memetakan kolom dan memvalidasi data murid sebelum dipakai.',
+    'Menggunakan foto peserta dan mencetak kartu dalam tata letak A4 atau mengunduh PDF.',
+  ] },
+  { title: 'Pengaturan dan keamanan', entries: [
+    'Mengatur KOP, penandatangan, ukuran kartu, tampilan cetak, jadwal, serta backup JSON preferensi.',
+    'Data peserta dan foto diproses secara lokal di browser; metadata format komunitas tidak memuat data murid.',
+  ] },
+] as const;
+
+function ReleaseNotesDialog({ onClose }: { onClose: () => void }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => { dialog.current?.showModal(); }, []);
+
+  return <dialog ref={dialog} className="format-dialog release-notes-dialog"
+    aria-labelledby="release-notes-title" aria-describedby="release-notes-description"
+    onClose={onClose}>
+    <header className="release-notes-header">
+      <span className="release-notes-icon"><EditorIcon name="document" /></span>
+      <div><h2 id="release-notes-title">Catatan Pembaruan</h2>
+        <p id="release-notes-description">Ringkasan perubahan dan kemampuan GenerateKartu.</p></div>
+      <button type="button" className="action" aria-label="Tutup catatan pembaruan"
+        onClick={() => dialog.current?.close()}>×</button>
+    </header>
+    <div className="release-notes-body">
+      <div className="release-notes-summary"><strong>Kartu Ujian Pro</strong>
+        <span>Fitur terbaru dapat digunakan langsung dari tab aplikasi tanpa membuka situs lain.</span>
+      </div>
+      {releaseNotes.map(({ title, entries }, index) => <section className="release-notes-group" key={title}>
+        <div className="release-notes-group-heading"><span>{String(index + 1).padStart(2, '0')}</span><h3>{title}</h3></div>
+        <ul>{entries.map((entry) => <li key={entry}>{entry}</li>)}</ul>
+      </section>)}
+      <p className="release-notes-privacy">Perubahan akan terus diperbarui dalam aplikasi. Gunakan tab Bantuan untuk langkah penggunaan dan FAQ.</p>
+    </div>
+    <footer className="release-notes-footer">
+      <button type="button" className="action data-next" onClick={() => dialog.current?.close()}>Mengerti</button>
+    </footer>
+  </dialog>;
+}
+
 export function HelpContent({ participants = 0, photos = 0, communityCount, inEditor = false }: {
   participants?: number;
   photos?: number;
@@ -31,6 +79,8 @@ export function HelpContent({ participants = 0, photos = 0, communityCount, inEd
   communityCount?: number;
 }) {
   const prefix = inEditor ? 'editor-help' : 'help';
+  const [notesOpen, setNotesOpen] = useState(false);
+  const noteButton = useRef<HTMLButtonElement>(null);
   const stats = [
     [formats.length + 1 + (communityCount ?? 0), 'Format tersedia', 'table'],
     [participants, 'Murid termuat', 'user'],
@@ -54,7 +104,10 @@ export function HelpContent({ participants = 0, photos = 0, communityCount, inEd
       <section className="panel">
         <h2>Tentang Aplikasi</h2>
         <p>Kartu Ujian Pro membantu panitia ujian sekolah dan madrasah menyiapkan kartu peserta dari data Excel, memeriksa tata letak, dan mencetak kartu atau mengunduhnya sebagai PDF.</p>
-        <a className="action" href="https://github.com/MTsNurulFalahTrs/GenerateKartu/blob/main/CHANGELOG.md">Catatan Perubahan</a>
+        <button type="button" ref={noteButton} className="action help-release-button"
+          aria-haspopup="dialog" onClick={() => setNotesOpen(true)}>
+          <EditorIcon name="document" /> Catatan Pembaruan
+        </button>
       </section>
       <section className="panel">
         <h2>Tata Cara Penggunaan</h2>
@@ -88,8 +141,12 @@ export function HelpContent({ participants = 0, photos = 0, communityCount, inEd
         {faq.map(([question, answer]) => <details key={question}>
           <summary>{question}</summary><p>{answer}</p>
         </details>)}
-        {inEditor && <Link href="/bantuan" className="action">Buka halaman Bantuan</Link>}
+
       </section>
     </div>
+    {notesOpen && <ReleaseNotesDialog onClose={() => {
+      setNotesOpen(false);
+      requestAnimationFrame(() => noteButton.current?.focus());
+    }} />}
   </>;
 }
