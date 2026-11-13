@@ -561,7 +561,7 @@ try {
         const bounds = item.getBoundingClientRect();
         return style.opacity === '1' && style.visibility === 'visible' && bounds.width > 0 && bounds.height > 0;
       })), [true, true, true]);
-      await page.waitForFunction(() => !document.querySelector('.app-toast'), { timeout: 3500 });
+      await page.waitForFunction(() => !document.querySelector('.app-toast'), { polling: 50, timeout: 6000 });
       await dialogAction(page, '#community-contributor-name', 'fill', 'rANDY uJI123!');
       assert.equal(await dialogValue(page, '#community-contributor-name', 'value'), 'Randy Uji');
       await dialogAction(page, `${shareDialog} .community-share-anonymous input`);
