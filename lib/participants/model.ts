@@ -31,9 +31,13 @@ export function defaultMapping(headers: string[], fields: readonly Field[]): Map
   return mapping;
 }
 
-export function validateRows(input: WorkbookRows, format: number, mapping: Mapping, custom: readonly Field[] = []) {
+export function photoFieldFor(format: number, customPhotoKey?: Field): Field {
+  return format === 7 && customPhotoKey ? customPhotoKey : format === 0 ? 'Username' : 'NoPeserta';
+}
+
+export function validateRows(input: WorkbookRows, format: number, mapping: Mapping, custom: readonly Field[] = [], customPhotoKey?: Field) {
   const fields = fieldsFor(format, custom);
-  const idField = format === 0 ? 'Username' : 'NoPeserta';
+  const idField = photoFieldFor(format, customPhotoKey);
   const issues: Issue[] = [];
   const participants: Participant[] = [];
   const usedColumns = new Set<number>();
@@ -83,7 +87,7 @@ export function validateRows(input: WorkbookRows, format: number, mapping: Mappi
       if (earlier !== undefined) issues.push({ row: row.number, column: idField, message: `Gunakan ID unik. ID sudah ada di baris ${earlier}.` });
       else ids.set(id, row.number);
     }
-    participants.push({ id, name: values.NamaMurid ?? '', values });
+    participants.push({ id, name: values.NamaMurid ?? id, values });
   }
   return { participants: issues.length ? [] : participants, issues };
 }

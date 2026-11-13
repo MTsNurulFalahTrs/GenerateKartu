@@ -5,9 +5,10 @@ import { AppBrand, PageHeading } from './page-chrome';
 import { flushSync } from 'react-dom';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
+import { CustomFormatDialog } from './custom-format-dialog';
 import { BackupPanel } from './backup-panel';
 import { defaultCustom, idleLimit, parseBackup, pickHeading, pickOptions, storageKey } from '../../lib/cards/preferences';
-import type { Heading, Preferences } from '../../lib/cards/preferences';
+import type { CustomAppearance, Heading, Preferences } from '../../lib/cards/preferences';
 import { CardSettingsPanel } from './card-settings';
 import { PreviewPanel } from './preview-panel';
 import type { CardRenderModel } from '../../lib/cards/render-model';
@@ -15,7 +16,7 @@ import { CardOutput } from './card-output';
 import { CardPreview } from './card-preview';
 import { defaultCard, validCardLayout } from '../../lib/cards/settings';
 import type { InstitutionAssets } from '../../lib/cards/settings';
-import { fieldsFor } from '../../lib/participants/model';
+import { fieldsFor, photoFieldFor } from '../../lib/participants/model';
 import type { Field, Participant } from '../../lib/participants/model';
 import { EditorIcon } from './editor-icon';
 import { ParticipantPanel } from './participant-panel';
@@ -28,8 +29,6 @@ const sample: Participant = {
   name: 'Peserta Contoh',
   values: { NamaMurid: 'Peserta Contoh', NoPeserta: '0001', NISN: '0000000001', Kelas: 'IX-A', Ruang: '1', Sesi: 'Sesi 1', Username: 'CONTOH-001', TglLahir: '2012-01-01', NamaSatdik: 'Madrasah Contoh' },
 };
-const optionalFields = ['NISN', 'Kelas', 'Ruang', 'Sesi', 'Username', 'TglLahir', 'NamaSatdik'] as const;
-
 const formatFieldLabels: Record<Field, string> = {
   NamaMurid: 'Nama Murid', NoPeserta: 'No. Peserta', NISN: 'NISN', Kelas: 'Kelas',
   Ruang: 'Ruang', Sesi: 'Sesi', Username: 'Username', TglLahir: 'Tgl. Lahir', NamaSatdik: 'Nama Satdik',
@@ -54,17 +53,19 @@ export function CardEditor() {
   const [editingCustom, setEditingCustom] = useState(false);
   const previewDialog = useRef<HTMLDialogElement>(null);
   const previewTrigger = useRef<HTMLButtonElement>(null);
-  const customBuilder = useRef<HTMLHeadingElement>(null);
+  const customTrigger = useRef<HTMLButtonElement>(null);
   const [setting, setSetting] = useState(0);
   const [dataset, setDataset] = useState<{ participants: Participant[]; selected: Set<string> }>({ participants: [], selected: new Set() });
   const [photos, setPhotos] = useState(new Map<string, Blob>());
   const [assets, setAssets] = useState<InstitutionAssets>({});
   const [card, setCard] = useState(defaultCard);
   const [custom, setCustom] = useState<Field[]>(defaultCustom);
+  const [customAppearance, setCustomAppearance] = useState<CustomAppearance>();
+  const [customConfigured, setCustomConfigured] = useState(false);
   const [hidden, setHidden] = useState<Field[]>([]);
   const previewParticipant = dataset.participants.find((participant) => dataset.selected.has(participant.id)) ?? dataset.participants[0] ?? sample;
   function renderCard(participant: Participant, id = format ?? 0): CardRenderModel {
-    return { format: id, custom, participant, photo: photos.get(participant.id), settings: card, assets, hidden };
+    return { format: id, custom, customAppearance, participant, photo: photos.get(participant.id), settings: card, assets, hidden };
   }
   const [dark, setDark] = useState(false);
   const [revision, setRevision] = useState(0);
@@ -73,7 +74,7 @@ export function CardEditor() {
   const [storageMessage, setStorageMessage] = useState('');
   const [sessionMessage, setSessionMessage] = useState('');
   const options = pickOptions(card);
-  const preferences: Preferences = { schemaVersion: 1, dark, format, custom, hidden, settings: options };
+  const preferences: Preferences = { schemaVersion: 1, dark, format, custom, customAppearance, hidden, settings: options };
   const serialized = JSON.stringify(preferences);
   const heading = useMemo(() => pickHeading(card), [card]);
   const settingsSnapshot = JSON.stringify({ serialized, card });
@@ -93,6 +94,8 @@ export function CardEditor() {
     setDark(saved.dark);
     setFormat(saved.format ?? 0);
     setCustom(saved.custom);
+    setCustomAppearance(saved.customAppearance);
+    setCustomConfigured(!!saved.customAppearance || saved.format === 7 || saved.custom.join() !== defaultCustom.join());
     setHidden(saved.hidden);
     setCard((previous) => ({ ...previous, ...saved.settings, ...savedHeading }));
   }, []);
@@ -196,12 +199,14 @@ export function CardEditor() {
     if (previewFormat !== null) previewDialog.current?.showModal();
   }, [previewFormat]);
 
-  useEffect(() => {
-    if (editingCustom && step === 0) customBuilder.current?.focus();
-  }, [editingCustom, step]);
+  const titles = formatTitles.map((title, id) => id === 7 ? customAppearance?.name ?? title : title);
+  function openCustom(trigger: HTMLButtonElement) {
+    customTrigger.current = trigger;
+    setEditingCustom(true);
+  }
 
   const completedSteps = [format !== null, dataset.participants.length > 0];
-  const visibleFormats = formatTitles.map((title, id) => ({ title, id })).filter(({ title, id }) =>
+  const visibleFormats = titles.map((title, id) => ({ title, id })).filter(({ title, id }) =>
     `${title} ${formats[id] ?? 'Buat Sendiri'}`.toLowerCase().includes(formatQuery.trim().toLowerCase()));
 
   function onTabKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
@@ -261,7 +266,7 @@ export function CardEditor() {
               <>
                 {format !== null && <div className="format-summary" role="status">
                   <span className="format-icon" aria-hidden="true">✓</span>
-                  <div><small>Format Aktif</small><strong>{formatTitles[format]}{formats[format] && ` (${formats[format]})`}</strong></div>
+                  <div><small>Format Aktif</small><strong>{titles[format]}{formats[format] && ` (${formats[format]})`}</strong></div>
                   <span className="format-count">{fieldsFor(format, custom).length} field</span>
                 </div>}
                 <div className="format-toolbar"><EditorIcon name="search" />
@@ -273,15 +278,17 @@ export function CardEditor() {
                 <div className="format-grid">
                   {visibleFormats.map(({ title, id }) => {
                     const fields = fieldsFor(id, custom);
-                    const photoKey = id === 0 ? 'Username' : 'NoPeserta';
+                    const photoKey = photoFieldFor(id, customAppearance?.photoKey);
+                    const unconfigured = id === 7 && !customConfigured;
                     return <article className={id === 7 ? 'format custom' : 'format'} key={id} data-format={id + 1} data-selected={format === id}>
                       <header className="format-heading">
                         <span className="format-icon" aria-hidden="true"><EditorIcon name={formatIcons[id]} /></span>
                         <div><h2>{title}</h2><span>{formats[id] ?? 'Buat Sendiri'}</span></div>
-                        <span className="format-count">{fields.length} field</span>
+                        {!unconfigured && <span className="format-count">{fields.length} field</span>}
                       </header>
                       <ul className="format-fields">
-                        {fields.map((field) => <li key={field}>
+                        {unconfigured && <li className="custom-format-placeholder">Belum dikonfigurasi. Klik “Atur” untuk membuat format Anda sendiri.</li>}
+                        {!unconfigured && fields.map((field) => <li key={field}>
                           <span className="format-check" aria-hidden="true">✓</span>
                           <span>{formatFieldLabels[field]}</span>
                           {field === photoKey && <span className="format-photo"><EditorIcon name="image" /> Acuan Foto</span>}
@@ -291,42 +298,23 @@ export function CardEditor() {
                         <button type="button" className="action format-pick" aria-pressed={format === id}
                           id={id === 7 ? 'pick-custom-format' : `pick-format-${id + 1}`}
                           aria-label={format === id ? `Format Aktif · ${title}` : `Pilih ${title}`}
-                          onClick={() => setFormat(id)}>{format === id ? 'Format Aktif' : 'Pilih Format'}</button>
-                        <button type="button" className="action" aria-haspopup="dialog" aria-label={`Preview ${title}`}
+                          onClick={(event) => unconfigured ? openCustom(event.currentTarget) : setFormat(id)}>{format === id ? 'Format Aktif' : 'Pilih Format'}</button>
+                        {!unconfigured && <button type="button" className="action" aria-haspopup="dialog" aria-label={`Preview ${title}`}
                           onClick={(event) => {
                             previewTrigger.current = event.currentTarget;
                             setPreviewFormat(id);
-                          }}><EditorIcon name="eye" /> Preview</button>
-                        {id === 7 && <button type="button" className="action" onClick={() => {
-                          if (editingCustom) customBuilder.current?.focus();
-                          else setEditingCustom(true);
-                        }}>Atur</button>}
+                          }}><EditorIcon name="eye" /> Preview</button>}
+                        {id === 7 && <button type="button" className="action" aria-haspopup="dialog" onClick={(event) => openCustom(event.currentTarget)}>
+                          <EditorIcon name="edit" /> Atur</button>}
                       </div>
                     </article>;
                   })}
                 </div>
               </>
             )}
-            {index === 0 && (format === 7 || editingCustom) && <div className="panel mt-4">
-              <h2 ref={customBuilder} tabIndex={-1}>Susun format kustom</h2>
-              <p>Nomor peserta dan nama wajib. Kolom lain dapat ditambahkan atau diurutkan.</p>
-              <div className="flex flex-wrap gap-3">{optionalFields.map((field) => <label key={field}>
-                <input type="checkbox" checked={custom.includes(field)} onChange={(event) => {
-                  setCustom(event.target.checked ? [...custom, field] : custom.filter((item) => item !== field));
-                }} /> {field}
-              </label>)}</div>
-              <ol className="mt-3 grid gap-2">{custom.map((field, position) => <li key={field} className="flex items-center gap-2">
-                <span>{position + 1}. {field}</span>
-                <button className="action" type="button" aria-label={`Naikkan ${field}`} disabled={position === 0} onClick={() => {
-                  const next = [...custom];
-                  [next[position - 1], next[position]] = [next[position], next[position - 1]];
-                  setCustom(next);
-                }}>↑</button>
-              </li>)}</ol>
-            </div>}
             {index === 1 && (
               <>
-                <ParticipantPanel key={revision} active={!helpOpen && step === 1} format={format} custom={custom} photos={photos} onDataset={setDataset} onPhotos={setPhotos} />
+                <ParticipantPanel key={revision} active={!helpOpen && step === 1} format={format} custom={custom} customPhotoKey={customAppearance?.photoKey} photos={photos} onDataset={setDataset} onPhotos={setPhotos} />
                 <footer className="page-footer">
                   <small>Tip: Foto bersifat opsional. Kartu tetap bisa dicetak tanpa foto.</small>
                   <button className="action" type="button" onClick={() => setStep(0)}>‹ Kembali</button>
@@ -349,7 +337,7 @@ export function CardEditor() {
                   {format !== null && <fieldset className="mt-4">
                     <legend>Kolom kartu</legend>
                     <div className="flex flex-wrap gap-3">{fieldsFor(format, custom).filter((field) =>
-                      field !== 'NamaMurid' && field !== (format === 0 ? 'Username' : 'NoPeserta')).map((field) =>
+                      field !== 'NamaMurid' && field !== photoFieldFor(format, customAppearance?.photoKey)).map((field) =>
                       <label key={field}><input type="checkbox" checked={!hidden.includes(field)} onChange={(event) =>
                         setHidden(event.target.checked ? hidden.filter((item) => item !== field) : [...hidden, field])
                       } /> {field}</label>)}</div>
@@ -384,6 +372,22 @@ export function CardEditor() {
           {helpOpen && <HelpContent inEditor participants={dataset.participants.length} photos={photos.size} />}
         </section>
       </main>
+      {editingCustom && <CustomFormatDialog fields={customConfigured ? custom : []} appearance={customAppearance} labels={formatFieldLabels}
+        onClose={() => {
+          setEditingCustom(false);
+          const trigger = customTrigger.current;
+          requestAnimationFrame(() => {
+            if (trigger?.isConnected && trigger.offsetWidth) trigger.focus();
+            else document.querySelector<HTMLButtonElement>('#pick-custom-format')?.focus();
+          });
+        }}
+        onSave={(fields, appearance) => {
+          setCustom(fields);
+          setCustomAppearance(appearance);
+          setCustomConfigured(true);
+          setHidden([]);
+          setFormat(7);
+        }} />}
       <dialog className="format-dialog" ref={previewDialog} aria-labelledby="format-preview-title" onClose={() => {
         setPreviewFormat(null);
         previewTrigger.current?.focus();
@@ -391,7 +395,7 @@ export function CardEditor() {
         {previewFormat !== null && <>
           <header>
             <span className="format-icon" aria-hidden="true"><EditorIcon name="eye" /></span>
-            <h2 id="format-preview-title">Preview: {formatTitles[previewFormat]}</h2>
+            <h2 id="format-preview-title">Preview: {titles[previewFormat]}</h2>
             <button type="button" className="action" aria-label="Tutup modal Preview"
               onClick={() => previewDialog.current?.close()}>×</button>
           </header>

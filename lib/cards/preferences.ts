@@ -12,11 +12,14 @@ const optionKeys = ['width', 'height', 'fontSize', 'align', 'monochrome', 'photo
 const appearanceKeys = ['kopStyles', 'signatureSize', 'signatureOverlap'] as const;
 const headingKeys = ['institution', 'exam', 'year'] as const;
 
+export type CustomAppearance = { name: string; photoKey: Field; mono: Field[] };
+
 export type Preferences = {
   schemaVersion: 1;
   dark: boolean;
   format: number | null;
   custom: Field[];
+  customAppearance?: CustomAppearance;
   hidden: Field[];
   settings: Pick<CardSettings, (typeof optionKeys)[number] | (typeof appearanceKeys)[number]>;
 };
@@ -55,7 +58,9 @@ export function parseBackup(raw: string, allowHeading = true): { preferences: Pr
   try { parsed = JSON.parse(raw); } catch { throw new Error('Berkas JSON rusak atau tidak valid.'); }
   const keys = ['schemaVersion', 'dark', 'format', 'custom', 'hidden', 'settings'];
   const hasHeading = allowHeading && !!parsed && typeof parsed === 'object' && Object.hasOwn(parsed, 'heading');
-  const value = object(parsed, hasHeading ? [...keys, 'heading'] : keys);
+  if (hasHeading) keys.push('heading');
+  if (parsed && typeof parsed === 'object' && Object.hasOwn(parsed, 'customAppearance')) keys.push('customAppearance');
+  const value = object(parsed, keys);
   if (value.schemaVersion !== 1) throw new Error('Versi backup tidak didukung.');
   const hasAppearance = !!value.settings && typeof value.settings === 'object' &&
     appearanceKeys.some((key) => Object.hasOwn(value.settings as object, key));
@@ -73,7 +78,7 @@ export function parseBackup(raw: string, allowHeading = true): { preferences: Pr
   }
   if (typeof value.dark !== 'boolean' ||
     (value.format !== null && (!between(value.format, 0, 7) || !Number.isInteger(value.format))) ||
-    !fields(value.custom) || !value.custom.includes('NoPeserta') || !value.custom.includes('NamaMurid') ||
+    !fields(value.custom) ||
     !fields(value.hidden) ||
     !between(options.width, 60, 180) || !between(options.height, 40, 150) || !between(options.fontSize, 6, 12) ||
     !['left', 'center', 'right'].includes(String(options.align)) || typeof options.align !== 'string' ||
@@ -81,7 +86,18 @@ export function parseBackup(raw: string, allowHeading = true): { preferences: Pr
     throw new Error('Nilai pengaturan backup tidak valid.');
   }
   const { schemaVersion, dark, format, custom, hidden } = value;
-  const preferences = { schemaVersion, dark, format, custom, hidden, settings: { ...options, kopStyles: styles, signatureSize: appearance.signatureSize, signatureOverlap: appearance.signatureOverlap } } as Preferences;
+  let customAppearance: CustomAppearance | undefined;
+  if (keys.includes('customAppearance')) {
+    const appearance = object(value.customAppearance, ['name', 'photoKey', 'mono']);
+    if (typeof appearance.name !== 'string' || !appearance.name.trim() || appearance.name.length > 60 ||
+      !customFields.some((field) => field === appearance.photoKey && (custom as Field[]).includes(field)) ||
+      !fields(appearance.mono) || !appearance.mono.every((field) => (custom as Field[]).includes(field)) ||
+      (custom as Field[]).length > 6) throw new Error('Format kustom tidak valid.');
+    customAppearance = appearance as CustomAppearance;
+  } else if (!(custom as Field[]).includes('NoPeserta') || !(custom as Field[]).includes('NamaMurid')) {
+    throw new Error('Format kustom tidak valid.');
+  }
+  const preferences = { schemaVersion, dark, format, custom, customAppearance, hidden, settings: { ...options, kopStyles: styles, signatureSize: appearance.signatureSize, signatureOverlap: appearance.signatureOverlap } } as Preferences;
   if (!hasHeading) return { preferences };
   const heading = object(value.heading, headingKeys);
   if (headingKeys.some((key) => typeof heading[key] !== 'string' || heading[key].length > 160)) {
