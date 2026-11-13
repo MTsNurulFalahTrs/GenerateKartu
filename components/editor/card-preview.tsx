@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { fieldsFor } from '../../lib/participants/model';
 import type { Field } from '../../lib/participants/model';
 import type { CardRenderModel } from '../../lib/cards/render-model';
-import { kopFields } from '../../lib/cards/settings';
+import { kopFields, validCardLayout } from '../../lib/cards/settings';
 import type { CardSettings } from '../../lib/cards/settings';
 import { qrPath } from '../../lib/cards/qr';
 
@@ -61,8 +61,7 @@ export function CardPreview({ format, custom, participant, photo, settings, asse
     return () => observer.disconnect();
   }, [element, output]);
 
-  const valid = settings.width >= 60 && settings.width <= 180 && settings.height >= 40 && settings.height <= 150 && settings.fontSize >= 6 && settings.fontSize <= 12;
-  if (!valid) return <p role="alert">Gunakan lebar 60–180 mm, tinggi 40–150 mm, dan teks 6–12 pt.</p>;
+  if (!validCardLayout(settings)) return <p role="alert">Gunakan lebar 60–180 mm, tinggi 40–150 mm, dan teks 6–12 pt.</p>;
   const fields = fieldsFor(format, custom).filter((field) => field === 'NamaMurid' || field === (format === 0 ? 'Username' : 'NoPeserta') || !hidden.includes(field));
   const schedule = settings.showSchedule ? settings.schedule.split('\n').map((line) => line.trim()).filter(Boolean) : [];
   return <div className="card-preview-wrap">

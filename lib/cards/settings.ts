@@ -32,3 +32,7 @@ export const defaultCard = {
 export type CardSettings = typeof defaultCard;
 export type AssetName = 'logoLeft' | 'logoRight' | 'signature';
 export type InstitutionAssets = Partial<Record<AssetName, Blob>>;
+
+export function validCardLayout({ width, height, fontSize }: CardSettings) {
+  return width >= 60 && width <= 180 && height >= 40 && height <= 150 && fontSize >= 6 && fontSize <= 12;
+}

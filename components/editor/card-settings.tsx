@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { normalizeImage } from '../../lib/cards/assets';
 import type { AssetName, CardSettings, InstitutionAssets } from '../../lib/cards/settings';
 
-import { kopSizes } from '../../lib/cards/settings';
+import { defaultCard, kopSizes } from '../../lib/cards/settings';
 import { CardImage, KopText } from './card-preview';
 import { EditorIcon } from './editor-icon';
 
@@ -28,6 +28,7 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
   onAssets: (name: AssetName, asset?: Blob) => void;
 }) {
   const assetJob = useRef(0);
+  const assetPending = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
@@ -38,6 +39,8 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
     onChange((previous) => ({ ...previous, [key]: next }));
   }
   async function loadAsset(name: AssetName, file: File) {
+    if (assetPending.current) return;
+    assetPending.current = true;
     const job = ++assetJob.current;
     setError('');
     setBusy(true);
@@ -48,7 +51,10 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
     } catch (cause) {
       if (assetJob.current === job) setError(cause instanceof Error ? cause.message : 'Aset gagal diproses.');
     } finally {
-      if (assetJob.current === job) setBusy(false);
+      if (assetJob.current === job) {
+        assetPending.current = false;
+        setBusy(false);
+      }
     }
   }
   function assetPicker(key: AssetName, label: string, action: string, description: string) {
@@ -93,8 +99,8 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
               {(key === 'exam' || key === 'address') && <small>{value[key].length} / {limit}</small>}
             </label>
             {key === 'address'
-              ? <textarea id={`kop-${key}`} rows={3} maxLength={limit} value={value[key]} placeholder="Kosongkan jika tidak perlu" onInput={(event) => update(key, event.currentTarget.value)} />
-              : <input type="text" id={`kop-${key}`} aria-label={key === 'institution' ? 'Nama sekolah/madrasah' : undefined} maxLength={limit} value={value[key]} onInput={(event) => update(key, event.currentTarget.value)} />}
+              ? <textarea id={`kop-${key}`} rows={3} maxLength={limit} value={value[key]} placeholder="Kosongkan jika tidak perlu" onChange={(event) => update(key, event.currentTarget.value)} />
+              : <input type="text" id={`kop-${key}`} aria-label={key === 'institution' ? 'Nama sekolah/madrasah' : undefined} maxLength={limit} value={value[key]} onChange={(event) => update(key, event.currentTarget.value)} />}
             {key === 'year' && <div className="kop-presets">
               {['Tahun Lalu', 'Tahun Berjalan', 'Tahun Depan'].map((name, i) => <button type="button" key={name} onClick={() => yearPreset(i - 1)}>{name}</button>)}
               {['Ganjil', 'Genap'].map((name) => <button type="button" key={name} onClick={() => {
@@ -122,7 +128,7 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
       <h3>Data Penandatangan</h3>
       <div className="kop-grid">
         {signerInputs.map(([key, label, placeholder]) => <label className="kop-field" key={key}>{label}
-          <input type="text" maxLength={160} placeholder={placeholder} value={value[key]} onInput={(event) => update(key, event.currentTarget.value)}
+          <input type="text" maxLength={160} placeholder={placeholder} value={value[key]} onChange={(event) => update(key, event.currentTarget.value)}
             onBlur={key === 'city' ? () => update(key, value.city.trim().toLocaleLowerCase('id-ID').replace(/(^|[\s-])\p{L}/gu, (letter) => letter.toLocaleUpperCase('id-ID'))) : undefined} />
         </label>)}
       </div>
@@ -140,17 +146,24 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
   </div>;
   if (section === 1) return <div className="grid gap-3 sm:grid-cols-2">
     <label>Ukuran <select value={`${value.width}x${value.height}`} onChange={(event) => {
-      if (event.target.value === 'custom') onChange({ ...value, width: 95, height: 65 });
+      if (event.target.value === 'custom') onChange((previous) => ({ ...previous, width: 95, height: 65 }));
       else {
         const [width, height] = event.target.value.split('x').map(Number);
-        onChange({ ...value, width, height });
+        onChange((previous) => ({ ...previous, width, height }));
       }
     }}><option value="86x54">86 × 54 mm</option><option value="90x60">90 × 60 mm</option><option value="100x70">100 × 70 mm</option>
       {!['86x54', '90x60', '100x70'].includes(`${value.width}x${value.height}`) && <option value={`${value.width}x${value.height}`}>Kustom</option>}
       <option value="custom">Atur ukuran kustom</option>
     </select></label>
     {([['width', 'Lebar (mm)', 60, 180], ['height', 'Tinggi (mm)', 40, 150], ['fontSize', 'Ukuran teks (pt)', 6, 12]] as const).map(([key, label, min, max]) =>
-      <label key={key}>{label} <input type="number" min={min} max={max} value={value[key] || ''} onChange={(event) => update(key, Number(event.target.value))} /></label>)}
+      <label key={key}>{label} <input type="number" min={min} max={max} step="any" value={value[key] || ''}
+        onChange={(event) => update(key, Number(event.currentTarget.value))}
+        onBlur={(event) => {
+          const number = event.currentTarget.valueAsNumber;
+          if (!Number.isFinite(number) || number < min || number > max) {
+            update(key, Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : defaultCard[key]);
+          }
+        }} /></label>)}
     <label>Posisi teks <select value={value.align} onChange={(event) => {
       const align = event.target.value;
       if (align === 'left' || align === 'center' || align === 'right') update('align', align);
@@ -162,7 +175,7 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
     <label><input type="checkbox" checked={value.showSchedule} onChange={(event) => update('showSchedule', event.target.checked)} /> Tampilkan jadwal</label>
     <label className="grid gap-1">Jadwal ujian
       <textarea className="border rounded p-2" rows={4} maxLength={1000} value={value.schedule}
-        onChange={(event) => update('schedule', event.target.value)} placeholder="Senin · 08.00 · IPS" />
+        disabled={!value.showSchedule} onChange={(event) => update('schedule', event.target.value)} placeholder="Senin · 08.00 · IPS" />
     </label>
     <small>Satu kegiatan per baris.</small>
   </div>;
