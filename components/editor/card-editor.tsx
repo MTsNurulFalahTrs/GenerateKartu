@@ -9,6 +9,7 @@ import type { CatalogFormat } from '../../lib/cards/community';
 import { CustomFormatDialog } from './custom-format-dialog';
 import { BackupPanel } from './backup-panel';
 import { defaultCustom, idleLimit, parseBackup, pickHeading, pickOptions, storageKey } from '../../lib/cards/preferences';
+import { packSessionCard, sessionCardKey, unpackSessionCard } from '../../lib/cards/session-settings';
 import type { CustomAppearance, Heading, Preferences } from '../../lib/cards/preferences';
 import { CardSettingsPanel } from './card-settings';
 import { PreviewPanel } from './preview-panel';
@@ -99,12 +100,18 @@ export function CardEditor() {
 
   function saveSettings() {
     try {
+      if (!validCardLayout(card)) throw new Error('Perbaiki ukuran kartu dan font sebelum menyimpan.');
       parseBackup(serialized, false);
+      // Preferences are durable, while names/identities and schedules stay tab-scoped.
+      // Neither participants, photos, signatures nor logo files are serialized.
       localStorage.setItem(storageKey, serialized);
+      sessionStorage.setItem(sessionCardKey, packSessionCard(card));
       setSavedSettings({ snapshot: settingsSnapshot, assets });
-      setStorageMessage('');
-    } catch {
-      setStorageMessage('Pengaturan belum tersimpan di browser. Periksa nilai pengaturan dan ketersediaan penyimpanan.');
+      setStorageMessage('Pengaturan berhasil disimpan. Preferensi tetap tersedia di browser; KOP dan jadwal dipulihkan selama sesi tab aktif (maks. 2 jam). Foto, logo, dan tanda tangan tidak disimpan.');
+    } catch (cause) {
+      setSavedSettings(undefined);
+      setStorageMessage(cause instanceof Error && cause.message.startsWith('Perbaiki')
+        ? cause.message : 'Gagal menyimpan pengaturan. Periksa akses penyimpanan browser dan coba lagi.');
     }
   }
 
@@ -120,6 +127,8 @@ export function CardEditor() {
   }, []);
 
   const clearSession = useCallback(() => {
+    try { sessionStorage.removeItem(sessionCardKey); } catch { /* Storage may be blocked. */ }
+    setSavedSettings(undefined);
     setDataset({ participants: [], selected: new Set() });
     setPhotos(new Map());
     setAssets({});
@@ -136,6 +145,7 @@ export function CardEditor() {
     setSessionMessage('Sesi dan pengaturan telah direset.');
     try {
       localStorage.removeItem(storageKey);
+      sessionStorage.removeItem(sessionCardKey);
     } catch {
       setStorageMessage('Penyimpanan browser tidak tersedia. Pengaturan hanya berlaku untuk tab ini.');
     }
@@ -146,6 +156,12 @@ export function CardEditor() {
       try {
         const saved = localStorage.getItem(storageKey);
         if (saved) restore(parseBackup(saved, false).preferences);
+        const storedCard = sessionStorage.getItem(sessionCardKey);
+        if (storedCard) {
+          const session = unpackSessionCard(storedCard);
+          if (session) setCard((previous) => ({ ...previous, ...session }));
+          else sessionStorage.removeItem(sessionCardKey);
+        }
       } catch {
         setStorageMessage('Preferensi tersimpan tidak dapat dibaca. Pengaturan bawaan digunakan.');
       }
@@ -504,8 +520,18 @@ export function CardEditor() {
                   {format !== null && <div className="layout-card-preview-stage"><CardPreview {...renderCard(previewParticipant)} /></div>}
                 </details>}
                 {setting === 2 && <details className="print-extra"><summary>Pratinjau kartu</summary><CardPreview {...renderCard(previewParticipant)} /></details>}
-                <button className="action kop-save" type="button" onClick={saveSettings}>Simpan Pengaturan</button>
-                <small className="kop-save-note">Preferensi disimpan di browser. Isi KOP dan aset berlaku selama sesi.</small>
+                <div className="kop-save-bar">
+                  <button className="action kop-save" type="button" onClick={saveSettings}>
+                    <EditorIcon name="download" /> Simpan Pengaturan
+                  </button>
+                  <span className="kop-save-result" role="status" aria-live="polite">
+                    {savedSettings?.snapshot === settingsSnapshot && savedSettings.assets === assets
+                      ? '✓ Perubahan saat ini tersimpan' : 'Ada perubahan yang belum disimpan'}
+                  </span>
+                </div>
+                <small className="kop-save-note">Preferensi disimpan di browser; teks KOP/jadwal hanya selama sesi tab aktif.
+                  Foto, logo, dan tanda tangan tidak disimpan ulang.</small>
+                {storageMessage && <p className="kop-save-message" role={storageMessage.startsWith('Gagal') || storageMessage.startsWith('Perbaiki') ? 'alert' : 'status'}>{storageMessage}</p>
                 <BackupPanel key={`backup-${revision}`} preferences={preferences} heading={heading}
                   onRestore={restore} storageMessage={storageMessage} compact={setting !== 0} />
               </div>
