@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { fieldsFor } from '../../lib/participants/model';
+import { fieldsFor, photoFieldFor } from '../../lib/participants/model';
 import type { Field } from '../../lib/participants/model';
 import type { CardRenderModel } from '../../lib/cards/render-model';
 import { kopFields, validCardLayout } from '../../lib/cards/settings';
@@ -46,7 +46,7 @@ function CardQr({ reference }: { reference: string }) {
   </svg>;
 }
 
-export function CardPreview({ format, custom, participant, photo, settings, assets, hidden, output = false }: CardRenderModel & { output?: boolean }) {
+export function CardPreview({ format, custom, customAppearance, participant, photo, settings, assets, hidden, output = false }: CardRenderModel & { output?: boolean }) {
   const [overflow, setOverflow] = useState(false);
   const [element, setElement] = useState<HTMLElement | null>(null);
   useEffect(() => {
@@ -62,7 +62,7 @@ export function CardPreview({ format, custom, participant, photo, settings, asse
   }, [element, output]);
 
   if (!validCardLayout(settings)) return <p role="alert">Gunakan lebar 60–180 mm, tinggi 40–150 mm, dan teks 6–12 pt.</p>;
-  const fields = fieldsFor(format, custom).filter((field) => field === 'NamaMurid' || field === (format === 0 ? 'Username' : 'NoPeserta') || !hidden.includes(field));
+  const fields = fieldsFor(format, custom).filter((field) => field === 'NamaMurid' || field === photoFieldFor(format, customAppearance?.photoKey) || !hidden.includes(field));
   const scheduleTable = settings.showSchedule ? settings.scheduleTable : null;
   const schedule = settings.showSchedule ? settings.schedule.split('\n').map((line) => line.trim()).filter(Boolean) : [];
   return <div className="card-preview-wrap">
@@ -77,7 +77,7 @@ export function CardPreview({ format, custom, participant, photo, settings, asse
         <div className="exam-card-body">
           <div className="min-w-0">
             <dl style={{ textAlign: settings.align }}>
-              {fields.map((field) => <div key={field}><dt>{labels[field]}</dt><dd>{participant.values[field] || '—'}</dd></div>)}
+              {fields.map((field) => <div key={field}><dt>{labels[field]}</dt><dd className={format === 7 && customAppearance?.mono.includes(field) ? "font-mono" : undefined}>{participant.values[field] || '—'}</dd></div>)}
             </dl>
             <div className="flex gap-2 items-end mt-1">
               {settings.photo && (photo ? <CardImage blob={photo} label="Foto peserta" /> : <span className="card-photo-empty">Foto</span>)}

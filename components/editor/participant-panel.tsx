@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { defaultMapping, fieldsFor, validateRows } from '../../lib/participants/model';
+import { defaultMapping, fieldsFor, photoFieldFor, validateRows } from '../../lib/participants/model';
 import type { Field, Issue, Mapping, Participant, WorkbookRows } from '../../lib/participants/model';
 import { newCardReference } from '../../lib/cards/qr';
 import { EditorIcon } from './editor-icon';
@@ -30,10 +30,11 @@ function csvCell(value: string) {
   return '"' + safe.replaceAll('"', '""') + '"';
 }
 
-export function ParticipantPanel({ active, format, custom, photos, onDataset, onPhotos }: {
+export function ParticipantPanel({ active, format, custom, customPhotoKey, photos, onDataset, onPhotos }: {
   active: boolean;
   format: number | null;
   custom: readonly Field[];
+  customPhotoKey?: Field;
   photos: ReadonlyMap<string, Blob>;
   onDataset: (dataset: { participants: Participant[]; selected: Set<string> }) => void;
   onPhotos: (photos: Map<string, Blob>) => void;
@@ -47,9 +48,9 @@ export function ParticipantPanel({ active, format, custom, photos, onDataset, on
   const [names, setNames] = useState<string[]>([]);
   const [sheet, setSheet] = useState('');
   const [input, setInput] = useState<WorkbookRows | null>(null);
-  const [mapped, setMapped] = useState<{ format: number; values: Mapping }>({ format: 0, values: {} });
+  const [mapped, setMapped] = useState<{ schema: string; values: Mapping }>({ schema: '', values: {} });
   const [revision, setRevision] = useState(0);
-  const [dataset, setDataset] = useState<{ format: number; rows: Participant[] } | null>(null);
+  const [dataset, setDataset] = useState<{ format: number; schema: string; rows: Participant[] } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState('');
   const [facets, setFacets] = useState<Partial<Record<(typeof filters)[number], string>>>({});
@@ -57,9 +58,11 @@ export function ParticipantPanel({ active, format, custom, photos, onDataset, on
   const [page, setPage] = useState(0);
   const formatId = format ?? 0;
   const fields = fieldsFor(formatId, custom);
-  const mapping = useMemo(() => mapped.format === formatId ? mapped.values : defaultMapping(input?.headers ?? [], fields), [mapped, formatId, input, fields]);
-  const validation = useMemo(() => input ? validateRows(input, formatId, mapping, custom) : null, [input, formatId, mapping, custom]);
-  const participants = dataset?.format === format ? dataset?.rows : undefined;
+  const photoKey = photoFieldFor(formatId, customPhotoKey);
+  const schema = formatId === 7 ? `7:${photoKey}:${[...fields].sort().join()}` : String(formatId);
+  const mapping = useMemo(() => mapped.schema === schema ? mapped.values : defaultMapping(input?.headers ?? [], fields), [mapped, schema, input, fields]);
+  const validation = useMemo(() => input ? validateRows(input, formatId, mapping, custom, customPhotoKey) : null, [input, formatId, mapping, custom, customPhotoKey]);
+  const participants = dataset?.schema === schema ? dataset?.rows : undefined;
   const rows = useMemo(() => (participants ?? []).filter((p) =>
     `${p.id} ${p.name}`.toLocaleLowerCase('id').includes(query.trim().toLocaleLowerCase('id')) &&
     filters.every((field) => !facets[field] || p.values[field] === facets[field]),
@@ -121,7 +124,7 @@ export function ParticipantPanel({ active, format, custom, photos, onDataset, on
         setSheet(data.names[0]);
         send(current, { action: 'read', sheet: data.names[0] });
       } else if (data.action === 'read') {
-        setMapped({ format: formatId, values: defaultMapping(data.input.headers, fields) });
+        setMapped({ schema, values: defaultMapping(data.input.headers, fields) });
         setInput(data.input);
       } else {
         download(new Blob([data.template], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `template-format-${formatId + 1}.xlsx`);
@@ -168,7 +171,7 @@ export function ParticipantPanel({ active, format, custom, photos, onDataset, on
     onPhotos(new Map());
     setRevision((value) => value + 1);
     const imported = validation.participants.map((participant) => ({ ...participant, cardReference: newCardReference() }));
-    setDataset({ format, rows: imported });
+    setDataset({ format, schema, rows: imported });
     setSelected(new Set(validation.participants.map((p) => p.id)));
     setQuery('');
     setFacets({});
@@ -240,7 +243,7 @@ export function ParticipantPanel({ active, format, custom, photos, onDataset, on
               <div className="grid gap-3 sm:grid-cols-2">
                 {fields.map((field) => <label className="grid min-w-0 gap-1" key={field}>{field} <select value={mapping[field] ?? ''} onChange={(event) => {
                   const value = event.target.value;
-                  setMapped({ format: formatId, values: { ...mapping, [field]: value === '' ? undefined : Number(value) } });
+                  setMapped({ schema, values: { ...mapping, [field]: value === '' ? undefined : Number(value) } });
                 }}>
                   <option value="">Pilih kolom</option>
                   {input.headers.map((header, index) => header.trim().toLowerCase() === 'password' ? null :
@@ -270,8 +273,10 @@ export function ParticipantPanel({ active, format, custom, photos, onDataset, on
           </button>
         </footer>
       </dialog>
-      {dataset && !participants && <p role="status">Data tersimpan untuk Format {dataset.format + 1}. Kembali ke format tersebut untuk melihatnya.</p>}
-      <PhotoPanel key={revision} participants={participants} photoKey={formatId === 0 ? 'Username' : 'NoPeserta'} onPhotos={onPhotos} />
+      {dataset && !participants && <p role="status">{dataset.format === formatId
+        ? 'Format Kustom berubah. Impor ulang data murid untuk memakai kolom dan Acuan Foto yang baru.'
+        : `Data tersimpan untuk Format ${dataset.format + 1}. Kembali ke format tersebut untuk melihatnya.`}</p>}
+      <PhotoPanel key={revision} participants={participants} photoKey={photoKey} onPhotos={onPhotos} />
       <div className="panel data-wide data-preview">
         <header className="data-title"><span className="data-icon"><EditorIcon name="table" /></span>
           <h2>Preview Data Masuk</h2><span className="format-count">{participants?.length ?? 0} Murid</span>

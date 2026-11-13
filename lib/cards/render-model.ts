@@ -1,4 +1,5 @@
 import type { CardSettings, InstitutionAssets } from './settings';
+import type { CustomAppearance } from './preferences';
 import type { Field, Participant } from '../participants/model';
 
 export const previewFilters = ['Kelas', 'Ruang', 'Sesi'] as const;
@@ -8,6 +9,7 @@ export type PreviewScope = 'all' | 'selected';
 export type CardRenderModel = {
   format: number;
   custom: readonly Field[];
+  customAppearance?: CustomAppearance;
   participant: Participant;
   photo?: Blob;
   settings: CardSettings;
