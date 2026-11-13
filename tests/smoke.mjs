@@ -75,7 +75,7 @@ const photoNames = Array.from({ length: 20 }, (_, index) => String(index + 1).pa
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGNkYPjPQApgIkn1qIZRDUNKAwA+MAEfWiW9ygAAAABJRU5ErkJggg==', 'base64');
 await Promise.all(photoNames.map((name) => writeFile(join(fixtureDir, name), png)));
 execFileSync('zip', ['-q', archive, ...photoNames], { cwd: fixtureDir });
-const browser = await puppeteer.launch({
+let browser = await puppeteer.launch({
   executablePath: await chromium.executablePath(),
   args: chromium.args,
   headless: 'shell',
@@ -444,9 +444,13 @@ try {
         assert.ok(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length >= 4));
         console.log('Smoke trace: completed format', format);
       }
-      // Start interactive custom-format checks on a new CDP page after
-      // closing the page used for the 500-card print and PDF stress test.
+      // Isolate interactive form tests in a new Chromium process: the full
+      // PDF/print regression leaves considerable DOM and renderer activity.
       await page.close();
+      await browser.close();
+      browser = await puppeteer.launch({
+        executablePath: await chromium.executablePath(), args: chromium.args, headless: 'shell',
+      });
       page = await browser.newPage();
       await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: name === 'mobile', hasTouch: name === 'mobile' });
       await page.setCacheEnabled(false);
