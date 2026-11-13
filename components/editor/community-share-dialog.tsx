@@ -64,7 +64,7 @@ export function CommunityShareDialog({ formatName, busy, error, onCancel, onConf
           <input type="checkbox" checked={anonymous} disabled={busy}
             onChange={(event) => { setAnonymous(event.currentTarget.checked); setValidation(''); }} />
           <span><strong>Bagikan secara Anonim</strong>
-            <small>Nama Anda tidak akan ditampilkan — kontribusi tetap tercatat sebagai "Anonim".</small>
+            <small>Nama Anda tidak akan ditampilkan — kontribusi tetap tercatat sebagai &quot;Anonim&quot;.</small>
           </span>
         </label>
         {(validation || error) && <p className="community-share-error" role="alert">{validation || error}</p>}
