@@ -92,6 +92,55 @@ try {
       await page.keyboard.up('Control');
       await page.keyboard.press('Backspace');
       await page.waitForFunction(() => document.querySelectorAll('.format-grid article').length === 8);
+
+      // Local stub: validate catalog display, selection, search and preview without writing to Neon.
+      const sampleCommunity = [{
+        id: 9001, name: 'Format Uji Komunitas',
+        fields: ['NoPeserta', 'NISN', 'NamaMurid', 'Kelas', 'Ruang', 'Sesi'],
+        photoKey: 'NoPeserta', mono: [],
+        labels: { NoPeserta: 'No. Peserta' },
+        contributor: 'Kontributor Simulasi',
+        createdAt: '2026-11-13T12:00:00.000Z',
+      }];
+      await page.setRequestInterception(true);
+      const communityRequest = (request) => {
+        if (request.method() === 'GET' && new URL(request.url()).pathname === '/api/community-formats') {
+          void request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(sampleCommunity) });
+        } else {
+          void request.continue();
+        }
+      };
+      page.on('request', communityRequest);
+      await page.locator('.community-refresh').click();
+      await page.waitForSelector('.community-card[data-community-id="9001"]', { visible: true });
+      assert.match(await page.$eval('.community-card-byline', (el) => el.textContent),
+        /Kontributor Simulasi.*13 Nov 2026/);
+      assert.equal(await page.$eval('.community-card-fields li', (items) => items.length), 6);
+      assert.equal(await page.$eval('.community-extra-fields', (el) => el.textContent.trim()), '+1 field lainnya');
+      await page.locator('.format-library-filters button:nth-child(3)').click();
+      assert.equal(await page.$eval('.format-grid article', (els) => els.length), 1);
+      await page.locator('input[aria-label="Cari format"]').fill('Kontributor Simulasi');
+      assert.equal(await page.$eval('.community-card', (els) => els.length), 1);
+      await page.locator('input[aria-label="Cari format"]').fill('');
+      await page.locator('.community-card .community-choose').click();
+      await page.waitForSelector('.community-card[data-selected="true"]');
+      assert.equal(await page.$eval('.community-card[data-selected="true"] .community-choose',
+        (el) => el.disabled), true);
+      await page.locator('.community-card .community-preview').click();
+      await page.waitForSelector('#format-preview-title');
+      assert.match(await page.$eval('#format-preview-title', (el) => el.textContent), /Format Uji Komunitas/);
+      await page.locator('.format-close').click();
+      await page.waitForFunction(() => !document.querySelector('.format-dialog[open]'));
+      await page.locator('.format-library-filters button:nth-child(2)').click();
+      assert.equal(await page.$eval('.community-card', (els) => els.length), 0);
+      await page.locator('#pick-format-1').click();
+      await page.waitForSelector('#pick-format-1[aria-pressed="true"]');
+      await page.locator('.format-library-filters button:nth-child(1)').click();
+      assert.equal(await page.$eval('.community-card[data-selected="true"]', (els) => els.length), 0);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+      await page.setRequestInterception(false);
+      page.off('request', communityRequest);
+
       const trigger = 'button[aria-label="Preview Format 2"]';
       await page.locator(trigger).click();
       await page.waitForSelector('.format-dialog[open] .exam-card');
