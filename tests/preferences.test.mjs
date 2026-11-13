@@ -26,3 +26,12 @@ test('rejects malformed, unsupported, oversized and sensitive backup payloads', 
     JSON.stringify({ ...preferences, custom: ['NamaMurid', 'NamaMurid'] }),
   ]) assert.throws(() => parseBackup(raw));
 });
+
+test('restores pre-KOP preferences and validates new appearance settings', () => {
+  const legacy = { ...preferences.settings };
+  delete legacy.kopStyles;
+  delete legacy.signatureSize;
+  delete legacy.signatureOverlap;
+  assert.deepEqual(parseBackup(JSON.stringify({ ...preferences, settings: legacy })).preferences, preferences);
+  assert.throws(() => parseBackup(JSON.stringify({ ...preferences, settings: { ...preferences.settings, signatureSize: 3 } })));
+});

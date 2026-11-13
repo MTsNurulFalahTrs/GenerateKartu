@@ -4,11 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import { maxBackupBytes, parseBackup } from '../../lib/cards/preferences';
 import type { Heading, Preferences } from '../../lib/cards/preferences';
 
-export function BackupPanel({ preferences, heading, onRestore, onReset, storageMessage }: {
+export function BackupPanel({ preferences, heading, onRestore, storageMessage }: {
   preferences: Preferences;
   heading: Heading;
   onRestore: (preferences: Preferences, heading?: Heading) => void;
-  onReset: () => void;
   storageMessage: string;
 }) {
   const [includeHeading, setIncludeHeading] = useState(false);
@@ -66,19 +65,14 @@ export function BackupPanel({ preferences, heading, onRestore, onReset, storageM
     <p>Backup JSON menyimpan preferensi. Data peserta, jadwal, foto, logo, tanda tangan, alamat, dan NIP tetap di sesi ini.</p>
     <label className="block mb-3"><input type="checkbox" checked={includeHeading} onChange={(event) => setIncludeHeading(event.target.checked)} /> Sertakan nama institusi, nama ujian, dan tahun pelajaran</label>
     <div className="flex flex-wrap items-center gap-3">
-      <button type="button" className="action" onClick={download}>Unduh backup JSON</button>
-      <label className="grid min-w-0 gap-1">Impor backup JSON
+      <button type="button" className="action" onClick={download}>Ekspor Konfigurasi</button>
+      <label className="grid min-w-0 gap-1">Impor Konfigurasi
         <input className="max-w-full" type="file" accept=".json,application/json" disabled={busy} onChange={(event) => {
           const file = event.currentTarget.files?.[0];
           if (file) void restore(file);
           event.currentTarget.value = '';
         }} />
       </label>
-      <button type="button" id="reset-card-session" className="action" disabled={busy} onClick={() => {
-        if (window.confirm('Reset pengaturan dan hapus data peserta, foto, serta aset dari sesi ini?')) {
-          onReset();
-        }
-      }}>Reset sesi dan pengaturan</button>
     </div>
     {storageMessage && <p role="status">{storageMessage}</p>}
     {message && <p role={failed ? 'alert' : 'status'}>{message}</p>}

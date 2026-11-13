@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { fieldsFor } from '../../lib/participants/model';
 import type { Field } from '../../lib/participants/model';
 import type { CardRenderModel } from '../../lib/cards/render-model';
+import { kopFields } from '../../lib/cards/settings';
+import type { CardSettings } from '../../lib/cards/settings';
 import { qrPath } from '../../lib/cards/qr';
 
 const labels: Record<Field, string> = {
@@ -26,6 +28,15 @@ export function CardImage({ blob, label }: { blob?: Blob; label: string }) {
     // A local object URL never crosses the Next.js image optimizer.
     // eslint-disable-next-line @next/next/no-img-element
     ? <img className="card-asset" src={image.url} alt={label} /> : null;
+}
+
+export function KopText({ settings }: { settings: CardSettings }) {
+  return <div>{kopFields.map((field) => {
+    const text = settings[field] || (field === 'institution' ? 'Nama Sekolah/Madrasah' : field === 'exam' ? 'Kartu Peserta Ujian' : '');
+    const style = settings.kopStyles[field];
+    return text && <div key={field} style={{ fontSize: `${style.size}px`, fontWeight: style.bold ? 700 : 400,
+      fontStyle: style.italic ? 'italic' : 'normal' }}>{text}</div>;
+  })}</div>;
 }
 
 function CardQr({ reference }: { reference: string }) {
@@ -60,9 +71,7 @@ export function CardPreview({ format, custom, participant, photo, settings, asse
       <div className="exam-card-content">
         <header className="exam-card-head">
           <div><CardImage blob={assets.logoLeft} label="Logo kiri" /></div>
-          <div><strong>{settings.institution || 'Nama Sekolah/Madrasah'}</strong><br />
-            {settings.exam || 'Kartu Peserta Ujian'}<br />
-            {settings.year && <>{settings.year}<br /></>}{settings.address}</div>
+          <KopText settings={settings} />
           <div><CardImage blob={assets.logoRight} label="Logo kanan" /></div>
         </header>
         <div className="exam-card-body">
@@ -75,10 +84,12 @@ export function CardPreview({ format, custom, participant, photo, settings, asse
               {settings.qr && participant.cardReference && <CardQr reference={participant.cardReference} />}
             </div>
           </div>
-          <div className="exam-card-sign">
-            <span>{[settings.city, settings.date].filter(Boolean).join(', ')}</span>
+          <div className="exam-card-sign" data-overlap={settings.signatureOverlap}>
+            <span>{[settings.city, settings.date || new Intl.DateTimeFormat('id-ID', { dateStyle: 'long', timeZone: 'Asia/Jakarta' }).format(new Date())].filter(Boolean).join(', ')}</span>
             <span>Kepala {settings.institution || 'Sekolah/Madrasah'}</span>
-            <CardImage blob={assets.signature} label="Tanda tangan" />
+            {assets.signature && <div className="exam-card-signature" style={{ height: `${settings.signatureSize}cm` }}>
+              <CardImage blob={assets.signature} label="Tanda tangan" />
+            </div>}
             <strong>{settings.signer || '________________'}</strong>
             {settings.nip && <span>NIP {settings.nip}</span>}
           </div>
