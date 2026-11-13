@@ -356,6 +356,11 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 
 .kop-save-note { display: block; margin-top: .45rem; color: var(--muted); }
 
+.import-dialog.panel { width: min(44rem, calc(100% - 2rem)); padding: 0; }
+.import-dialog > header, .import-dialog-actions { background: var(--surface); }
+.import-dialog > header { position: sticky; top: 0; z-index: 1; border-bottom: 1px solid var(--line); }
+.import-dialog-body { padding: .5rem 1.25rem 1rem; }
+.import-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; border-top: 1px solid var(--line); }
 
 /* Layout & Cetak — original control hierarchy with accessible, responsive switches. */
 .layout-body { display: grid; gap: 1.25rem; padding: clamp(.35rem, 2vw, 1rem); padding-top: 1.25rem; }

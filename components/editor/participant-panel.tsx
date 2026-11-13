@@ -37,6 +37,8 @@ export function ParticipantPanel({ format, custom, photos, onDataset, onPhotos }
   onDataset: (dataset: { participants: Participant[]; selected: Set<string> }) => void;
   onPhotos: (photos: Map<string, Blob>) => void;
 }) {
+  const importDialog = useRef<HTMLDialogElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   const worker = useRef<Worker | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [busy, setBusy] = useState(false);
@@ -70,6 +72,11 @@ export function ParticipantPanel({ format, custom, photos, onDataset, onPhotos }
     worker.current?.terminate();
     if (timer.current) clearTimeout(timer.current);
   }, []);
+
+  useEffect(() => {
+    const dialog = importDialog.current;
+    if (names.length && !busy && dialog && !dialog.open) dialog.showModal();
+  }, [names, busy]);
 
   function stop() {
     worker.current?.terminate();
@@ -121,6 +128,20 @@ export function ParticipantPanel({ format, custom, photos, onDataset, onPhotos }
     send(current, request);
   }
 
+  function clearImport() {
+    stop();
+    setInput(null);
+    setNames([]);
+    setSheet('');
+    setMessage('');
+  }
+
+  function closeImport() {
+    clearImport();
+    importDialog.current?.close();
+    fileInput.current?.focus();
+  }
+
   function choose(file: File) {
     setNames([]);
     setSheet('');
@@ -140,7 +161,7 @@ export function ParticipantPanel({ format, custom, photos, onDataset, onPhotos }
   }
 
   function applyImport() {
-    if (!validation || validation.issues.length || format === null) return;
+    if (busy || !validation || validation.issues.length || format === null) return;
     onPhotos(new Map());
     setRevision((value) => value + 1);
     const imported = validation.participants.map((participant) => ({ ...participant, cardReference: newCardReference() }));
@@ -149,11 +170,7 @@ export function ParticipantPanel({ format, custom, photos, onDataset, onPhotos }
     setQuery('');
     setFacets({});
     setPage(0);
-    setInput(null);
-    setNames([]);
-    setSheet('');
-    setMessage('');
-    stop();
+    closeImport();
   }
 
   function toggle(id: string) {
@@ -188,7 +205,7 @@ export function ParticipantPanel({ format, custom, photos, onDataset, onPhotos }
           }}>
             <span className="data-icon"><EditorIcon name="upload" /></span>
             <strong>Klik atau seret file Excel ke sini</strong><small>Format: .xlsx atau .xls</small>
-          <input aria-label="Berkas Excel peserta" className="sr-only" type="file" accept=".xlsx,.xls"
+          <input ref={fileInput} aria-label="Berkas Excel peserta" className="sr-only" type="file" accept=".xlsx,.xls"
             onChange={(event) => {
               const file = event.currentTarget.files?.[0];
               if (file) choose(file);
@@ -196,45 +213,60 @@ export function ParticipantPanel({ format, custom, photos, onDataset, onPhotos }
             }} />
           </label>
         </div>
-        {busy && <p role="status">Memproses Excel… <button type="button" onClick={() => { stop(); setNames([]); setInput(null); }}>Batalkan</button></p>}
-        {message && <p role="alert">{message}</p>}
-        {names.length > 0 && <label className="block mt-3">Sheet <select id="participant-sheet" value={sheet} disabled={busy} onChange={(event) => {
-          setSheet(event.target.value);
-          setInput(null);
-          setMessage('');
-          if (worker.current) send(worker.current, { action: 'read', sheet: event.target.value });
-        }}>{names.map((name) => <option key={name}>{name}</option>)}</select></label>}
-        {input && validation && (
-          <div className="mt-4 grid gap-3">
-            <h3>Pemetaan kolom</h3>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {fields.map((field) => <label key={field}>{field} <select value={mapping[field] ?? ''} onChange={(event) => {
-                const value = event.target.value;
-                setMapped({ format: formatId, values: { ...mapping, [field]: value === '' ? undefined : Number(value) } });
-              }}>
-                <option value="">Pilih kolom</option>
-                {input.headers.map((header, index) => header.trim().toLowerCase() === 'password' ? null :
-                  <option key={index} value={index}>{header || 'Tanpa judul'} (kolom {index + 1})</option>)}
-              </select></label>)}
-            </div>
-            <h3>Pratinjau impor · {input.rows.length} baris</h3>
-            <div className="table-scroll" role="region" aria-label="Pratinjau impor Excel" tabIndex={0}>
-              <table className="w-full text-left">
-                <thead><tr><th scope="col">Baris</th>{fields.map((field) => <th scope="col" className="px-2" key={field}>{field}</th>)}</tr></thead>
-                <tbody>{input.rows.slice(0, 5).map((row) => <tr key={row.number}><td>{row.number}</td>{fields.map((field) => <td className="px-2 break-all" key={field}>{row.cells[mapping[field] ?? -1] || '—'}</td>)}</tr>)}</tbody>
-              </table>
-            </div>
-            {!!validation.issues.length && <div role="alert">
-              <p>{validation.issues.length} masalah. Perbaiki workbook atau pemetaan kolom.</p>
-              <ul>{validation.issues.slice(0, 10).map((issue, index) => <li key={index}>Baris {issue.row}, {issue.column}. {issue.message}</li>)}</ul>
-              <button className="action" type="button" onClick={() => downloadIssues(validation.issues)}>Unduh laporan kesalahan</button>
-            </div>}
-            <button id="apply-participant-import" className="action justify-self-start" type="button" disabled={busy || !!validation.issues.length} onClick={applyImport}>
-              {dataset ? 'Ganti data peserta' : 'Terapkan impor'}
-            </button>
-          </div>
-        )}
+        {!names.length && busy && <p role="status">Memproses Excel… <button type="button" onClick={clearImport}>Batalkan</button></p>}
+        {!names.length && message && <p role="alert">{message}</p>}
       </div>
+      <dialog ref={importDialog} className="format-dialog import-dialog panel" aria-labelledby="participant-import-title"
+        onCancel={(event) => { event.preventDefault(); closeImport(); }}>
+        <header>
+          <h2 id="participant-import-title">Impor Data Murid</h2>
+          <button type="button" className="action" aria-label="Tutup impor data murid" onClick={closeImport}>×</button>
+        </header>
+        <div className="import-dialog-body">
+          {busy && <p role="status">Memproses Excel…</p>}
+          {message && <p role="alert">{message}</p>}
+          {names.length > 0 && <label className="block mt-3">Sheet <select id="participant-sheet" value={sheet} disabled={busy} onChange={(event) => {
+            setSheet(event.target.value);
+            setInput(null);
+            setMessage('');
+            if (worker.current) send(worker.current, { action: 'read', sheet: event.target.value });
+          }}>{names.map((name) => <option key={name}>{name}</option>)}</select></label>}
+          {input && validation && (
+            <div className="mt-4 grid gap-3">
+              <h3>Pemetaan kolom</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {fields.map((field) => <label className="grid min-w-0 gap-1" key={field}>{field} <select value={mapping[field] ?? ''} onChange={(event) => {
+                  const value = event.target.value;
+                  setMapped({ format: formatId, values: { ...mapping, [field]: value === '' ? undefined : Number(value) } });
+                }}>
+                  <option value="">Pilih kolom</option>
+                  {input.headers.map((header, index) => header.trim().toLowerCase() === 'password' ? null :
+                    <option key={index} value={index}>{header || 'Tanpa judul'} (kolom {index + 1})</option>)}
+                </select></label>)}
+              </div>
+              <h3>Pratinjau impor · {input.rows.length} baris</h3>
+              <div className="table-scroll" role="region" aria-label="Pratinjau impor Excel" tabIndex={0}>
+                <table className="w-full text-left">
+                  <thead><tr><th scope="col">Baris</th>{fields.map((field) => <th scope="col" className="px-2" key={field}>{field}</th>)}</tr></thead>
+                  <tbody>{input.rows.slice(0, 5).map((row) => <tr key={row.number}><td>{row.number}</td>{fields.map((field) => <td className="px-2 break-all" key={field}>{row.cells[mapping[field] ?? -1] || '—'}</td>)}</tr>)}</tbody>
+                </table>
+              </div>
+              {!!validation.issues.length && <div role="alert">
+                <p>{validation.issues.length} masalah. Perbaiki workbook atau pemetaan kolom.</p>
+                <ul>{validation.issues.slice(0, 10).map((issue, index) => <li key={index}>Baris {issue.row}, {issue.column}. {issue.message}</li>)}</ul>
+                <button className="action" type="button" onClick={() => downloadIssues(validation.issues)}>Unduh laporan kesalahan</button>
+              </div>}
+            </div>
+          )}
+        </div>
+        <footer className="import-dialog-actions">
+          <button type="button" className="action" onClick={closeImport}>Batal</button>
+          <button id="apply-participant-import" className="action data-next" type="button"
+            disabled={busy || !validation || !!validation.issues.length} onClick={applyImport}>
+            {dataset ? 'Ganti data peserta' : 'Terapkan impor'}
+          </button>
+        </footer>
+      </dialog>
       {dataset && !participants && <p role="status">Data tersimpan untuk Format {dataset.format + 1}. Kembali ke format tersebut untuk melihatnya.</p>}
       <PhotoPanel key={revision} participants={participants} photoKey={formatId === 0 ? 'Username' : 'NoPeserta'} onPhotos={onPhotos} />
       <div className="panel data-wide data-preview">
