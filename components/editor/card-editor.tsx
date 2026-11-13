@@ -19,7 +19,7 @@ import { EditorIcon } from './editor-icon';
 import { ParticipantPanel } from './participant-panel';
 import { formats, moveStep, steps } from '../../lib/editor';
 
-const settings = ['Kop', 'Tata Letak', 'Jadwal'] as const;
+const settings = ['KOP & Identitas', 'Layout & Cetak', 'Tabel Jadwal'] as const;
 const sample: Participant = {
   id: 'CONTOH-001',
   cardReference: 'GK1:00000000000000000000000000000000',
@@ -59,12 +59,25 @@ export function CardEditor() {
   const [dark, setDark] = useState(false);
   const [revision, setRevision] = useState(0);
   const [ready, setReady] = useState(false);
+  const [savedSettings, setSavedSettings] = useState<{ snapshot: string; assets: InstitutionAssets }>();
   const [storageMessage, setStorageMessage] = useState('');
   const [sessionMessage, setSessionMessage] = useState('');
   const options = pickOptions(card);
   const preferences: Preferences = { schemaVersion: 1, dark, format, custom, hidden, settings: options };
   const serialized = JSON.stringify(preferences);
   const heading = useMemo(() => pickHeading(card), [card]);
+  const settingsSnapshot = JSON.stringify(card);
+
+  function saveSettings() {
+    try {
+      parseBackup(serialized, false);
+      localStorage.setItem(storageKey, serialized);
+      setSavedSettings({ snapshot: settingsSnapshot, assets });
+      setStorageMessage('');
+    } catch {
+      setStorageMessage('Pengaturan belum tersimpan di browser. Periksa nilai pengaturan dan ketersediaan penyimpanan.');
+    }
+  }
 
   const restore = useCallback((saved: Preferences, savedHeading?: Heading) => {
     setDark(saved.dark);
@@ -84,6 +97,7 @@ export function CardEditor() {
 
   function reset() {
     clearSession();
+    setSavedSettings(undefined);
     restore({ schemaVersion: 1, dark: false, format: 0, custom: defaultCustom, hidden: [], settings: pickOptions(defaultCard) });
     setSessionMessage('Sesi dan pengaturan telah direset.');
     try {
@@ -224,6 +238,15 @@ export function CardEditor() {
           <section key={label} id={`panel-${index}`} role="tabpanel" aria-labelledby={`step-${index}`}
             tabIndex={0} hidden={step !== index}>
             {index === 1 && <div className="data-badges"><span>Langkah 2 dari 4</span><span>Data lokal — privasi terjaga</span></div>}
+            {index === 2 && <div className="kop-page-meta">
+              <span className="format-count">Langkah 3 dari 4</span>
+              <div>
+                <button className="action" id="reset-card-session" type="button" onClick={() => {
+                  if (window.confirm('Reset pengaturan dan hapus data peserta, foto, serta aset dari sesi ini?')) reset();
+                }}>Reset</button>
+                <span className="format-count" role="status">{savedSettings?.snapshot === settingsSnapshot && savedSettings.assets === assets ? 'Disimpan' : 'Belum disimpan'}</span>
+              </div>
+            </div>}
             <h1 className={index === 0 ? 'sr-only' : undefined}>{index === 0 ? 'Pilih Format Kartu' : index === 1 ? 'Upload Data & Foto' : index === 2 ? 'Pengaturan Kartu' : label}</h1>
             {index === 0 && (
               <>
@@ -305,13 +328,15 @@ export function CardEditor() {
               </>
             )}
             {index === 2 && (
-              <div className="panel">
+              <>
+              <p>Atur KOP kartu ujian, logo, data penandatangan, dan ukuran fisik kartu.</p>
+              <div className="panel kop-shell">
                 <div className="subtabs" role="group" aria-label="Bagian pengaturan">
                   {settings.map((name, id) => (
                     <button className="action" id={`card-settings-${id}`} key={name} type="button" aria-pressed={setting === id} onClick={() => setSetting(id)}>{name}</button>
                   ))}
                 </div>
-                <h2 className="mb-3">{settings[setting]}</h2>
+                {setting !== 0 && <h2 className="mb-3">{settings[setting]}</h2>}
                 <CardSettingsPanel key={revision} section={setting} value={card} onChange={setCard} assets={assets}
                   onAssets={(name, asset) => setAssets((previous) => ({ ...previous, [name]: asset }))} />
                 {setting === 1 && format !== null && <fieldset className="mt-4">
@@ -322,10 +347,17 @@ export function CardEditor() {
                       setHidden(event.target.checked ? hidden.filter((item) => item !== field) : [...hidden, field])
                     } /> {field}</label>)}</div>
                 </fieldset>}
-                <div className="mt-4">{step === 2 && <CardPreview {...renderCard(previewParticipant)} />}</div>
+                {step === 2 && setting !== 0 && <div className="mt-4"><CardPreview {...renderCard(previewParticipant)} /></div>}
+                <button className="action kop-save" type="button" onClick={saveSettings}>Simpan Pengaturan</button>
+                <small className="kop-save-note">Preferensi disimpan di browser. Isi KOP dan aset berlaku selama sesi.</small>
                 <BackupPanel key={revision} preferences={preferences} heading={heading}
-                  onRestore={restore} onReset={reset} storageMessage={storageMessage} />
+                  onRestore={restore} storageMessage={storageMessage} />
               </div>
+              <footer className="data-footer">
+                <button className="action" type="button" onClick={() => setStep(1)}>‹ Kembali</button>
+                <button className="action data-next" type="button" onClick={() => setStep(3)}>Lihat & Cetak Kartu ›</button>
+              </footer>
+              </>
             )}
             {index === 3 && (
               <div className="panel min-w-0">
@@ -357,7 +389,7 @@ export function CardEditor() {
               hidden={previewFormat === format ? hidden : []} />
           </div>
           <footer>
-            <p>Jika isi kartu terpotong, sesuaikan ukuran kartu di <strong>Pengaturan → Tata Letak</strong>.</p>
+            <p>Jika isi kartu terpotong, sesuaikan ukuran kartu di <strong>Pengaturan → Layout & Cetak</strong>.</p>
             <button type="button" className="action format-close" onClick={() => previewDialog.current?.close()}>Tutup Preview</button>
           </footer>
         </>}

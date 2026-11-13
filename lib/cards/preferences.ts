@@ -1,4 +1,5 @@
-import type { CardSettings } from './settings';
+import { defaultCard, kopFields, kopSizes } from './settings.ts';
+import type { CardSettings } from './settings.ts';
 import type { Field } from '../participants/model';
 
 export const storageKey = 'generate-kartu:preferences:v1';
@@ -8,6 +9,7 @@ export const customFields: readonly Field[] = ['NoPeserta', 'NamaMurid', 'NISN',
 export const defaultCustom: Field[] = ['NoPeserta', 'NamaMurid', 'Kelas'];
 
 const optionKeys = ['width', 'height', 'fontSize', 'align', 'monochrome', 'photo', 'qr', 'showSchedule'] as const;
+const appearanceKeys = ['kopStyles', 'signatureSize', 'signatureOverlap'] as const;
 const headingKeys = ['institution', 'exam', 'year'] as const;
 
 export type Preferences = {
@@ -16,13 +18,13 @@ export type Preferences = {
   format: number | null;
   custom: Field[];
   hidden: Field[];
-  settings: Pick<CardSettings, (typeof optionKeys)[number]>;
+  settings: Pick<CardSettings, (typeof optionKeys)[number] | (typeof appearanceKeys)[number]>;
 };
 export type Heading = Pick<CardSettings, (typeof headingKeys)[number]>;
 
 export function pickOptions(settings: CardSettings): Preferences['settings'] {
   const { width, height, fontSize, align, monochrome, photo, qr, showSchedule } = settings;
-  return { width, height, fontSize, align, monochrome, photo, qr, showSchedule };
+  return { width, height, fontSize, align, monochrome, photo, qr, showSchedule, kopStyles: settings.kopStyles, signatureSize: settings.signatureSize, signatureOverlap: settings.signatureOverlap };
 }
 
 export function pickHeading(settings: CardSettings): Heading {
@@ -55,7 +57,20 @@ export function parseBackup(raw: string, allowHeading = true): { preferences: Pr
   const hasHeading = allowHeading && !!parsed && typeof parsed === 'object' && Object.hasOwn(parsed, 'heading');
   const value = object(parsed, hasHeading ? [...keys, 'heading'] : keys);
   if (value.schemaVersion !== 1) throw new Error('Versi backup tidak didukung.');
-  const options = object(value.settings, optionKeys);
+  const hasAppearance = !!value.settings && typeof value.settings === 'object' &&
+    appearanceKeys.some((key) => Object.hasOwn(value.settings as object, key));
+  const options = object(value.settings, hasAppearance ? [...optionKeys, ...appearanceKeys] : optionKeys);
+  const appearance = hasAppearance ? options : defaultCard;
+  const styles = object(appearance.kopStyles, kopFields);
+  for (const key of kopFields) {
+    const style = object(styles[key], ['size', 'bold', 'italic']);
+    if (!kopSizes.some((size) => size === style.size) || typeof style.bold !== 'boolean' || typeof style.italic !== 'boolean') {
+      throw new Error('Format teks KOP tidak valid.');
+    }
+  }
+  if (!between(appearance.signatureSize, 0.4, 2) || typeof appearance.signatureOverlap !== 'boolean') {
+    throw new Error('Pengaturan tanda tangan tidak valid.');
+  }
   if (typeof value.dark !== 'boolean' ||
     (value.format !== null && (!between(value.format, 0, 7) || !Number.isInteger(value.format))) ||
     !fields(value.custom) || !value.custom.includes('NoPeserta') || !value.custom.includes('NamaMurid') ||
@@ -66,7 +81,7 @@ export function parseBackup(raw: string, allowHeading = true): { preferences: Pr
     throw new Error('Nilai pengaturan backup tidak valid.');
   }
   const { schemaVersion, dark, format, custom, hidden } = value;
-  const preferences = { schemaVersion, dark, format, custom, hidden, settings: options } as Preferences;
+  const preferences = { schemaVersion, dark, format, custom, hidden, settings: { ...options, kopStyles: styles, signatureSize: appearance.signatureSize, signatureOverlap: appearance.signatureOverlap } } as Preferences;
   if (!hasHeading) return { preferences };
   const heading = object(value.heading, headingKeys);
   if (headingKeys.some((key) => typeof heading[key] !== 'string' || heading[key].length > 160)) {

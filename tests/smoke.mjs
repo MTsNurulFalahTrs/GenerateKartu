@@ -153,17 +153,25 @@ try {
       }
       await page.$eval('#step-2', (button) => button.click());
       await page.waitForSelector('#panel-2', { visible: true });
-      await page.evaluate(() => {
-        const input = [...document.querySelectorAll('#panel-2 input')].find((element) => element.labels?.[0]?.textContent.includes('Nama sekolah'));
-        if (!input) throw new Error('Input institusi hilang');
-        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-        setter.call(input, 'Madrasah Uji Fase 7');
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      });
-      await page.waitForFunction(() => document.querySelector('#panel-2 .exam-card-head')?.textContent.includes('Madrasah Uji Fase 7'));
-      await page.waitForSelector('#panel-2 img[alt="Foto peserta"]');
+      await page.locator('#kop-institution').fill('Madrasah Uji Fase 7');
+      await page.waitForFunction(() => document.querySelector('.kop-live')?.textContent.includes('Madrasah Uji Fase 7'));
+      await page.select('select[aria-label="Ukuran teks Nama Lembaga"]', '12');
+      await page.locator('button[aria-label="Miring Nama Lembaga"]').click();
+      const signatureInput = await page.$('input[aria-label="Upload Tanda Tangan"]');
+      assert.ok(signatureInput);
+      await signatureInput.uploadFile(photo);
+      await page.waitForSelector('.kop-asset-image img[alt="Tanda Tangan Digital (opsional)"]');
+      await page.locator('.kop-signature button:nth-child(3)').click();
+      await page.locator('.kop-signature input[role="switch"]').click();
+      await page.locator('.kop-save').click();
+      await page.waitForFunction(() => document.querySelector('.kop-page-meta [role=status]')?.textContent === 'Disimpan');
+      const savedAppearance = await page.evaluate(() => JSON.parse(localStorage.getItem('generate-kartu:preferences:v1')).settings);
+      assert.deepEqual(savedAppearance.kopStyles.institution, { size: 12, bold: true, italic: true });
+      assert.equal(savedAppearance.signatureSize, 1.2);
+      assert.equal(savedAppearance.signatureOverlap, true);
       await page.$eval('#card-settings-1', (button) => button.click());
       await page.waitForSelector('#card-settings-1[aria-pressed=true]');
+      await page.waitForSelector('#panel-2 img[alt="Foto peserta"]');
       await page.evaluate(() => {
         const input = [...document.querySelectorAll('#panel-2 input[type=checkbox]')].find((element) => element.labels?.[0]?.textContent.includes('Tampilkan QR'));
         if (!input) throw new Error('Toggle QR hilang');
@@ -177,6 +185,9 @@ try {
       assert.match(await page.locator('#panel-3').map((el) => el.textContent).wait(), /Lengkap Ruang/);
       assert.equal(await page.$$eval('#panel-3 .exam-card', (cards) => cards.length), 9);
       assert.match(await page.$eval('#panel-3 [role=status]', (status) => status.textContent), /500 dari 500/);
+      assert.equal(await page.$eval('#panel-3 .exam-card-head > div:nth-child(2) > div', (line) => getComputedStyle(line).fontStyle), 'italic');
+      assert.equal(await page.$eval('#panel-3 .exam-card-signature', (signature) => signature.style.height), '1.2cm');
+      assert.equal(await page.$eval('#panel-3 .exam-card-signature', (signature) => getComputedStyle(signature).position), 'absolute');
       const qr = await page.$eval('#panel-3 .card-qr path', (path) => path.getAttribute('d'));
       await page.$eval('#panel-3 nav button:last-child', (button) => button.click());
       await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('Halaman 2/56'));
@@ -312,14 +323,14 @@ try {
         await page.evaluate(() => { window.confirm = () => true; });
         await writeFile(backupFile, JSON.stringify({ ...JSON.parse(stored), format: 1, heading: { institution: 'Madrasah Pulih', exam: '', year: '' } }));
         await backupInput.uploadFile(backupFile);
-        await page.waitForFunction(() => document.querySelector('#panel-2 .exam-card-head')?.textContent.includes('Madrasah Pulih'));
+        await page.waitForFunction(() => document.querySelector('#kop-institution')?.value === 'Madrasah Pulih');
         await page.evaluate(() => {
           const time = Date.now();
           Date.now = () => time + 7200001;
           window.dispatchEvent(new Event('pageshow'));
         });
         await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('Sesi kedaluwarsa'));
-        await page.waitForFunction(() => !document.querySelector('#panel-2 .exam-card-head')?.textContent.includes('Madrasah Pulih'));
+        await page.waitForFunction(() => document.querySelector('#kop-institution')?.value !== 'Madrasah Pulih');
         await page.$eval('#reset-card-session', (button) => button.click());
         await page.waitForFunction(() => document.querySelector('main > [role=status]')?.textContent.includes('direset'));
       }
