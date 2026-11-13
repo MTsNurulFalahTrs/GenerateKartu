@@ -5,10 +5,15 @@ import type { Field } from '../../lib/participants/model';
 import type { CustomAppearance } from '../../lib/cards/preferences';
 import { EditorIcon } from './editor-icon';
 import { CommunityShareDialog } from './community-share-dialog';
+import { validCommunityName } from '../../lib/cards/community';
 import type { CommunityAttribution } from '../../lib/cards/community';
 
+function publicName(value: string) {
+  return value.replace(/\s+/g, '_').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
+}
+
 const maxRows = 6;
-const builtInOptions: { value: Field | 'Password'; label: string }[] = [
+const builtInOptions: { value: Field; label: string }[] = [
   { value: 'NamaMurid', label: 'Nama Murid' },
   { value: 'NISN', label: 'NISN' },
   { value: 'NoPeserta', label: 'No. Peserta' },
@@ -72,7 +77,7 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
       if (selection === 'manual') {
         next = customFieldIds.find((field) =>
           field === current.field || !previous.some((row) => row.field === field)) ?? '';
-      } else if (selection && selection !== 'Password' && builtInOptions.some((option) => option.value === selection)) {
+      } else if (selection && builtInOptions.some((option) => option.value === selection)) {
         const candidate = selection as Field;
         if (previous.some((row) => row.id !== id && row.field === candidate)) return previous;
         next = candidate;
@@ -132,18 +137,18 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
     }
   }
 
-  function save(event: FormEvent<HTMLFormElement>) {
+  async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving || pendingShare) return;
     const selected = rows.filter((row) => row.field !== '');
     if (!name.trim() || !rows.length || rows.length > maxRows || selected.length !== rows.length ||
       selected.some((row) => !row.label.trim() || !row.excel.trim() ||
         row.label.trim().length > 60 || row.excel.trim().length > 64 ||
-        row.excel.trim().toLowerCase() === 'password') ||
+        (row.excel.trim().toLowerCase() === 'password' && row.field !== 'Password')) ||
       new Set(selected.map((row) => row.field)).size !== selected.length ||
       new Set(selected.map((row) => row.excel.trim().toLowerCase())).size !== selected.length ||
-      !selected.some((row) => row.id === photoRow)) {
-      setError('Lengkapi setiap Field Bawaan, Label Tampilan, dan Kolom Excel (maks. 6 baris). Gunakan kolom Excel yang berbeda dan pilih satu Acuan Foto. Kolom Password tidak diperbolehkan.');
+      !selected.some((row) => row.id === photoRow && row.field !== 'Password')) {
+      setError('Lengkapi setiap Field Bawaan, Label Tampilan, dan Kolom Excel (maks. 6 baris). Gunakan kolom Excel yang berbeda dan pilih satu Acuan Foto selain Password.');
       return;
     }
     const entries = selected as (FormatRow & { field: Field })[];
@@ -158,8 +163,28 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
     };
     setError('');
     if (share) {
-      setShareError('');
-      setPendingShare({ fields, appearance });
+      if (!validCommunityName(appearance.name)) {
+        setError('Nama format komunitas hanya boleh huruf, angka, minus (-), dan underscore (_), tanpa spasi.');
+        return;
+      }
+      setSaving(true);
+      try {
+        const response = await fetch('/api/community-formats?name=' + encodeURIComponent(appearance.name), {
+          cache: 'no-store', signal: AbortSignal.timeout(8000),
+        });
+        if (!response.ok) throw new Error('Pemeriksaan nama format belum tersedia. Coba lagi.');
+        const result: { exists: boolean } = await response.json();
+        if (result.exists) {
+          setError('Nama format sudah digunakan di komunitas. Gunakan nama lain.');
+          return;
+        }
+        setShareError('');
+        setPendingShare({ fields, appearance });
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Nama format belum dapat diperiksa.');
+      } finally {
+        setSaving(false);
+      }
     } else {
       void commit(fields, appearance);
     }
@@ -177,7 +202,8 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
     <form onSubmit={save} aria-busy={saving}>
       <div className="custom-format-body">
         <label className="custom-format-name">Nama Format
-          <input required maxLength={60} value={name} onChange={(event) => setName(event.currentTarget.value)} />
+          <input required maxLength={60} value={name} onChange={(event) => setName(share ? publicName(event.currentTarget.value) : event.currentTarget.value)} />
+          {share && <small className="custom-public-name-help">Hanya huruf, angka, minus (-) dan underscore (_). Nama harus unik di komunitas.</small>}
         </label>
         <div className="custom-format-fields-heading">
           <div><h3>Field yang Tampil di Kartu</h3><p>Susun field sesuai urutan yang diinginkan.</p></div>
@@ -204,7 +230,7 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
                 onChange={(event) => setField(row.id, event.currentTarget.value)}>
                 <option value="">— Pilih —</option>
                 {builtInOptions.map((option) => <option key={option.value} value={option.value}
-                  disabled={option.value === 'Password' || rows.some((candidate) => candidate.id !== row.id && candidate.field === option.value)}>
+                  disabled={rows.some((candidate) => candidate.id !== row.id && candidate.field === option.value)}>
                   {option.label}
                 </option>)}
                 <option value="manual">-- Tulis Sendiri</option>
@@ -224,7 +250,7 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
             </label>
             <div className="custom-row-meta">
               <label><input type="radio" name="custom-photo-key" checked={photoRow === row.id}
-                onChange={() => setPhotoRow(row.id)} aria-label={`Acuan Foto ${row.field ? labels[row.field] : 'baris ' + (index + 1)}`} />
+                onChange={() => setPhotoRow(row.id)} disabled={row.field === 'Password'} aria-label={`Acuan Foto ${row.field ? labels[row.field] : 'baris ' + (index + 1)}`} />
                 <span aria-hidden="true">📷</span> Acuan Foto</label>
               <label><input type="checkbox" checked={row.mono} onChange={(event) => updateRow(row.id, { mono: event.currentTarget.checked })}
                 aria-label={`Monospace ${row.field ? labels[row.field] : 'baris ' + (index + 1)}`} />
@@ -246,16 +272,17 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
         <aside className="custom-format-note">
           <h3>Perlu Diperhatikan</h3>
           <ul>
-            <li><strong>Field Bawaan</strong> menentukan jenis data. Pilih <strong>Tulis Sendiri</strong> untuk kolom lain.</li>
-            <li><strong>Kolom Excel</strong> harus sama dengan header di file .xlsx agar terpetakan otomatis.</li>
-            <li><strong>Password</strong> tidak dapat dipilih demi keamanan data peserta.</li>
+            <li>Field bertanda <strong>📷 Acuan Foto</strong> digunakan sebagai nama file foto di ZIP — wajib ada satu.</li>
+            <li><strong>Kolom Excel</strong> harus sama persis dengan header kolom di file .xlsx (case-sensitive, tanpa spasi).</li>
+            <li>Centang <strong>Mono</strong> untuk tampilan kode seperti NISN, No. Peserta, Username, dsb.</li>
+            <li>Format ini akan tersimpan otomatis ke sesi lokal bersama pengaturan lainnya.</li>
           </ul>
         </aside>
         {error && <p className="custom-format-error" role="alert">{error}</p>}
       </div>
       <footer className="custom-format-footer">
         <label className="custom-community"><input type="checkbox" checked={share} disabled={saving}
-          onChange={(event) => setShare(event.currentTarget.checked)} />
+          onChange={(event) => { const checked = event.currentTarget.checked; setShare(checked); if (checked) setName((previous) => publicName(previous)); setError(''); }} />
           <span><strong>Bagikan format ini ke komunitas</strong>
             <small>Opsional: nama format, nama field, dan header Excel akan dipublikasikan.
               Jangan gunakan nama peserta atau data pribadi dalam metadata format.</small></span></label>
