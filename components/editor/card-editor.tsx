@@ -514,14 +514,20 @@ export function CardEditor() {
                             ? <img src={`/api/community-formats?icon=${entry.id}`} alt="" width={24} height={24} loading="lazy" />
                             : <EditorIcon name={entry.iconPreset ?? 'users'} />}</span>
                           <div className="community-card-identity">
-                            <h3 title={entry.name}>{entry.name}</h3>
+                            <h3 title={entry.name}>{entry.name}{active && <span className="community-card-active-mark" aria-label="Format sedang aktif"> ✓</span>}</h3>
                             <span className="community-card-origin"><span aria-hidden="true">🌐</span> Format Komunitas</span>
                             <small className="community-card-byline" title={entry.contributor || 'Anonim'}>
                               <span aria-hidden="true">♟</span> {entry.contributor || 'Anonim'}{date ? ' · ' + date : ''}
                             </small>
                           </div>
-                          <span className="community-card-fieldcount">{entry.fields.length} field</span>
-                          {active && <span className="community-card-active-mark" aria-label="Format sedang aktif">✓</span>}
+                          <div className="community-card-meta">
+                            <button className="community-delete" type="button" aria-haspopup="dialog"
+                              aria-label={'Hapus ' + entry.name} title="Hapus format" onClick={(event) => {
+                                deleteTrigger.current = event.currentTarget;
+                                setDeletingCommunity(entry);
+                              }}><span aria-hidden="true">×</span></button>
+                            <span className="community-card-fieldcount">{entry.fields.length} field</span>
+                          </div>
                         </header>
                         <div className="community-card-content">
                           <ul className="community-card-fields">
@@ -552,11 +558,6 @@ export function CardEditor() {
                                 setCommunityPreview(entry);
                                 setPreviewFormat(7);
                               }}><EditorIcon name="eye" /> Preview</button>
-                            <button className="community-delete" type="button" aria-haspopup="dialog"
-                              aria-label={'Hapus ' + entry.name} onClick={(event) => {
-                                deleteTrigger.current = event.currentTarget;
-                                setDeletingCommunity(entry);
-                              }}>Hapus</button>
                           </div>
                         </div>
                       </article>;
