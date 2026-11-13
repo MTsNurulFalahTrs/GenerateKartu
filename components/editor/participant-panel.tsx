@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { defaultMapping, fieldsFor, validateRows } from '../../lib/participants/model';
 import type { Field, Issue, Mapping, Participant, WorkbookRows } from '../../lib/participants/model';
+import { newCardReference } from '../../lib/cards/qr';
 import { PhotoPanel } from './photo-panel';
 import type { WorkbookRequest } from '../../lib/participants/workbook.worker';
 
@@ -28,10 +29,10 @@ function csvCell(value: string) {
   return '"' + safe.replaceAll('"', '""') + '"';
 }
 
-export function ParticipantPanel({ format, custom, onSelection, onPhotos }: {
+export function ParticipantPanel({ format, custom, onDataset, onPhotos }: {
   format: number | null;
   custom: readonly Field[];
-  onSelection: (participants: Participant[]) => void;
+  onDataset: (dataset: { participants: Participant[]; selected: Set<string> }) => void;
   onPhotos: (photos: Map<string, Blob>) => void;
 }) {
   const worker = useRef<Worker | null>(null);
@@ -60,8 +61,8 @@ export function ParticipantPanel({ format, custom, onSelection, onPhotos }: {
   ).sort((a, b) => (sort === 'id' ? a.id.localeCompare(b.id, 'id', { numeric: true }) : a.name.localeCompare(b.name, 'id'))), [participants, query, facets, sort]);
 
   useEffect(() => {
-    onSelection(participants?.filter((participant) => selected.has(participant.id)) ?? []);
-  }, [onSelection, participants, selected]);
+    onDataset({ participants: participants ?? [], selected: participants ? selected : new Set() });
+  }, [onDataset, participants, selected]);
 
   useEffect(() => () => {
     worker.current?.terminate();
@@ -140,7 +141,8 @@ export function ParticipantPanel({ format, custom, onSelection, onPhotos }: {
     if (!validation || validation.issues.length || format === null) return;
     onPhotos(new Map());
     setRevision((value) => value + 1);
-    setDataset({ format, rows: validation.participants });
+    const imported = validation.participants.map((participant) => ({ ...participant, cardReference: newCardReference() }));
+    setDataset({ format, rows: imported });
     setSelected(new Set(validation.participants.map((p) => p.id)));
     setQuery('');
     setFacets({});

@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { fieldsFor } from '../../lib/participants/model';
-import type { Field, Participant } from '../../lib/participants/model';
-import type { CardSettings, InstitutionAssets } from '../../lib/cards/settings';
-import { newCardReference, qrPath } from '../../lib/cards/qr';
+import type { Field } from '../../lib/participants/model';
+import type { CardRenderModel } from '../../lib/cards/render-model';
+import { qrPath } from '../../lib/cards/qr';
 
 const labels: Record<Field, string> = {
   NamaMurid: 'Nama', NoPeserta: 'No. Peserta', NISN: 'NISN', Kelas: 'Kelas',
@@ -28,23 +28,14 @@ export function CardImage({ blob, label }: { blob?: Blob; label: string }) {
     ? <img className="card-asset" src={image.url} alt={label} /> : null;
 }
 
-function CardQr() {
-  const [reference] = useState(() => newCardReference());
+function CardQr({ reference }: { reference: string }) {
   const qr = useMemo(() => qrPath(reference), [reference]);
   return <svg aria-label="QR referensi kartu" role="img" viewBox={`0 0 ${qr.size} ${qr.size}`} className="card-qr" shapeRendering="crispEdges">
     <rect width={qr.size} height={qr.size} fill="#fff" /><path d={qr.path} fill="#000" />
   </svg>;
 }
 
-export function CardPreview({ format, custom, participant, photo, settings, assets, hidden }: {
-  format: number;
-  custom: readonly Field[];
-  participant: Participant;
-  photo?: Blob;
-  settings: CardSettings;
-  assets: InstitutionAssets;
-  hidden: readonly Field[];
-}) {
+export function CardPreview({ format, custom, participant, photo, settings, assets, hidden }: CardRenderModel) {
   const [overflow, setOverflow] = useState(false);
   const [element, setElement] = useState<HTMLElement | null>(null);
   useEffect(() => {
@@ -65,7 +56,7 @@ export function CardPreview({ format, custom, participant, photo, settings, asse
   const schedule = settings.showSchedule ? settings.schedule.split('\n').map((line) => line.trim()).filter(Boolean) : [];
   return <div className="card-preview-wrap">
     <article ref={setElement} className="exam-card" data-bw={settings.monochrome}
-      style={{ width: `${settings.width}mm`, height: `${settings.height}mm`, fontSize: `${settings.fontSize}pt` }} aria-label="Contoh kartu ujian">
+      style={{ width: `${settings.width}mm`, height: `${settings.height}mm`, fontSize: `${settings.fontSize}pt` }} aria-label={`Kartu ujian ${participant.name}`}>
       <div className="exam-card-content">
         <header className="exam-card-head">
           <div><CardImage blob={assets.logoLeft} label="Logo kiri" /></div>
@@ -81,7 +72,7 @@ export function CardPreview({ format, custom, participant, photo, settings, asse
             </dl>
             <div className="flex gap-2 items-end mt-1">
               {settings.photo && (photo ? <CardImage blob={photo} label="Foto peserta" /> : <span className="card-photo-empty">Foto</span>)}
-              {settings.qr && <CardQr key={participant.id} />}
+              {settings.qr && participant.cardReference && <CardQr reference={participant.cardReference} />}
             </div>
           </div>
           <div className="exam-card-sign">
