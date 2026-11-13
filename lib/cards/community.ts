@@ -1,11 +1,12 @@
+import type { CommunityIcon } from './community-icons.ts';
 import { customFields } from './preferences.ts';
 import { customFieldIds } from '../participants/model.ts';
 import type { CustomAppearance } from './preferences.ts';
 import type { Field } from '../participants/model.ts';
 
 export type CommunityFormat = CustomAppearance & { fields: Field[] };
-export type CatalogFormat = CommunityFormat & { id: number; contributor?: string; createdAt?: string };
-export type CommunityAttribution = { anonymous: boolean; contributorName: string };
+export type CatalogFormat = CommunityFormat & { id: number; contributor?: string; createdAt?: string; iconPreset?: CommunityIcon; hasCustomIcon?: boolean };
+export type CommunityAttribution = { anonymous: boolean; contributorName: string; iconPreset?: CommunityIcon; iconIco?: string };
 
 // New community publications use an ASCII slug. Previously published names
 // may contain spaces and must remain readable for backwards compatibility.

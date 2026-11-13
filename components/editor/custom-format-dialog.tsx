@@ -301,9 +301,9 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
       <footer className="custom-format-footer">
         <label className="custom-community"><input type="checkbox" checked={share} disabled={saving}
           onChange={(event) => { const checked = event.currentTarget.checked; setShare(checked); if (checked) setName((previous) => publicName(previous)); setError(''); }} />
+          <span className="community-share-icon"><EditorIcon name="users" /></span>
           <span><strong>Bagikan format ini ke komunitas</strong>
-            <small>Opsional: nama format, nama field, dan header Excel akan dipublikasikan.
-              Jangan gunakan nama peserta atau data pribadi dalam metadata format.</small></span></label>
+            <small>Publikasikan nama dan susunan kolom agar format dapat dipakai pengguna lain. Anda dapat memilih ikon dan berbagi secara anonim.</small></span></label>
         <div>
           <button className="action" type="button" disabled={saving} onClick={() => dialog.current?.close()}>Batal</button>
           <button className="action custom-save" type="submit" disabled={saving}>

@@ -1,7 +1,10 @@
 import { neon } from '@neondatabase/serverless';
 import { parseCommunityAttribution, parseCommunityFormat, validCommunityName } from '../../../lib/cards/community';
 
-const maxBodyBytes = 4096;
+import { communityIcons, validIco } from '../../../lib/cards/community-icons';
+import type { CommunityIcon } from '../../../lib/cards/community-icons';
+
+const maxBodyBytes = 350000;
 
 function database() {
   const url = process.env.DATABASE_URL;
@@ -14,27 +17,41 @@ function failure(message: string, status: number) {
 }
 
 export async function GET(req: Request) {
-  const name = new URL(req.url).searchParams.get('name');
+  const params = new URL(req.url).searchParams;
+  const name = params.get('name');
+  const icon = params.get('icon');
+  if (icon !== null && (!/^[1-9][0-9]{0,9}$/.test(icon) || Number(icon) > 2147483647)) {
+    return failure('ID ikon tidak valid.', 400);
+  }
   if (name !== null && !validCommunityName(name)) return failure('Nama format hanya boleh huruf, angka, - dan _ (maks. 60 karakter).', 400);
   if (!process.env.DATABASE_URL) {
-    if (name !== null) return failure('Katalog komunitas belum tersedia.', 503);
+    if (name !== null || icon !== null) return failure('Katalog komunitas belum tersedia.', 503);
     return Response.json([], { headers: { 'X-Community-Unavailable': 'true', 'Cache-Control': 'no-store' } });
   }
   try {
     const sql = database();
+    if (icon !== null) {
+      const [row] = await sql`select encode(icon_ico, 'base64') as ico from public.community_formats where id = ${Number(icon)}`;
+      if (!row?.ico) return failure('Ikon tidak tersedia.', 404);
+      return new Response(Uint8Array.from(Buffer.from(row.ico, 'base64')), { headers: {
+        'Content-Type': 'image/vnd.microsoft.icon', 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'public, max-age=300',
+      } });
+    }
     if (name !== null) {
       const [row] = await sql`select exists(select 1 from public.community_formats where lower(btrim(definition->>'name')) = lower(${name})) as exists`;
       return Response.json({ exists: Boolean(row?.exists) }, { headers: { 'Cache-Control': 'no-store' } });
     }
-    const rows = await sql`select id, definition, contributor_name, created_at from public.community_formats order by id desc limit 100` as {
+    const rows = await sql`select id, definition, contributor_name, created_at, icon_preset, icon_ico is not null as has_custom_icon from public.community_formats order by id desc limit 100` as {
       id: number;
       definition: unknown;
       contributor_name: string;
       created_at: string;
+      icon_preset: CommunityIcon;
+      has_custom_icon: boolean;
     }[];
-    return Response.json(rows.flatMap(({ id, definition, contributor_name, created_at }) => {
+    return Response.json(rows.flatMap(({ id, definition, contributor_name, created_at, icon_preset, has_custom_icon }) => {
       const format = parseCommunityFormat(definition);
-      return format ? [{ id, ...format, contributor: contributor_name, createdAt: created_at }] : [];
+      return format ? [{ id, ...format, contributor: contributor_name, createdAt: created_at, iconPreset: icon_preset, hasCustomIcon: has_custom_icon }] : [];
     }), { headers: { 'Cache-Control': 'no-store' } });
   } catch {
     return failure('Katalog komunitas belum dapat dimuat. Coba lagi.', 503);
@@ -53,6 +70,8 @@ export async function POST(req: Request) {
   let bytes = 0;
   let format;
   let attribution;
+  let preset: CommunityIcon = 'users';
+  let ico: string | null = null;
   try {
     for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
       bytes += chunk.value.byteLength;
@@ -65,6 +84,17 @@ export async function POST(req: Request) {
     const input = JSON.parse(body + decoder.decode());
     format = parseCommunityFormat(input, true);
     attribution = parseCommunityAttribution(input);
+    if (input?.iconPreset !== undefined) {
+      if (typeof input.iconPreset !== 'string' || !Object.hasOwn(communityIcons, input.iconPreset)) {
+        return failure('Ikon bawaan tidak valid.', 400);
+      }
+      preset = input.iconPreset;
+    }
+    if (input?.iconIco !== undefined) {
+      if (typeof input.iconIco !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(input.iconIco) ||
+        !validIco(Buffer.from(input.iconIco, 'base64'))) return failure('Gunakan berkas .ico berukuran 10–250 KB.', 400);
+      ico = input.iconIco;
+    }
   } catch {
     return failure('Format tidak valid.', 400);
   }
@@ -72,9 +102,12 @@ export async function POST(req: Request) {
 
   try {
     const sql = database();
-    const [result] = await sql`select public.publish_community_format(${JSON.stringify({ ...format, ...attribution })}::jsonb) as id`;
+    const [result] = await sql`select public.publish_community_format(${JSON.stringify({ ...format, ...attribution })}::jsonb, ${preset}, decode(${ico}, 'base64')) as id`;
     return Response.json({ id: result.id });
   } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'PT412') {
+      return failure('Urutan Kolom Excel sudah digunakan oleh format bawaan atau komunitas. Ubah urutan atau susunan kolom.', 409);
+    }
     if (error && typeof error === 'object' && 'code' in error && (error.code === 'PT409' || error.code === '23505')) {
       return failure('Nama format sudah digunakan di komunitas. Gunakan nama lain.', 409);
     }

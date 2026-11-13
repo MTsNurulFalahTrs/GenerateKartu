@@ -1,3 +1,5 @@
+import { communityIcons, validIco } from '../../lib/cards/community-icons';
+import type { CommunityIcon } from '../../lib/cards/community-icons';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { cleanContributorInput, properContributorName } from '../../lib/cards/community';
@@ -14,13 +16,16 @@ export function CommunityShareDialog({ formatName, busy, error, onCancel, onConf
   const dialog = useRef<HTMLDialogElement>(null);
   const [name, setName] = useState('');
   const [anonymous, setAnonymous] = useState(false);
+  const [iconPreset, setIconPreset] = useState<CommunityIcon>('users');
+  const [iconIco, setIconIco] = useState<string>();
+  const [reading, setReading] = useState(false);
   const [validation, setValidation] = useState('');
 
   useEffect(() => { dialog.current?.showModal(); }, []);
 
   function confirm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || reading) return;
     const contributorName = properContributorName(name.trim());
     if (!anonymous && (!contributorName || contributorName.length > 60 ||
       !/^\p{L}+(?: \p{L}+)*$/u.test(contributorName))) {
@@ -28,7 +33,7 @@ export function CommunityShareDialog({ formatName, busy, error, onCancel, onConf
       return;
     }
     setValidation('');
-    onConfirm({ anonymous, contributorName: anonymous ? 'Anonim' : contributorName });
+    onConfirm({ anonymous, contributorName: anonymous ? 'Anonim' : contributorName, iconPreset, ...(iconIco ? { iconIco } : {}) });
   }
 
   return <dialog ref={dialog} className="format-dialog community-share-dialog"
@@ -68,11 +73,40 @@ export function CommunityShareDialog({ formatName, busy, error, onCancel, onConf
             <small>Nama Anda tidak akan ditampilkan — kontribusi tetap tercatat sebagai &quot;Anonim&quot;.</small>
           </span>
         </label>
+        <fieldset className="community-icon-picker" disabled={busy || reading}>
+          <legend>Ikon format</legend>
+          <div>{Object.entries(communityIcons).map(([key, label]) =>
+            <button key={key} type="button" className="action" aria-pressed={!iconIco && iconPreset === key}
+              onClick={() => { setIconPreset(key as CommunityIcon); setIconIco(undefined); setValidation(''); }}>
+              <EditorIcon name={key as CommunityIcon} /> {label}
+            </button>)}</div>
+          <label>Unggah ikon sendiri (.ico, 10–250 KB)
+            <input type="file" accept=".ico" onChange={async (event) => {
+              const file = event.currentTarget.files?.[0];
+              event.currentTarget.value = '';
+              if (!file) return;
+              setReading(true);
+              setValidation('');
+              try {
+                if (!/\.ico$/i.test(file.name) || file.size < 10240 || file.size > 256000) throw new Error();
+                const bytes = new Uint8Array(await file.arrayBuffer());
+                if (!validIco(bytes)) throw new Error();
+                let binary = '';
+                for (const byte of bytes) binary += String.fromCharCode(byte);
+                setIconIco(btoa(binary));
+              } catch {
+                setIconIco(undefined);
+                setValidation('Pilih berkas .ico yang valid berukuran 10–250 KB.');
+              } finally { setReading(false); }
+            }} />
+          </label>
+          {iconIco && <span role="status">Ikon unggahan dipilih</span>}
+        </fieldset>
         {(validation || error) && <p className="community-share-error" role="alert">{validation || error}</p>}
       </div>
       <footer className="community-share-footer">
         <button type="button" className="action community-share-cancel" disabled={busy} onClick={onCancel}>Batal</button>
-        <button type="submit" className="action community-share-confirm" disabled={busy}>
+        <button type="submit" className="action community-share-confirm" disabled={busy || reading}>
           <span aria-hidden="true">✓</span>
           <span>{busy ? 'Membagikan…' : 'Ya, Bagikan Sekarang'}</span>
         </button>

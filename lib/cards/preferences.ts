@@ -4,7 +4,7 @@ import { customFieldIds } from '../participants/model.ts';
 import type { Field } from '../participants/model';
 
 export const storageKey = 'generate-kartu:preferences:v1';
-export const idleLimit = 2 * 60 * 60 * 1000;
+export const idleLimit = 60 * 60 * 1000;
 export const maxBackupBytes = 1024 * 1024;
 export const customFields: readonly Field[] = ['NoPeserta', 'NamaMurid', 'NISN', 'Kelas', 'Ruang', 'Sesi', 'Username', 'Password', 'TglLahir', 'NamaSatdik', ...customFieldIds];
 export const defaultCustom: Field[] = ['NoPeserta', 'NamaMurid', 'Kelas'];

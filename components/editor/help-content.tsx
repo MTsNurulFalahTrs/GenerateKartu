@@ -20,7 +20,7 @@ const faq = [
   ['Berapa banyak murid yang bisa diproses sekaligus?', `Satu sheet Excel dapat memuat hingga ${maxParticipants.toLocaleString('id-ID')} baris peserta.`],
   ['Apakah saya bisa membuat format kartu sendiri?', 'Ya. Pilih Atur pada Format Kustom, lalu susun kolom yang dibutuhkan.'],
   ['Bagaimana cara mencadangkan pengaturan?', 'Gunakan Ekspor Konfigurasi di tab Pengaturan. Gunakan Impor Konfigurasi untuk memulihkannya.'],
-  ['Apa yang terjadi setelah dua jam tanpa aktivitas?', 'Data peserta dan aset sesi dibersihkan. Preferensi tampilan yang tersimpan di browser tetap dapat digunakan.'],
+  ['Apa yang terjadi setelah satu jam tanpa aktivitas?', 'Data peserta dan aset sesi dibersihkan. Preferensi tampilan yang tersimpan di browser tetap dapat digunakan.'],
   ['Bisakah saya mencetak kartu untuk kelas tertentu?', 'Ya. Pilih kelas pada Filter Cetak, lalu periksa jumlah kartu sebelum mencetak.'],
   ['Apa yang harus dilakukan jika hasil cetak terpotong?', 'Periksa Pratinjau A4, gunakan skala 100% dan margin Tidak Ada. Jika isi kartu melebihi batas, sesuaikan ukuran di Layout & Cetak.'],
   ['Apakah format komunitas tersedia?', 'Ya. Centang opsi berbagi saat menyimpan Format Kustom untuk menambahkannya ke katalog publik di tab Format.'],
@@ -120,7 +120,7 @@ export function HelpContent({ participants = 0, photos = 0, communityCount, inEd
         <ul className="help-notices">
           <li>File Excel dan foto murid diproses di browser Anda.</li>
           <li>Preferensi disimpan di browser. Isi KOP, jadwal, foto, dan aset berlaku selama sesi.</li>
-          <li>Setelah dua jam tanpa aktivitas, data peserta dan aset sesi dibersihkan.</li>
+          <li>Setelah satu jam tanpa aktivitas, data peserta dan aset sesi dibersihkan.</li>
         </ul>
       </section>
       <section className="panel">

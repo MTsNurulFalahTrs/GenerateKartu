@@ -332,10 +332,14 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
       <PhotoPanel key={revision} participants={participants} photoKey={photoKey} onPhotos={onPhotos} />
       <div className="panel data-wide data-preview">
         <header className="data-title"><span className="data-icon"><EditorIcon name="table" /></span>
-          <h2>Preview Data Masuk</h2><span className="format-count">{participants?.length ?? 0} Murid</span>
+          <div><h2>Preview Data Masuk</h2><small>Periksa data impor dan pilih peserta untuk dicetak.</small></div><span className="format-count">{participants?.length ?? 0} Murid</span>
         </header>
         {participants ? <div className="data-preview-controls">
-        <p role="status">{participants.length} peserta · {rows.length} cocok · {selected.size} terpilih</p>
+        <div className="data-overview" role="status">
+          <span><strong>{participants.length}</strong> Peserta</span>
+          <span><strong>{rows.length}</strong> Hasil filter</span>
+          <span><strong>{selected.size}</strong> Terpilih</span>
+        </div>
         <div className="flex flex-wrap gap-3">
           <label>Cari <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(0); }} placeholder="Nama atau ID" /></label>
           {filters.filter((field) => fields.some((candidate) => candidate === field)).map((field) => (
@@ -368,7 +372,7 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
             <tbody>{participants ? rows.slice(page * 25, (page + 1) * 25).map((p) => <tr key={p.id}>
               <td><input type="checkbox" aria-label={`Pilih ${p.name} (${p.id})`} checked={selected.has(p.id)} onChange={() => toggle(p.id)} /></td>
               {fields.map((field) => <td key={field}>{p.values[field]}</td>)}
-              <td>{photos.has(p.id) ? 'Tersedia' : 'Belum ada'}</td>
+              <td><span className="data-photo-status" data-available={photos.has(p.id)}>{photos.has(p.id) ? 'Tersedia' : 'Belum ada'}</span></td>
             </tr>) : <tr><td colSpan={fields.length + 1}><div className="data-empty">
               <EditorIcon name="excel" /><strong>Data belum tersedia.</strong><small>Upload file Excel terlebih dahulu.</small>
             </div></td></tr>}</tbody>
