@@ -144,33 +144,105 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
     {busy && <p role="status">Memproses aset…</p>}
     {error && <p role="alert">{error}</p>}
   </div>;
-  if (section === 1) return <div className="grid gap-3 sm:grid-cols-2">
-    <label>Ukuran <select value={`${value.width}x${value.height}`} onChange={(event) => {
-      if (event.target.value === 'custom') onChange((previous) => ({ ...previous, width: 95, height: 65 }));
-      else {
-        const [width, height] = event.target.value.split('x').map(Number);
-        onChange((previous) => ({ ...previous, width, height }));
-      }
-    }}><option value="86x54">86 × 54 mm</option><option value="90x60">90 × 60 mm</option><option value="100x70">100 × 70 mm</option>
-      {!['86x54', '90x60', '100x70'].includes(`${value.width}x${value.height}`) && <option value={`${value.width}x${value.height}`}>Kustom</option>}
-      <option value="custom">Atur ukuran kustom</option>
-    </select></label>
-    {([['width', 'Lebar (mm)', 60, 180], ['height', 'Tinggi (mm)', 40, 150], ['fontSize', 'Ukuran teks (pt)', 6, 12]] as const).map(([key, label, min, max]) =>
-      <label key={key}>{label} <input type="number" min={min} max={max} step="any" value={value[key] || ''}
-        onChange={(event) => update(key, Number(event.currentTarget.value))}
-        onBlur={(event) => {
-          const number = event.currentTarget.valueAsNumber;
-          if (!Number.isFinite(number) || number < min || number > max) {
-            update(key, Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : defaultCard[key]);
-          }
-        }} /></label>)}
-    <label>Posisi teks <select value={value.align} onChange={(event) => {
-      const align = event.target.value;
-      if (align === 'left' || align === 'center' || align === 'right') update('align', align);
-    }}><option value="left">Kiri</option><option value="center">Tengah</option><option value="right">Kanan</option></select></label>
-    {([['monochrome', 'Hitam putih'], ['photo', 'Tampilkan foto'], ['qr', 'Tampilkan QR']] as const).map(([key, label]) =>
-      <label key={key}><input type="checkbox" checked={value[key]} onChange={(event) => update(key, event.target.checked)} /> {label}</label>)}
-  </div>;
+  if (section === 1) {
+    const sizeKey = value.width + 'x' + value.height;
+    const preset = ['86x54', '90x60', '100x70'].includes(sizeKey);
+    const customSize = !preset;
+    return <div className="layout-body">
+      <div className="layout-field">
+        <label className="layout-label" htmlFor="layout-card-size">Ukuran Fisik Kartu</label>
+        <p className="layout-help" id="layout-card-size-help">Pilih ukuran preset atau masukkan dimensi custom sesuai kebutuhan Anda.</p>
+        <select id="layout-card-size" aria-describedby="layout-card-size-help" value={preset ? sizeKey : 'custom'}
+          onChange={(event) => {
+            if (event.currentTarget.value === 'custom') {
+              if (!customSize) onChange((previous) => ({ ...previous, width: 95, height: 65 }));
+              return;
+            }
+            const [width, height] = event.currentTarget.value.split('x').map(Number);
+            onChange((previous) => ({ ...previous, width, height }));
+          }}>
+          <option value="86x54">📏 Standar KTP / ID Card (8,6 cm × 5,4 cm)</option>
+          <option value="90x60">Kartu Sedang (9 cm × 6 cm)</option>
+          <option value="100x70">Kartu Besar (10 cm × 7 cm)</option>
+          <option value="custom">Ukuran Kustom</option>
+        </select>
+        {customSize && <div className="layout-custom-dimensions">
+          {([['width', 'Lebar (mm)', 60, 180], ['height', 'Tinggi (mm)', 40, 150]] as const).map(([key, label, min, max]) =>
+            <label key={key}>{label}
+              <input type="number" min={min} max={max} step={1} value={value[key] || ''}
+                onChange={(event) => update(key, Number(event.currentTarget.value))}
+                onBlur={(event) => {
+                  const next = event.currentTarget.valueAsNumber;
+                  if (!Number.isFinite(next) || next < min || next > max) {
+                    update(key, Number.isFinite(next) ? Math.min(max, Math.max(min, next)) : defaultCard[key]);
+                  }
+                }} />
+            </label>)}
+          <small>Rentang ukuran: lebar 60–180 mm dan tinggi 40–150 mm.</small>
+        </div>}
+      </div>
+      <div className="layout-field">
+        <label className="layout-label" htmlFor="layout-printer-mode">Mode Printer</label>
+        <p className="layout-help" id="layout-printer-mode-help">Pilih mode cetak sesuai kemampuan printer Anda.</p>
+        <select id="layout-printer-mode" aria-describedby="layout-printer-mode-help"
+          value={value.monochrome ? 'mono' : 'color'}
+          onChange={(event) => update('monochrome', event.currentTarget.value === 'mono')}>
+          <option value="color">🎨 Warna (Full Color)</option>
+          <option value="mono">Hitam Putih (Grayscale)</option>
+        </select>
+      </div>
+      <div className="layout-switches">
+        {([
+          ['qr', 'QR Code di Kartu', 'Tampilkan QR Code identitas murid di kartu peserta.', 'qr'],
+          ['photo', 'Foto Peserta di Kartu', 'Tampilkan foto 3×4 peserta pada format kartu yang dipilih. Nonaktifkan jika foto tidak tersedia atau tidak diperlukan.', 'photo'],
+          ['showSchedule', 'Tabel Jadwal di Kartu', 'Tampilkan tabel jadwal ujian pada kartu peserta. Berlaku hanya jika kolom jadwal sudah dikonfigurasi di subtab Tabel Jadwal.', 'schedule'],
+        ] as const).map(([key, title, description, tone]) =>
+          <label className="layout-toggle" data-tone={tone} key={key} htmlFor={'layout-' + key}>
+            <span className="layout-toggle-copy">
+              <strong>{title}</strong>
+              <small id={'layout-' + key + '-help'}>{description}</small>
+            </span>
+            <input id={'layout-' + key} role="switch" type="checkbox" checked={value[key]}
+              aria-describedby={'layout-' + key + '-help'}
+              onChange={(event) => update(key, event.currentTarget.checked)} />
+          </label>)}
+      </div>
+      <aside className="layout-print-tips" aria-label="Tips Cetak Optimal">
+        <strong>Tips Cetak Optimal</strong>
+        <ul>
+          <li>Pastikan <b>Scale/Skala</b> printer diatur ke <b>100%</b>.</li>
+          <li>Atur <b>Margin</b> printer ke <b>None / Tidak Ada</b>.</li>
+          <li>Aktifkan opsi <b>Cetak Latar Belakang</b> di pengaturan browser.</li>
+          <li>Untuk ukuran custom, uji cetak 1 kartu terlebih dahulu sebelum mencetak semua.</li>
+        </ul>
+      </aside>
+      <details className="layout-extra">
+        <summary>Pengaturan teks lanjutan</summary>
+        <div className="layout-advanced-grid">
+          <label>Ukuran teks (pt)
+            <input type="number" min={6} max={12} step={0.5} value={value.fontSize || ''}
+              onChange={(event) => update('fontSize', Number(event.currentTarget.value))}
+              onBlur={(event) => {
+                const next = event.currentTarget.valueAsNumber;
+                if (!Number.isFinite(next) || next < 6 || next > 12) {
+                  update('fontSize', Number.isFinite(next) ? Math.min(12, Math.max(6, next)) : defaultCard.fontSize);
+                }
+              }} />
+          </label>
+          <label>Posisi teks
+            <select value={value.align} onChange={(event) => {
+              const align = event.currentTarget.value;
+              if (align === 'left' || align === 'center' || align === 'right') update('align', align);
+            }}>
+              <option value="left">Kiri</option>
+              <option value="center">Tengah</option>
+              <option value="right">Kanan</option>
+            </select>
+          </label>
+        </div>
+      </details>
+    </div>;
+  }
   return <div className="grid gap-2">
     <label><input type="checkbox" checked={value.showSchedule} onChange={(event) => update('showSchedule', event.target.checked)} /> Tampilkan jadwal</label>
     <label className="grid gap-1">Jadwal ujian
