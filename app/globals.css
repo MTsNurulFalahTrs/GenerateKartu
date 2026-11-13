@@ -77,3 +77,15 @@ a { color: var(--indigo-700); }
 .card-photo-empty { display: grid; place-items: center; width: 10mm; height: 12mm; border: 1px dashed #64748b; }
 .card-qr { width: 13mm; height: 13mm; flex: none; }
 .exam-card-schedule { margin-top: 1mm; border-top: 1px solid black; }
+
+.card-batch {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  align-items: start;
+  gap: .75rem;
+}
+.card-batch > * { min-width: 0; }
+.exam-card { max-width: none; }
+.editor .subtabs { position: relative; }
+.editor textarea { max-width: 100%; color: var(--ink); background: var(--surface); }
+.editor [role="tabpanel"] { scroll-margin-top: 8rem; }

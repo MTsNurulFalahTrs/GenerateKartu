@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { CardSettingsPanel } from './card-settings';
+import { PreviewPanel } from './preview-panel';
+import type { CardRenderModel } from '../../lib/cards/render-model';
 import { CardPreview } from './card-preview';
 import { defaultCard } from '../../lib/cards/settings';
 import type { InstitutionAssets } from '../../lib/cards/settings';
@@ -15,6 +17,7 @@ import { formats, moveStep, steps } from '../../lib/editor';
 const settings = ['Kop', 'Tata Letak', 'Jadwal'] as const;
 const sample: Participant = {
   id: 'CONTOH-001',
+  cardReference: 'GK1:00000000000000000000000000000000',
   name: 'Peserta Contoh',
   values: { NamaMurid: 'Peserta Contoh', NoPeserta: '0001', NISN: '0000000001', Kelas: 'IX-A', Ruang: '1', Sesi: 'Sesi 1', Username: 'CONTOH-001', TglLahir: '2012-01-01', NamaSatdik: 'Madrasah Contoh' },
 };
@@ -24,15 +27,16 @@ export function CardEditor() {
   const [step, setStep] = useState(0);
   const [format, setFormat] = useState<number | null>(null);
   const [setting, setSetting] = useState(0);
-  const [selected, setSelected] = useState<Participant[]>([]);
+  const [dataset, setDataset] = useState<{ participants: Participant[]; selected: Set<string> }>({ participants: [], selected: new Set() });
   const [photos, setPhotos] = useState(new Map<string, Blob>());
   const [assets, setAssets] = useState<InstitutionAssets>({});
   const [card, setCard] = useState(defaultCard);
   const [custom, setCustom] = useState<Field[]>(['NoPeserta', 'NamaMurid', 'Kelas']);
   const [hidden, setHidden] = useState<Field[]>([]);
-  const previewParticipant = selected[0] ?? sample;
-  const preview = (id: number) => <CardPreview format={id} custom={custom} participant={previewParticipant}
-    photo={photos.get(previewParticipant.id)} settings={card} assets={assets} hidden={hidden} />;
+  const previewParticipant = dataset.participants.find((participant) => dataset.selected.has(participant.id)) ?? dataset.participants[0] ?? sample;
+  function renderCard(participant: Participant, id = format ?? 0): CardRenderModel {
+    return { format: id, custom, participant, photo: photos.get(participant.id), settings: card, assets, hidden };
+  }
   const [dark, setDark] = useState(false);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -41,7 +45,8 @@ export function CardEditor() {
     event.preventDefault();
     const next = moveStep(index, event.key);
     setStep(next);
-    tabRefs.current[next]?.focus();
+    tabRefs.current[next]?.focus({ preventScroll: true });
+    tabRefs.current[next]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 
   return (
@@ -115,7 +120,7 @@ export function CardEditor() {
               </li>)}</ol>
             </div>}
             {index === 1 && (
-              <ParticipantPanel format={format} custom={custom} onSelection={setSelected} onPhotos={setPhotos} />
+              <ParticipantPanel format={format} custom={custom} onDataset={setDataset} onPhotos={setPhotos} />
             )}
             {index === 2 && (
               <div className="panel">
@@ -135,12 +140,18 @@ export function CardEditor() {
                       setHidden(event.target.checked ? hidden.filter((item) => item !== field) : [...hidden, field])
                     } /> {field}</label>)}</div>
                 </fieldset>}
-                <div className="mt-4">{preview(format ?? 0)}</div>
+                <div className="mt-4">{step === 2 && <CardPreview {...renderCard(previewParticipant)} />}</div>
               </div>
             )}
             {index === 3 && (
-              <div className="panel"><h2>Pratinjau Kartu</h2><p>{selected.length ? `${selected.length} peserta terpilih. Kartu peserta pertama ditampilkan.` : 'Contoh kartu. Impor data untuk melihat kartu peserta.'}</p>
-                {format !== null && <><p>Format terpilih: {formats[format] ?? 'Format Kustom'}.</p>{preview(format)}</>}
+              <div className="panel min-w-0">
+                <h2>Pratinjau Kartu</h2>
+                {format === null ? <p>Pilih format kartu untuk membuka pratinjau.</p> : <>
+                  <p>Format terpilih: {formats[format] ?? 'Format Kustom'}.</p>
+                  {dataset.participants.length
+                    ? <PreviewPanel key={format} active={step === 3} participants={dataset.participants} selected={dataset.selected} renderCard={renderCard} />
+                    : <><p>Contoh kartu. Impor data untuk melihat kartu peserta.</p>{step === 3 && <CardPreview {...renderCard(sample)} />}</>}
+                </>}
               </div>
             )}
           </section>

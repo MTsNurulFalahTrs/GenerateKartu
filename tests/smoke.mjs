@@ -35,7 +35,7 @@ async function fixture(name, ids) {
   await writeFile(file, write(book, { type: 'buffer', bookType: 'xlsx', compression: true }));
   return file;
 }
-const valid = await fixture('valid.xlsx', ['0001', '0002']);
+const valid = await fixture('valid.xlsx', Array.from({ length: 500 }, (_, index) => String(index + 1).padStart(4, '0')));
 const duplicate = await fixture('duplikat.xlsx', ['0001', '0001']);
 const photo = join(fixtureDir, '0001.png');
 await writeFile(photo, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGNkYPjPQApgIkn1qIZRDUNKAwA+MAEfWiW9ygAAAABJRU5ErkJggg==', 'base64'));
@@ -73,18 +73,18 @@ try {
           return sheet && !sheet.disabled && sheet.value === 'Petunjuk';
         });
         await page.select('#participant-sheet', 'Peserta');
-        await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('Pratinjau impor · 2 baris'));
+        await page.waitForFunction((count) => document.querySelector('#panel-1')?.textContent.includes('Pratinjau impor · ' + count + ' baris'), {}, file === valid ? 500 : 2);
         if (file === valid) {
           await page.waitForSelector('#apply-participant-import:enabled');
           await page.focus('#apply-participant-import');
           await page.keyboard.press('Space');
-          await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('2 terpilih'));
+          await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('500 terpilih'));
           await page.locator('input[placeholder="Nama atau ID"]').fill('0002');
           await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('1 cocok'));
         } else {
           await page.waitForFunction(() => document.querySelector('[role="alert"]')?.textContent.includes('Gunakan ID unik'));
           assert.equal(await page.$eval('#apply-participant-import', (button) => button.disabled), true);
-          assert.match(await page.$eval('#panel-1', (panel) => panel.textContent), /2 peserta/);
+          assert.match(await page.$eval('#panel-1', (panel) => panel.textContent), /500 peserta/);
         }
       }
       const photoInput = await page.$('#panel-1 input[accept="image/png,image/jpeg"]');
@@ -115,6 +115,25 @@ try {
       await page.$eval('#step-3', (button) => button.click());
       await page.waitForSelector('#panel-3', { visible: true });
       assert.match(await page.locator('#panel-3').map((el) => el.textContent).wait(), /Lengkap Ruang/);
+      assert.equal(await page.$$eval('#panel-3 .exam-card', (cards) => cards.length), 9);
+      assert.match(await page.$eval('#panel-3 [role=status]', (status) => status.textContent), /500 dari 500/);
+      const qr = await page.$eval('#panel-3 .card-qr path', (path) => path.getAttribute('d'));
+      await page.$eval('#panel-3 nav button:last-child', (button) => button.click());
+      await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('Halaman 2/56'));
+      await page.$eval('#panel-3 nav button:first-child', (button) => button.click());
+      await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('Halaman 1/56'));
+      assert.equal(await page.$eval('#panel-3 .card-qr path', (path) => path.getAttribute('d')), qr);
+      await page.locator('#panel-3 input[placeholder="Nama atau ID peserta"]').fill('0002');
+      await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('1 dari 500'));
+      assert.equal(await page.$$eval('#panel-3 .exam-card', (cards) => cards.length), 1);
+      await page.locator('#panel-3 input[placeholder="Nama atau ID peserta"]').fill('tidak ditemukan');
+      await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('0 dari 500'));
+      assert.equal(await page.$$eval('#panel-3 .exam-card', (cards) => cards.length), 0);
+      await page.$eval('#panel-3 input', (input) => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await page.waitForFunction(() => document.querySelector('#panel-3 [role=status]')?.textContent.includes('500 dari 500'));
       for (let format = 1; format <= 7; format++) {
         await page.$eval('#step-0', (button) => button.click());
         await page.waitForSelector('#panel-0', { visible: true });

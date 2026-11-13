@@ -12,7 +12,7 @@ const builtins = [
 ] as const;
 
 export type Field = (typeof builtins)[number][number];
-export type Participant = { id: string; name: string; values: Partial<Record<Field, string>> };
+export type Participant = { id: string; name: string; cardReference?: string; values: Partial<Record<Field, string>> };
 export type Issue = { row: number; column: string; message: string };
 export type Row = { number: number; cells: string[] };
 export type WorkbookRows = { headers: string[]; rows: Row[]; headerRow: number };
