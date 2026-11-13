@@ -1,3 +1,4 @@
+import { notify } from '../../lib/ui/notify';
 import { useEffect, useRef, useState } from 'react';
 
 export function CommunityDeleteDialog({ id, name, onClose, onDeleted }: {
@@ -8,7 +9,6 @@ export function CommunityDeleteDialog({ id, name, onClose, onDeleted }: {
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
 
   useEffect(() => { dialog.current?.showModal(); }, []);
 
@@ -25,7 +25,7 @@ export function CommunityDeleteDialog({ id, name, onClose, onDeleted }: {
       const pin = new FormData(form).get('pin');
       form.reset();
       setBusy(true);
-      setError('');
+
       try {
         const response = await fetch('/api/community-formats', {
           method: 'DELETE',
@@ -38,9 +38,9 @@ export function CommunityDeleteDialog({ id, name, onClose, onDeleted }: {
           return;
         }
         const data = await response.json();
-        setError(data.message || 'Format belum berhasil dihapus.');
+        notify('error', data.message || 'Format belum berhasil dihapus.');
       } catch {
-        setError('Status penghapusan belum dapat dipastikan. Coba lagi.');
+        notify('error', 'Status penghapusan belum dapat dipastikan. Coba lagi.');
       } finally {
         setBusy(false);
       }
@@ -52,7 +52,6 @@ export function CommunityDeleteDialog({ id, name, onClose, onDeleted }: {
           required pattern="[0-9]{8,16}" minLength={8} maxLength={16} disabled={busy}
           aria-describedby="community-pin-hint" />
         <small id="community-pin-hint">Masukkan 8–16 angka.</small>
-        {error && <p role="alert">{error}</p>}
       </div>
       <footer className="community-share-footer">
         <button type="button" className="action" disabled={busy} onClick={onClose}>Batal</button>

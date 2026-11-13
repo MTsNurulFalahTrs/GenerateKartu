@@ -1,3 +1,4 @@
+import { notify } from '../../lib/ui/notify';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { customFieldIds } from '../../lib/participants/model';
@@ -62,11 +63,9 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
     const selected = fields.findIndex((field) => field === appearance?.photoKey);
     return 'row-' + (selected < 0 ? 1 : selected + 1);
   });
-  const [error, setError] = useState('');
   const [share, setShare] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pendingShare, setPendingShare] = useState<{ fields: Field[]; appearance: CustomAppearance }>();
-  const [shareError, setShareError] = useState('');
   const duplicateExcelColumns = findDuplicateExcelColumns(rows);
 
   useEffect(() => { dialog.current?.showModal(); }, []);
@@ -92,16 +91,16 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
         mono: next === current.field && current.mono,
       }) : row);
     });
-    setError('');
+
   }
 
   function updateRow(id: string, change: Partial<Pick<FormatRow, 'label' | 'excel' | 'mono'>>) {
     setRows((previous) => previous.map((row) => row.id === id ? { ...row, ...change } : row));
-    setError('');
+
   }
 
   function move(index: number, delta: -1 | 1) {
-    setError('');
+
     const target = index + delta;
     if (target < 0 || target >= rows.length) return;
     setRows((previous) => {
@@ -114,27 +113,26 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
   function addRow() {
     if (rows.length >= maxRows) return;
     setRows((previous) => [...previous, { id: 'row-' + ++sequence.current, field: '', label: '', excel: '', mono: false }]);
-    setError('');
+
   }
 
   function removeRow(id: string) {
     setRows((previous) => previous.filter((row) => row.id !== id));
     if (photoRow === id) setPhotoRow(rows.find((row) => row.id !== id)?.id ?? '');
-    setError('');
+
   }
 
   async function commit(fields: Field[], appearance: CustomAppearance, attribution?: CommunityAttribution) {
     setSaving(true);
-    setShareError('');
-    setError('');
+
     try {
       await onSave(fields, appearance, attribution);
+      if (!attribution) notify('success', 'Format kustom disimpan dan diaktifkan.');
       setPendingShare(undefined);
       dialog.current?.close();
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Format belum berhasil disimpan.';
-      if (attribution) setShareError(message);
-      else setError(message);
+      notify('error', message);
     } finally {
       setSaving(false);
     }
@@ -147,7 +145,7 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
     const duplicated = findDuplicateExcelColumns(rows);
     if (duplicated.size) {
       const first = [...duplicated.entries()][0];
-      setError('Kolom Excel pada baris ' + first[1].join(' dan ') +
+      notify('error', 'Kolom Excel pada baris ' + first[1].join(' dan ') +
         ' sama. Setiap baris harus menggunakan header Excel yang unik; urutan 1–6 mengikuti posisi baris.');
       return;
     }
@@ -158,7 +156,7 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
       new Set(selected.map((row) => row.field)).size !== selected.length ||
       new Set(selected.map((row) => row.excel.trim().toLowerCase())).size !== selected.length ||
       !selected.some((row) => row.id === photoRow && row.field !== 'Password')) {
-      setError('Lengkapi setiap Field Bawaan, Label Tampilan, dan Kolom Excel (maks. 6 baris). Gunakan kolom Excel yang berbeda dan pilih satu Acuan Foto selain Password.');
+      notify('error', 'Lengkapi setiap Field Bawaan, Label Tampilan, dan Kolom Excel (maks. 6 baris). Gunakan kolom Excel yang berbeda dan pilih satu Acuan Foto selain Password.');
       return;
     }
     const entries = selected as (FormatRow & { field: Field })[];
@@ -171,10 +169,10 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
       labels: Object.fromEntries(entries.map((row) => [row.field, row.label.trim()])),
       excelHeaders: Object.fromEntries(entries.map((row) => [row.field, row.excel.trim()])),
     };
-    setError('');
+
     if (share) {
       if (!validCommunityName(appearance.name)) {
-        setError('Nama format komunitas hanya boleh huruf, angka, minus (-), dan underscore (_), tanpa spasi.');
+        notify('error', 'Nama format komunitas hanya boleh huruf, angka, minus (-), dan underscore (_), tanpa spasi.');
         return;
       }
       setSaving(true);
@@ -185,13 +183,13 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
         if (!response.ok) throw new Error('Pemeriksaan nama format belum tersedia. Coba lagi.');
         const result: { exists: boolean } = await response.json();
         if (result.exists) {
-          setError('Nama format sudah digunakan di komunitas. Gunakan nama lain.');
+          notify('error', 'Nama format sudah digunakan di komunitas. Gunakan nama lain.');
           return;
         }
-        setShareError('');
+
         setPendingShare({ fields, appearance });
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Nama format belum dapat diperiksa.');
+        notify('error', cause instanceof Error ? cause.message : 'Nama format belum dapat diperiksa.');
       } finally {
         setSaving(false);
       }
@@ -296,11 +294,10 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
             <li>Format ini akan tersimpan otomatis ke sesi lokal bersama pengaturan lainnya.</li>
           </ul>
         </aside>
-        {error && <p className="custom-format-error" role="alert">{error}</p>}
       </div>
       <footer className="custom-format-footer">
         <label className="custom-community"><input type="checkbox" checked={share} disabled={saving}
-          onChange={(event) => { const checked = event.currentTarget.checked; setShare(checked); if (checked) setName((previous) => publicName(previous)); setError(''); }} />
+          onChange={(event) => { const checked = event.currentTarget.checked; setShare(checked); if (checked) setName((previous) => publicName(previous)); }} />
           <span className="community-share-icon"><EditorIcon name="users" /></span>
           <span><strong>Bagikan format ini ke komunitas</strong>
             <small>Publikasikan nama dan susunan kolom agar format dapat dipakai pengguna lain. Anda dapat memilih ikon dan berbagi secara anonim.</small></span></label>
@@ -313,7 +310,7 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
       </footer>
     </form>
   </dialog>
-    {pendingShare && <CommunityShareDialog formatName={pendingShare.appearance.name} busy={saving} error={shareError}
+    {pendingShare && <CommunityShareDialog formatName={pendingShare.appearance.name} busy={saving}
       onCancel={() => setPendingShare(undefined)}
       onConfirm={(attribution) => void commit(pendingShare.fields, pendingShare.appearance, attribution)} />}
   </>;

@@ -1,5 +1,6 @@
 'use client';
 
+import { notify } from '../../lib/ui/notify';
 import { useEffect, useRef, useState } from 'react';
 import { importPhotoZip, normalizeImage } from '../../lib/cards/assets';
 import { CardImage } from './card-preview';
@@ -14,7 +15,6 @@ export function PhotoPanel({ participants, photoKey, onPhotos }: {
   const generation = useRef(0);
   const [photos, setPhotos] = useState(new Map<string, Blob>());
   const [id, setId] = useState('');
-  const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const activeId = participants?.some((p) => p.id === id) ? id : participants?.[0]?.id;
 
@@ -32,16 +32,16 @@ export function PhotoPanel({ participants, photoKey, onPhotos }: {
     if (!participants || !activeId || busy) return;
     const job = ++generation.current;
     setBusy(true);
-    setMessage('');
+
     try {
       const result = zip
         ? await importPhotoZip(file, new Set(participants.map((p) => p.id)))
         : { photos: new Map([[activeId, await normalizeImage(file)]]), unmatched: [] };
       if (generation.current !== job) return;
       commit(new Map([...photos, ...result.photos]));
-      setMessage(`${result.photos.size} foto diterapkan. ${result.unmatched.length} tidak cocok${result.unmatched.length ? ': ' + result.unmatched.slice(0, 10).join(', ') : ''}.`);
+      notify(result.unmatched.length ? 'warning' : 'success', `${result.photos.size} foto diterapkan. ${result.unmatched.length} tidak cocok${result.unmatched.length ? ': ' + result.unmatched.slice(0, 10).join(', ') : ''}.`);
     } catch (error) {
-      if (generation.current === job) setMessage(error instanceof Error ? error.message : 'Foto gagal diproses.');
+      if (generation.current === job) notify('error', error instanceof Error ? error.message : 'Foto gagal diproses.');
     } finally {
       if (generation.current === job) setBusy(false);
     }
@@ -92,9 +92,9 @@ export function PhotoPanel({ participants, photoKey, onPhotos }: {
           const next = new Map(photos);
           next.delete(activeId);
           commit(next);
-          setMessage('Foto peserta dihapus.');
+          notify('success', 'Foto peserta dihapus.');
         }}>Hapus foto peserta</button>
-        <p role="status">{busy ? 'Memproses foto…' : message || `${photos.size} foto tersimpan.`}</p>
+        <p role="status">{busy ? 'Memproses foto…' : `${photos.size} foto tersimpan.`}</p>
         </div>
       </div>}
     </section>
