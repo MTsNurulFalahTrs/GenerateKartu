@@ -115,12 +115,12 @@ try {
       await page.waitForSelector('.community-card[data-community-id="9001"]', { visible: true });
       assert.match(await page.$eval('.community-card-byline', (el) => el.textContent),
         /Kontributor Simulasi.*13 Nov 2026/);
-      assert.equal(await page.$eval('.community-card-fields li', (items) => items.length), 6);
+      assert.equal(await page.$$eval('.community-card-fields li', (items) => items.length), 6);
       assert.equal(await page.$eval('.community-extra-fields', (el) => el.textContent.trim()), '+1 field lainnya');
       await page.locator('.format-library-filters button:nth-child(3)').click();
-      assert.equal(await page.$eval('.format-grid article', (els) => els.length), 1);
+      assert.equal(await page.$$eval('.format-grid article', (els) => els.length), 1);
       await page.locator('input[aria-label="Cari format"]').fill('Kontributor Simulasi');
-      assert.equal(await page.$eval('.community-card', (els) => els.length), 1);
+      assert.equal(await page.$$eval('.community-card', (els) => els.length), 1);
       await page.locator('input[aria-label="Cari format"]').fill('');
       await page.locator('.community-card .community-choose').click();
       await page.waitForSelector('.community-card[data-selected="true"]');
@@ -136,7 +136,7 @@ try {
       await page.locator('#pick-format-1').click();
       await page.waitForSelector('#pick-format-1[aria-pressed="true"]');
       await page.locator('.format-library-filters button:nth-child(1)').click();
-      assert.equal(await page.$eval('.community-card[data-selected="true"]', (els) => els.length), 0);
+      assert.equal(await page.$$eval('.community-card[data-selected="true"]', (els) => els.length), 0);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
       await page.setRequestInterception(false);
       page.off('request', communityRequest);
