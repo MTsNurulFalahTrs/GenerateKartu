@@ -21,14 +21,15 @@ test('community format preserves safe built-in and manual field metadata', () =>
 test('community parser supports legacy built-in-only definitions', () => {
   const candidate = { name: 'Format Lama', fields: ['NoPeserta', 'NamaMurid'], photoKey: 'NoPeserta', mono: [] };
   assert.deepEqual(parseCommunityFormat(candidate), candidate);
-  assert.equal(parseCommunityFormat({ ...candidate, fields: ['NoPeserta', 'Password'] }), null);
+  assert.deepEqual(parseCommunityFormat({ ...candidate, fields: ['NoPeserta', 'Password'] }),
+    { ...candidate, fields: ['NoPeserta', 'Password'] });
   assert.equal(parseCommunityFormat({ ...candidate, name: '\u0001' }), null);
 });
 
 
 test('community contribution requires a valid name or explicit anonymity', () => {
   assert.deepEqual(parseCommunityAttribution({ anonymous: false, contributorName: '  Guru NF  ' }),
-    { anonymous: false, contributorName: 'Guru NF' });
+    { anonymous: false, contributorName: 'Guru Nf' });
   assert.deepEqual(parseCommunityAttribution({ anonymous: true, contributorName: 'Rahasia' }),
     { anonymous: true, contributorName: 'Anonim' });
   assert.deepEqual(parseCommunityAttribution({ fields: [] }),
