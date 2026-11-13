@@ -1,5 +1,7 @@
 'use client';
 
+import { MasonryGrid } from './masonry-grid';
+
 import { useEffect, useRef, useState } from 'react';
 import { PageHeading } from './page-chrome';
 import { EditorIcon } from './editor-icon';
@@ -100,7 +102,7 @@ export function HelpContent({ participants = 0, photos = 0, communityCount, inEd
         <dt>{label}</dt><dd>{count}</dd>
       </div>)}
     </dl>
-    <div className="help-grid">
+    <MasonryGrid className="help-grid">
       <section className="panel">
         <h2>Tentang Aplikasi</h2>
         <p>Kartu Ujian Pro membantu panitia ujian sekolah dan madrasah menyiapkan kartu peserta dari data Excel, memeriksa tata letak, dan mencetak kartu atau mengunduhnya sebagai PDF.</p>
@@ -136,14 +138,14 @@ export function HelpContent({ participants = 0, photos = 0, communityCount, inEd
           <p><kbd>Esc</kbd> menutup dialog pratinjau atau impor.</p>
         </div>
       </section>
-      <section className="panel help-faq" id={`${prefix}-faq`}>
+      <section className="panel help-faq" data-masonry-full id={`${prefix}-faq`}>
         <h2>FAQ — Pertanyaan yang Sering Diajukan</h2>
         {faq.map(([question, answer]) => <details key={question}>
           <summary>{question}</summary><p>{answer}</p>
         </details>)}
 
       </section>
-    </div>
+    </MasonryGrid>
     {notesOpen && <ReleaseNotesDialog onClose={() => {
       setNotesOpen(false);
       requestAnimationFrame(() => noteButton.current?.focus());

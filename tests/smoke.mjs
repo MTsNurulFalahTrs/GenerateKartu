@@ -659,6 +659,13 @@ try {
       }
       await page.locator('.help-nav').click();
       await page.waitForSelector('#editor-help-panel .help-stats', { visible: true });
+      await page.waitForFunction(() => {
+        const grid = document.querySelector('.help-grid');
+        if (!grid || (innerWidth > 720 && !grid.hasAttribute('data-masonry-ready'))) return false;
+        const cards = [...grid.children].map((card) => card.getBoundingClientRect());
+        const faq = cards.at(-1);
+        return faq.width >= grid.clientWidth - 1 && cards.slice(0, -1).every((card) => card.bottom <= faq.top);
+      });
       await page.locator('#editor-help-faq details:first-of-type summary').click();
       await page.waitForSelector('#editor-help-faq details[open] p', { visible: true });
       await page.$eval('.help-release-button', (button) => button.click());
