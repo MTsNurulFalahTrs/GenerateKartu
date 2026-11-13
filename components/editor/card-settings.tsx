@@ -93,7 +93,7 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
             </label>
             {key === 'address'
               ? <textarea id={`kop-${key}`} rows={3} maxLength={limit} value={value[key]} placeholder="Kosongkan jika tidak perlu" onChange={(event) => update(key, event.target.value)} />
-              : <input id={`kop-${key}`} aria-label={key === 'institution' ? 'Nama sekolah/madrasah' : undefined} maxLength={limit} value={value[key]} onChange={(event) => update(key, event.target.value)} />}
+              : <input type="text" id={`kop-${key}`} aria-label={key === 'institution' ? 'Nama sekolah/madrasah' : undefined} maxLength={limit} value={value[key]} onChange={(event) => update(key, event.target.value)} />}
             {key === 'year' && <div className="kop-presets">
               {['Tahun Lalu', 'Tahun Berjalan', 'Tahun Depan'].map((name, i) => <button type="button" key={name} onClick={() => yearPreset(i - 1)}>{name}</button>)}
               {['Ganjil', 'Genap'].map((name) => <button type="button" key={name} onClick={() => {
@@ -121,7 +121,7 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
       <h3>Data Penandatangan</h3>
       <div className="kop-grid">
         {signerInputs.map(([key, label, placeholder]) => <label className="kop-field" key={key}>{label}
-          <input maxLength={160} placeholder={placeholder} value={value[key]} onChange={(event) => update(key, event.target.value)}
+          <input type="text" maxLength={160} placeholder={placeholder} value={value[key]} onChange={(event) => update(key, event.target.value)}
             onBlur={key === 'city' ? () => update(key, value.city.trim().toLocaleLowerCase('id-ID').replace(/(^|[\s-])\p{L}/gu, (letter) => letter.toLocaleUpperCase('id-ID'))) : undefined} />
         </label>)}
       </div>
