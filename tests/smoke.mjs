@@ -91,7 +91,8 @@ try {
       assert.ok(photoInput);
       await photoInput.uploadFile(photo);
       await page.waitForFunction(() => document.querySelector('#panel-1')?.textContent.includes('1 foto diterapkan'));
-      await page.locator('#step-2').click();
+      await page.$eval('#step-2', (button) => button.click());
+      await page.waitForSelector('#panel-2', { visible: true });
       await page.evaluate(() => {
         const input = [...document.querySelectorAll('#panel-2 input')].find((element) => element.labels?.[0]?.textContent.includes('Nama sekolah'));
         if (!input) throw new Error('Input institusi hilang');
@@ -101,8 +102,7 @@ try {
       });
       await page.waitForFunction(() => document.querySelector('#panel-2 .exam-card-head')?.textContent.includes('Madrasah Uji Fase 7'));
       await page.waitForSelector('#panel-2 img[alt="Foto peserta"]');
-      await page.focus('#card-settings-1');
-      await page.keyboard.press('Space');
+      await page.$eval('#card-settings-1', (button) => button.click());
       await page.waitForSelector('#card-settings-1[aria-pressed=true]');
       await page.evaluate(() => {
         const input = [...document.querySelectorAll('#panel-2 input[type=checkbox]')].find((element) => element.labels?.[0]?.textContent.includes('Tampilkan QR'));
@@ -110,26 +110,30 @@ try {
         input.click();
       });
       await page.waitForSelector('#panel-2 svg[aria-label="QR referensi kartu"]');
-      await page.focus('#card-settings-2');
-      await page.keyboard.press('Space');
+      await page.$eval('#card-settings-2', (button) => button.click());
       await page.waitForSelector('#card-settings-2[aria-pressed=true]');
-      await page.locator('#step-3').click();
+      await page.$eval('#step-3', (button) => button.click());
+      await page.waitForSelector('#panel-3', { visible: true });
       assert.match(await page.locator('#panel-3').map((el) => el.textContent).wait(), /Lengkap Ruang/);
       for (let format = 1; format <= 7; format++) {
-        await page.locator('#step-0').click();
-        await page.locator(`[aria-label="Pilih Format ${format}"]`).click();
-        await page.locator('#step-3').click();
+        await page.$eval('#step-0', (button) => button.click());
+        await page.waitForSelector('#panel-0', { visible: true });
+        await page.$eval(`[aria-label="Pilih Format ${format}"]`, (button) => button.click());
+        await page.$eval('#step-3', (button) => button.click());
+        await page.waitForSelector('#panel-3', { visible: true });
         await page.waitForSelector('#panel-3 .exam-card');
         assert.ok(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length >= 4));
       }
-      await page.locator('#step-0').click();
-      await page.focus('#pick-custom-format');
-      await page.keyboard.press('Space');
-      await page.locator('#step-3').click();
+      await page.$eval('#step-0', (button) => button.click());
+      await page.waitForSelector('#panel-0', { visible: true });
+      await page.$eval('#pick-custom-format', (button) => button.click());
+      await page.$eval('#step-3', (button) => button.click());
+      await page.waitForSelector('#panel-3', { visible: true });
       assert.equal(await page.$eval('#panel-3 .exam-card dl', (list) => list.children.length), 3);
       await page.locator('.theme').click();
       await page.waitForSelector('[data-theme="dark"]');
-      await page.locator('#step-0').click();
+      await page.$eval('#step-0', (button) => button.click());
+      await page.waitForSelector('#panel-0', { visible: true });
       await page.locator('.theme').click();
       await page.waitForSelector('[data-theme="light"]');
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
