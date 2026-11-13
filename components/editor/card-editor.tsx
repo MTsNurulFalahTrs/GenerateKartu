@@ -11,7 +11,7 @@ import { CardSettingsPanel } from './card-settings';
 import { PreviewPanel } from './preview-panel';
 import type { CardRenderModel } from '../../lib/cards/render-model';
 import { CardPreview } from './card-preview';
-import { defaultCard } from '../../lib/cards/settings';
+import { defaultCard, validCardLayout } from '../../lib/cards/settings';
 import type { InstitutionAssets } from '../../lib/cards/settings';
 import { fieldsFor } from '../../lib/participants/model';
 import type { Field, Participant } from '../../lib/participants/model';
@@ -66,7 +66,7 @@ export function CardEditor() {
   const preferences: Preferences = { schemaVersion: 1, dark, format, custom, hidden, settings: options };
   const serialized = JSON.stringify(preferences);
   const heading = useMemo(() => pickHeading(card), [card]);
-  const settingsSnapshot = JSON.stringify(card);
+  const settingsSnapshot = JSON.stringify({ serialized, card });
 
   function saveSettings() {
     try {
@@ -99,6 +99,8 @@ export function CardEditor() {
     clearSession();
     setSavedSettings(undefined);
     restore({ schemaVersion: 1, dark: false, format: 0, custom: defaultCustom, hidden: [], settings: pickOptions(defaultCard) });
+    setSetting(0);
+    setStorageMessage('');
     setSessionMessage('Sesi dan pengaturan telah direset.');
     try {
       localStorage.removeItem(storageKey);
@@ -337,7 +339,7 @@ export function CardEditor() {
                   ))}
                 </div>
                 {setting !== 0 && <h2 className="mb-3">{settings[setting]}</h2>}
-                <CardSettingsPanel key={revision} section={setting} value={card} onChange={setCard} assets={assets}
+                <CardSettingsPanel key={`settings-${revision}`} section={setting} value={card} onChange={setCard} assets={assets}
                   onAssets={(name, asset) => setAssets((previous) => ({ ...previous, [name]: asset }))} />
                 {setting === 1 && format !== null && <fieldset className="mt-4">
                   <legend>Kolom kartu</legend>
@@ -350,12 +352,12 @@ export function CardEditor() {
                 {step === 2 && setting !== 0 && <div className="mt-4"><CardPreview {...renderCard(previewParticipant)} /></div>}
                 <button className="action kop-save" type="button" onClick={saveSettings}>Simpan Pengaturan</button>
                 <small className="kop-save-note">Preferensi disimpan di browser. Isi KOP dan aset berlaku selama sesi.</small>
-                <BackupPanel key={revision} preferences={preferences} heading={heading}
+                <BackupPanel key={`backup-${revision}`} preferences={preferences} heading={heading}
                   onRestore={restore} storageMessage={storageMessage} />
               </div>
               <footer className="data-footer">
                 <button className="action" type="button" onClick={() => setStep(1)}>‹ Kembali</button>
-                <button className="action data-next" type="button" onClick={() => setStep(3)}>Lihat & Cetak Kartu ›</button>
+                <button className="action data-next" type="button" disabled={!validCardLayout(card)} onClick={() => setStep(3)}>Lihat & Cetak Kartu ›</button>
               </footer>
               </>
             )}

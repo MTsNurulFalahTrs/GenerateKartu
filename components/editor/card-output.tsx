@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { CardPreview } from './card-preview';
 import type { Participant } from '../../lib/participants/model';
 import type { CardRenderModel } from '../../lib/cards/render-model';
+import { validCardLayout } from '../../lib/cards/settings';
 import { cardPages, paper } from '../../lib/cards/print-layout';
 
 export function CardOutput({ participants, renderCard, pending }: {
@@ -32,7 +33,9 @@ export function CardOutput({ participants, renderCard, pending }: {
     setError(false);
     setMessage('Menyiapkan kartu…');
     try {
-      const { width, height } = cards[0].settings;
+      const { settings } = cards[0];
+      if (!validCardLayout(settings)) throw new Error('Periksa ukuran kartu dan ukuran teks di Layout & Cetak.');
+      const { width, height } = settings;
       const layout = cardPages(cards, width, height);
       flushSync(() => { setColumns(layout.columns); setJob(layout.pages); });
       const deadline = performance.now() + 15000;
