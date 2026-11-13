@@ -5,6 +5,7 @@ import { AppBrand, PageHeading } from './page-chrome';
 import { flushSync } from 'react-dom';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
+import type { CatalogFormat } from '../../lib/cards/community';
 import { CustomFormatDialog } from './custom-format-dialog';
 import { BackupPanel } from './backup-panel';
 import { defaultCustom, idleLimit, parseBackup, pickHeading, pickOptions, storageKey } from '../../lib/cards/preferences';
@@ -50,6 +51,10 @@ export function CardEditor() {
   const [format, setFormat] = useState<number | null>(0);
   const [formatQuery, setFormatQuery] = useState('');
   const [previewFormat, setPreviewFormat] = useState<number | null>(null);
+  const [catalog, setCatalog] = useState<CatalogFormat[]>([]);
+  const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [communityPreview, setCommunityPreview] = useState<CatalogFormat>();
+  const [published, setPublished] = useState('');
   const [editingCustom, setEditingCustom] = useState(false);
   const previewDialog = useRef<HTMLDialogElement>(null);
   const previewTrigger = useRef<HTMLButtonElement>(null);
@@ -205,9 +210,40 @@ export function CardEditor() {
     setEditingCustom(true);
   }
 
+  const loadCatalog = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const response = await fetch('/api/community-formats', { signal: signal ?? AbortSignal.timeout(12000) });
+      if (!response.ok) throw new Error('Katalog tidak tersedia');
+      const result: CatalogFormat[] = await response.json();
+      if (!signal?.aborted) {
+        setCatalog(result);
+        setCatalogStatus('ready');
+      }
+    } catch {
+      if (!signal?.aborted) setCatalogStatus('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadCatalog(controller.signal);
+    return () => controller.abort();
+  }, [loadCatalog]);
+
+  function activateCustom(fields: Field[], appearance: CustomAppearance) {
+    setCustom(fields);
+    setCustomAppearance(appearance);
+    setCustomConfigured(true);
+    setHidden([]);
+    setFormat(7);
+  }
+
   const completedSteps = [format !== null, dataset.participants.length > 0];
   const visibleFormats = titles.map((title, id) => ({ title, id })).filter(({ title, id }) =>
     `${title} ${formats[id] ?? 'Buat Sendiri'}`.toLowerCase().includes(formatQuery.trim().toLowerCase()));
+
+  const visibleCommunity = catalog.filter(({ name }) =>
+    name.toLowerCase().includes(formatQuery.trim().toLowerCase()));
 
   function onTabKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
@@ -274,7 +310,7 @@ export function CardEditor() {
                     onChange={(event) => setFormatQuery(event.target.value)} />
                   <span className="format-count">Bawaan {formatTitles.length}</span>
                 </div>
-                {visibleFormats.length === 0 && <p role="status">Tidak ada format yang cocok.</p>}
+                {visibleFormats.length === 0 && visibleCommunity.length === 0 && <p role="status">Tidak ada format yang cocok.</p>}
                 <div className="format-grid">
                   {visibleFormats.map(({ title, id }) => {
                     const fields = fieldsFor(id, custom);
@@ -310,6 +346,42 @@ export function CardEditor() {
                     </article>;
                   })}
                 </div>
+                <section className="community-formats" aria-labelledby="community-title">
+                  <header>
+                    <h2 id="community-title">Format dari Komunitas <span className="format-count">{catalog.length}</span></h2>
+                    <button className="action" type="button" disabled={catalogStatus === 'loading'}
+                      onClick={() => { setCatalogStatus('loading'); void loadCatalog(); }}>Muat Ulang</button>
+                  </header>
+                  {published && <p role="status">{published}</p>}
+                  {catalogStatus === 'loading' && <p role="status">Memuat format komunitas…</p>}
+                  {catalogStatus === 'error' && <p role="status">Katalog komunitas belum dapat dimuat.</p>}
+                  {catalogStatus === 'ready' && !catalog.length && <p>Belum ada format yang dibagikan.</p>}
+                  <div className="format-grid">
+                    {visibleCommunity.map((entry) => <article className="format custom" key={entry.id}>
+                      <header className="format-heading">
+                        <span className="format-icon"><EditorIcon name="users" /></span>
+                        <div><h2>{entry.name}</h2><span>Format Komunitas</span></div>
+                        <span className="format-count">{entry.fields.length} field</span>
+                      </header>
+                      <ul className="format-fields">{entry.fields.map((field) => <li key={field}>
+                        <span className="format-check" aria-hidden="true">✓</span>{formatFieldLabels[field]}
+                        {field === entry.photoKey && <span className="format-photo"><EditorIcon name="image" /> Acuan Foto</span>}
+                      </li>)}</ul>
+                      <div className="format-actions">
+                        <button className="action format-pick" type="button" onClick={() => {
+                          const { name, photoKey, mono } = entry;
+                          activateCustom(entry.fields, { name, photoKey, mono });
+                          setPublished('');
+                        }}>Pilih Format</button>
+                        <button className="action" type="button" aria-haspopup="dialog" onClick={(event) => {
+                          previewTrigger.current = event.currentTarget;
+                          setCommunityPreview(entry);
+                          setPreviewFormat(7);
+                        }}><EditorIcon name="eye" /> Preview</button>
+                      </div>
+                    </article>)}
+                  </div>
+                </section>
               </>
             )}
             {index === 1 && (
@@ -369,7 +441,7 @@ export function CardEditor() {
           </section>
         ))}
         <section id="editor-help-panel" hidden={!helpOpen}>
-          {helpOpen && <HelpContent inEditor participants={dataset.participants.length} photos={photos.size} />}
+          {helpOpen && <HelpContent inEditor participants={dataset.participants.length} photos={photos.size} communityCount={catalogStatus === 'ready' ? catalog.length : undefined} />}
         </section>
       </main>
       {editingCustom && <CustomFormatDialog fields={customConfigured ? custom : []} appearance={customAppearance} labels={formatFieldLabels}
@@ -381,27 +453,40 @@ export function CardEditor() {
             else document.querySelector<HTMLButtonElement>('#pick-custom-format')?.focus();
           });
         }}
-        onSave={(fields, appearance) => {
-          setCustom(fields);
-          setCustomAppearance(appearance);
-          setCustomConfigured(true);
-          setHidden([]);
-          setFormat(7);
+        onSave={async (fields, appearance, share) => {
+          setPublished('');
+          if (share) {
+            const response = await fetch('/api/community-formats', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...appearance, fields }),
+              signal: AbortSignal.timeout(12000),
+            }).catch(() => null);
+            if (!response?.ok) {
+              const error = await response?.json().catch(() => null);
+              throw new Error(error?.message ?? 'Format belum berhasil dibagikan. Coba lagi atau simpan secara lokal.');
+            }
+            setPublished('Format berhasil dibagikan ke komunitas.');
+            void loadCatalog();
+          }
+          activateCustom(fields, appearance);
         }} />}
       <dialog className="format-dialog" ref={previewDialog} aria-labelledby="format-preview-title" onClose={() => {
         setPreviewFormat(null);
+        setCommunityPreview(undefined);
         previewTrigger.current?.focus();
       }}>
         {previewFormat !== null && <>
           <header>
             <span className="format-icon" aria-hidden="true"><EditorIcon name="eye" /></span>
-            <h2 id="format-preview-title">Preview: {titles[previewFormat]}</h2>
+            <h2 id="format-preview-title">Preview: {communityPreview?.name ?? titles[previewFormat]}</h2>
             <button type="button" className="action" aria-label="Tutup modal Preview"
               onClick={() => previewDialog.current?.close()}>×</button>
           </header>
           <div className="format-preview-stage">
             <CardPreview {...renderCard(sample, previewFormat)} photo={undefined}
-              hidden={previewFormat === format ? hidden : []} />
+              custom={communityPreview?.fields ?? custom} customAppearance={communityPreview ?? customAppearance}
+              hidden={!communityPreview && previewFormat === format ? hidden : []} />
           </div>
           <footer>
             <p>Jika isi kartu terpotong, sesuaikan ukuran kartu di <strong>Pengaturan → Layout & Cetak</strong>.</p>

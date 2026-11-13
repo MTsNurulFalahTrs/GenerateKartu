@@ -21,20 +21,21 @@ const faq = [
   ['Apa yang terjadi setelah dua jam tanpa aktivitas?', 'Data peserta dan aset sesi dibersihkan. Preferensi tampilan yang tersimpan di browser tetap dapat digunakan.'],
   ['Bisakah saya mencetak kartu untuk kelas tertentu?', 'Ya. Pilih kelas pada Filter Cetak, lalu periksa jumlah kartu sebelum mencetak.'],
   ['Apa yang harus dilakukan jika hasil cetak terpotong?', 'Periksa Pratinjau A4, gunakan skala 100% dan margin Tidak Ada. Jika isi kartu melebihi batas, sesuaikan ukuran di Layout & Cetak.'],
-  ['Apakah format komunitas tersedia?', 'Saat ini katalog menyediakan format bawaan dan Format Kustom.'],
+  ['Apakah format komunitas tersedia?', 'Ya. Centang opsi berbagi saat menyimpan Format Kustom untuk menambahkannya ke katalog publik di tab Format.'],
 ];
 
-export function HelpContent({ participants = 0, photos = 0, inEditor = false }: {
+export function HelpContent({ participants = 0, photos = 0, communityCount, inEditor = false }: {
   participants?: number;
   photos?: number;
   inEditor?: boolean;
+  communityCount?: number;
 }) {
   const prefix = inEditor ? 'editor-help' : 'help';
   const stats = [
-    [formats.length + 1, 'Format tersedia', 'table'],
+    [formats.length + 1 + (communityCount ?? 0), 'Format tersedia', 'table'],
     [participants, 'Murid termuat', 'user'],
     [photos, 'Foto tersimpan', 'image'],
-    [0, 'Format komunitas', 'users'],
+    ...(communityCount === undefined ? [] : [[communityCount, 'Format komunitas', 'users'] as const]),
   ] as const;
   return <>
     <PageHeading title="Pusat Informasi & Bantuan"

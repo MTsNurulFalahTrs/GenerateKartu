@@ -571,3 +571,10 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 .custom-format-dialog .custom-save { font-weight: 700; }
 .custom-format-placeholder { color: var(--muted); font-style: italic; }
 .editor[data-theme="dark"] .custom-format-dialog .custom-add { color: #d6b1ff; }
+
+.community-formats { margin-block: 1.5rem; }
+.community-formats > header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .75rem; }
+.community-formats > header h2 { font-weight: 700; }
+.community-formats > p { margin-bottom: .75rem; color: var(--muted); }
+.community-formats .format-heading h2 { overflow-wrap: anywhere; }
+.custom-format-dialog fieldset { min-inline-size: 0; }
