@@ -31,7 +31,7 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
   fields: readonly Field[];
   appearance?: CustomAppearance;
   labels: Record<Field, string>;
-  onSave: (fields: Field[], appearance: CustomAppearance) => void;
+  onSave: (fields: Field[], appearance: CustomAppearance, share: boolean) => Promise<void>;
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -55,6 +55,8 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
     return 'row-' + (selected < 0 ? 1 : selected + 1);
   });
   const [error, setError] = useState('');
+  const [share, setShare] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => { dialog.current?.showModal(); }, []);
 
@@ -109,7 +111,8 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
     setError('');
   }
 
-  function save(event: FormEvent<HTMLFormElement>) {
+  async function save(event: FormEvent<HTMLFormElement>) {
+    if (saving) return;
     event.preventDefault();
     const selected = rows.filter((row) => row.field !== '');
     if (!name.trim() || !rows.length || rows.length > maxRows || selected.length !== rows.length ||
@@ -125,25 +128,34 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
     const entries = selected as (FormatRow & { field: Field })[];
     const fields = entries.map((row) => row.field);
     const photoKey = entries.find((row) => row.id === photoRow)!.field;
-    onSave(fields, {
-      name: name.trim(),
-      photoKey,
-      mono: entries.filter((row) => row.mono).map((row) => row.field),
-      labels: Object.fromEntries(entries.map((row) => [row.field, row.label.trim()])),
-      excelHeaders: Object.fromEntries(entries.map((row) => [row.field, row.excel.trim()])),
-    });
-    dialog.current?.close();
+    setError('');
+    setSaving(true);
+    try {
+      await onSave(fields, {
+        name: name.trim(),
+        photoKey,
+        mono: entries.filter((row) => row.mono).map((row) => row.field),
+        labels: Object.fromEntries(entries.map((row) => [row.field, row.label.trim()])),
+        excelHeaders: Object.fromEntries(entries.map((row) => [row.field, row.excel.trim()])),
+      }, share);
+      dialog.current?.close();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Format belum berhasil dibagikan.');
+    } finally {
+      setSaving(false);
+    }
   }
 
-  return <dialog ref={dialog} className="format-dialog custom-format-dialog" aria-labelledby="custom-format-title" onClose={onClose}>
+  return <dialog ref={dialog} className="format-dialog custom-format-dialog" aria-labelledby="custom-format-title" onClose={onClose}
+    onCancel={(event) => { if (saving) event.preventDefault(); }}>
     <header>
       <span className="format-icon"><EditorIcon name="edit" /></span>
       <div><h2 id="custom-format-title">Buat Format Kustom</h2>
         <p>Tentukan sendiri field yang tampil di kartu ujian (maks. 6 baris)</p></div>
-      <button className="action custom-format-close" type="button" aria-label="Tutup Format Kustom"
+      <button className="action custom-format-close" type="button" disabled={saving} aria-label="Tutup Format Kustom"
         onClick={() => dialog.current?.close()}>×</button>
     </header>
-    <form onSubmit={save}>
+    <form onSubmit={save} aria-busy={saving}>
       <div className="custom-format-body">
         <label className="custom-format-name">Nama Format
           <input required maxLength={60} value={name} onChange={(event) => setName(event.currentTarget.value)} />
@@ -223,12 +235,16 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
         {error && <p className="custom-format-error" role="alert">{error}</p>}
       </div>
       <footer className="custom-format-footer">
-        <label className="custom-community"><input type="checkbox" disabled />
+        <label className="custom-community"><input type="checkbox" checked={share} disabled={saving}
+          onChange={(event) => setShare(event.currentTarget.checked)} />
           <span><strong>Bagikan format ini ke komunitas</strong>
-            <small>Fitur katalog komunitas belum tersedia.</small></span></label>
+            <small>Opsional: nama format, nama field, dan header Excel akan dipublikasikan.
+              Jangan gunakan nama peserta atau data pribadi dalam metadata format.</small></span></label>
         <div>
-          <button className="action" type="button" onClick={() => dialog.current?.close()}>Batal</button>
-          <button className="action custom-save" type="submit">✓ Simpan &amp; Aktifkan</button>
+          <button className="action" type="button" disabled={saving} onClick={() => dialog.current?.close()}>Batal</button>
+          <button className="action custom-save" type="submit" disabled={saving}>
+            {saving ? 'Menyimpan…' : '✓ Simpan & Aktifkan'}
+          </button>
         </div>
       </footer>
     </form>
