@@ -1311,6 +1311,7 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
   pointer-events: none;
 }
 .app-toast-stack:popover-open { display: grid; gap: .55rem; }
+.app-toast-stack.app-toast-fallback { display: grid; gap: .55rem; z-index: 10000; }
 .app-toast-stack .app-toast {
   pointer-events: none;
   position: relative;

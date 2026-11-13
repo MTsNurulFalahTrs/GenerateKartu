@@ -556,7 +556,11 @@ try {
         const confirm = document.querySelector('.community-share-dialog[open] .community-share-confirm');
         for (let index = 0; index < 4; index++) confirm.click();
       });
-      assert.equal(await page.$$eval('.app-toast-stack:popover-open .app-toast', (items) => items.length), 3);
+      assert.deepEqual(await page.$$eval('.app-toast-stack:popover-open .app-toast', (items) => items.map((item) => {
+        const style = getComputedStyle(item);
+        const bounds = item.getBoundingClientRect();
+        return style.opacity === '1' && style.visibility === 'visible' && bounds.width > 0 && bounds.height > 0;
+      })), [true, true, true]);
       await page.waitForFunction(() => !document.querySelector('.app-toast'), { timeout: 3500 });
       await dialogAction(page, '#community-contributor-name', 'fill', 'rANDY uJI123!');
       assert.equal(await dialogValue(page, '#community-contributor-name', 'value'), 'Randy Uji');
