@@ -17,7 +17,8 @@ export function CommunityShareDialog({ formatName, busy, onCancel, onConfirm }: 
   const [name, setName] = useState('');
   const [anonymous, setAnonymous] = useState(false);
   const [iconPreset, setIconPreset] = useState<CommunityIcon>('users');
-  const [iconIco, setIconIco] = useState<string>();
+  const [uploadedIcon, setUploadedIcon] = useState<{ name: string; size: number; data: string }>();
+  const uploadInput = useRef<HTMLInputElement>(null);
   const [reading, setReading] = useState(false);
 
   useEffect(() => { dialog.current?.showModal(); }, []);
@@ -32,7 +33,7 @@ export function CommunityShareDialog({ formatName, busy, onCancel, onConfirm }: 
       return;
     }
 
-    onConfirm({ anonymous, contributorName: anonymous ? 'Anonim' : contributorName, iconPreset, ...(iconIco ? { iconIco } : {}) });
+    onConfirm({ anonymous, contributorName: anonymous ? 'Anonim' : contributorName, iconPreset, ...(uploadedIcon ? { iconIco: uploadedIcon.data } : {}) });
   }
 
   return <dialog ref={dialog} className="format-dialog community-share-dialog"
@@ -74,33 +75,52 @@ export function CommunityShareDialog({ formatName, busy, onCancel, onConfirm }: 
         </label>
         <fieldset className="community-icon-picker" disabled={busy || reading}>
           <legend>Ikon format</legend>
-          <div>{Object.entries(communityIcons).map(([key, label]) =>
-            <button key={key} type="button" className="action" aria-pressed={!iconIco && iconPreset === key}
-              onClick={() => { setIconPreset(key as CommunityIcon); setIconIco(undefined); }}>
-              <EditorIcon name={key as CommunityIcon} /> {label}
-            </button>)}</div>
-          <label>Unggah ikon sendiri (.ico, 10–250 KB)
-            <input type="file" accept=".ico" onChange={async (event) => {
+          <p className="community-icon-hint">Ikon ini tampil di samping nama format di katalog komunitas.</p>
+          <div className="community-icon-options">
+            {(Object.keys(communityIcons) as CommunityIcon[]).map((key) => {
+              const selected = !uploadedIcon && iconPreset === key;
+              return <button key={key} type="button" aria-pressed={selected} className="community-icon-option"
+                onClick={() => { setIconPreset(key); setUploadedIcon(undefined); }}>
+                <span className="community-icon-tile"><EditorIcon name={key} /></span>
+                <span>{communityIcons[key]}</span>
+                {selected && <span className="community-icon-check" aria-hidden="true">✓</span>}
+              </button>;
+            })}
+          </div>
+          <div className="community-icon-upload" data-selected={!!uploadedIcon}>
+            <span className="community-icon-tile">
+              {uploadedIcon
+                // The validated local ICO is previewed without uploading it.
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={`data:image/vnd.microsoft.icon;base64,${uploadedIcon.data}`} alt="" width={24} height={24} />
+                : <EditorIcon name="upload" />}
+            </span>
+            <div className="community-icon-file" aria-live="polite">
+              <strong>{reading ? 'Memeriksa ikon…' : uploadedIcon?.name ?? 'Unggah ikon sendiri'}</strong>
+              <small>{uploadedIcon ? `Dipilih · ${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(uploadedIcon.size / 1024)} KB` : 'Format .ico · 10–250 KB'}</small>
+            </div>
+            <button type="button" className="action" aria-label={uploadedIcon ? 'Ganti berkas ikon' : 'Pilih berkas ikon'}
+              onClick={() => uploadInput.current?.click()}>{uploadedIcon ? 'Ganti' : 'Pilih berkas'}</button>
+            {uploadedIcon && <button type="button" className="action" aria-label="Hapus ikon unggahan"
+              onClick={() => setUploadedIcon(undefined)}>Hapus</button>}
+            <input ref={uploadInput} type="file" accept=".ico" hidden onChange={async (event) => {
               const file = event.currentTarget.files?.[0];
               event.currentTarget.value = '';
               if (!file) return;
               setReading(true);
-
               try {
                 if (!/\.ico$/i.test(file.name) || file.size < 10240 || file.size > 256000) throw new Error();
                 const bytes = new Uint8Array(await file.arrayBuffer());
                 if (!validIco(bytes)) throw new Error();
                 let binary = '';
                 for (const byte of bytes) binary += String.fromCharCode(byte);
-                setIconIco(btoa(binary));
+                setUploadedIcon({ name: file.name, size: file.size, data: btoa(binary) });
                 notify('success', 'Ikon unggahan dipilih.');
               } catch {
-                setIconIco(undefined);
                 notify('error', 'Pilih berkas .ico yang valid berukuran 10–250 KB.');
               } finally { setReading(false); }
             }} />
-          </label>
-          {iconIco && <small>Ikon unggahan dipilih</small>}
+          </div>
         </fieldset>
       </div>
       <footer className="community-share-footer">
