@@ -56,7 +56,7 @@ test('rejects wrong signatures, truncated ZIP, and row limits', async () => {
   await assert.rejects(inspectWorkbook(bytes, 'rusak.xls'));
   await assert.rejects(inspectWorkbook(bytes.slice(0, 64), 'rusak.xlsx'));
   const oversized = workbook([[...fieldsFor(1)], ...Array.from({ length: 1001 }, (_, i) => [String(i), '123', 'Uji', 'IX', '1'])]);
-  assert.throws(() => readSheet(oversized, 'Peserta'), /1.000/);
+  assert.throws(() => readSheet(oversized, 'Peserta'), /1.?000/);
 });
 
 test('500 synthetic participants are imported without loss and report process metrics', async (t) => {
