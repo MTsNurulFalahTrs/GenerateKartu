@@ -226,8 +226,11 @@ export function CardEditor() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void loadCatalog(controller.signal);
-    return () => controller.abort();
+    const frame = requestAnimationFrame(() => void loadCatalog(controller.signal));
+    return () => {
+      cancelAnimationFrame(frame);
+      controller.abort();
+    };
   }, [loadCatalog]);
 
   function activateCustom(fields: Field[], appearance: CustomAppearance) {
