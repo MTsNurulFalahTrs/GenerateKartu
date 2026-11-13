@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { normalizeImage } from '../../lib/cards/assets';
 import type { AssetName, CardSettings, InstitutionAssets } from '../../lib/cards/settings';
 
@@ -20,6 +20,10 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
   const assetJob = useRef(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  useEffect(() => {
+    const pending = assetJob;
+    return () => { pending.current++; };
+  }, []);
   function update<K extends keyof CardSettings>(key: K, next: CardSettings[K]) {
     onChange({ ...value, [key]: next });
   }

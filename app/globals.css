@@ -114,3 +114,6 @@ a { color: var(--indigo-700); }
   .print-sheet { break-inside: avoid; print-color-adjust: exact; }
   .print-sheet:not(:last-child) { break-after: page; }
 }
+
+html[data-card-session-paused] .editor .content,
+html[data-card-session-paused] .card-print-root { visibility: hidden; }
