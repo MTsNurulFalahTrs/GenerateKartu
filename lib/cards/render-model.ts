@@ -25,7 +25,7 @@ export function filterPreview(
   const keyword = query.trim().toLocaleLowerCase('id');
   return participants.filter((participant) =>
     (scope === 'all' || selected.has(participant.id)) &&
-    `${participant.id} ${participant.name}`.toLocaleLowerCase('id').includes(keyword) &&
+    `${participant.id} ${participant.name} ${participant.values.NISN ?? ''} ${participant.values.NoPeserta ?? ''}`.toLocaleLowerCase('id').includes(keyword) &&
     previewFilters.every((field) => !facets[field] || participant.values[field] === facets[field]),
   );
 }

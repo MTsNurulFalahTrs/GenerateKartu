@@ -10,6 +10,7 @@ import type { Heading, Preferences } from '../../lib/cards/preferences';
 import { CardSettingsPanel } from './card-settings';
 import { PreviewPanel } from './preview-panel';
 import type { CardRenderModel } from '../../lib/cards/render-model';
+import { CardOutput } from './card-output';
 import { CardPreview } from './card-preview';
 import { defaultCard, validCardLayout } from '../../lib/cards/settings';
 import type { InstitutionAssets } from '../../lib/cards/settings';
@@ -249,7 +250,8 @@ export function CardEditor() {
                 <span className="format-count" role="status">{savedSettings?.snapshot === settingsSnapshot && savedSettings.assets === assets ? 'Disimpan' : 'Belum disimpan'}</span>
               </div>
             </div>}
-            <h1 className={index === 0 ? 'sr-only' : undefined}>{index === 0 ? 'Pilih Format Kartu' : index === 1 ? 'Upload Data & Foto' : index === 2 ? 'Pengaturan Kartu' : label}</h1>
+            {index === 3 && <div className="data-badges"><span>Langkah 4 dari 4</span><span>{dataset.selected.size} kartu terpilih</span></div>}
+            <h1 className={index === 0 ? 'sr-only' : undefined}>{index === 0 ? 'Pilih Format Kartu' : index === 1 ? 'Upload Data & Foto' : index === 2 ? 'Pengaturan Kartu' : index === 3 ? 'Preview & Cetak' : label}</h1>
             {index === 0 && (
               <>
                 <p>Pilih tata letak yang sesuai standar ujian madrasah atau sekolah Anda.</p>
@@ -365,13 +367,13 @@ export function CardEditor() {
               </>
             )}
             {index === 3 && (
-              <div className="panel min-w-0">
-                <h2>Pratinjau Kartu</h2>
+              <div className="print-workspace min-w-0">
+                <p>Periksa tampilan kartu sebelum mencetak ke kertas.</p>
                 {format === null ? <p>Pilih format kartu untuk membuka pratinjau.</p> : <>
-                  <p>Format terpilih: {formats[format] ?? 'Format Kustom'}.</p>
+                  <p className="sr-only">Format terpilih: {formats[format] ?? 'Format Kustom'}.</p>
                   {dataset.participants.length
                     ? <PreviewPanel key={`${format}:${revision}`} active={step === 3} participants={dataset.participants} selected={dataset.selected} renderCard={renderCard} />
-                    : <><p>Contoh kartu. Impor data untuk melihat kartu peserta.</p>{step === 3 && <CardPreview {...renderCard(sample)} />}</>}
+                    : <><CardOutput participants={dataset.participants} renderCard={renderCard} pending={false} /><p>Contoh kartu. Impor data untuk melihat kartu peserta.</p>{step === 3 && <CardPreview {...renderCard(sample)} />}</>}
                 </>}
               </div>
             )}

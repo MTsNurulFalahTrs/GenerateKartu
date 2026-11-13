@@ -14,6 +14,10 @@ const paths = {
   upload: 'M8 17H6a4 4 0 0 1-1-8 7 7 0 0 1 13-1 5 5 0 0 1 0 9h-2 M12 22V11m-4 4 4-4 4 4',
   table: 'M3 4h18v16H3z M3 9h18 M3 14h18 M11 4v16',
   plus: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M7 12h10 M12 7v10',
+  document: 'M5 3h9l5 5v13H5z M13 3v6h6 M8 13h8 M8 17h6',
+  download: 'M12 3v12m-4-4 4 4 4-4 M4 15v5h16v-5',
+  printer: 'M6 8V3h12v5 M6 17H3V8h18v9h-3 M6 14h12v7H6z M17 11h1',
+  filter: 'M3 4h18l-7 8v6l-4 2v-8z',
   search: 'M10 17a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M15 15l6 6',
 } as const;
 
