@@ -263,3 +263,52 @@ html[data-card-session-paused] .card-print-root { visibility: hidden; }
 html[data-card-session-paused] .format-dialog { visibility: hidden; }
 @media (max-width: 1023px) { .format-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 540px) { .format-grid { grid-template-columns: minmax(0, 1fr); } }
+
+.format-actions .action[aria-haspopup], .format-photo { display: inline-flex; align-items: center; gap: .3rem; }
+.format-photo svg { width: .8rem; height: .8rem; }
+.data-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; align-items: stretch; }
+.data-wide, .data-grid > [role="status"] { grid-column: 1 / -1; }
+.data-grid .panel { border-radius: 1.15rem; }
+.data-grid .data-excel, .data-grid .data-zip { padding: 1.5rem; border-inline-start-width: 4px; }
+.data-excel { border-inline-start-color: #059669; }
+.data-zip { border-inline-start-color: #d97706; }
+.data-title { display: flex; align-items: center; gap: .65rem; }
+.data-title small, .data-drop small, .data-empty small, .data-footer small { color: var(--muted); }
+.data-grid .data-title h2 { font-size: .98rem; }
+.data-icon { display: inline-grid; place-items: center; width: 2.25rem; height: 2.25rem; flex: none; border-radius: .7rem; background: #e4e7ff; color: #4338ca; }
+.data-excel .data-icon { background: #ccf7e6; color: #09664f; }
+.data-zip .data-icon { background: #fef0c2; color: #92400e; }
+.data-locked .data-icon { background: #e2e8f0; color: #475569; }
+.data-note { margin-block: 1rem .8rem; padding: .8rem; border-radius: .7rem; background: var(--canvas); color: var(--muted); font-size: .82rem; }
+.data-note code { display: inline-block; padding: .1rem .35rem; border: 1px solid var(--line); border-radius: .4rem; background: var(--surface); color: var(--ink); }
+.data-columns { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .4rem; }
+.data-download { border-color: #059669; color: var(--ink); font-weight: 700; }
+.data-drop, .data-empty { display: grid; justify-items: center; align-content: center; gap: .4rem; min-height: 8.5rem; padding: 1rem; text-align: center; color: var(--muted); }
+.data-drop { cursor: pointer; border: 1px dashed var(--line); border-radius: .8rem; background: var(--canvas); }
+.data-drop:focus-within { outline: 2px solid var(--indigo-500); outline-offset: 3px; }
+.data-locked { cursor: default; }
+.data-grid .data-wide { padding: 0; }
+.data-wide .data-title { padding: 1rem 1.25rem; border-bottom: 1px solid var(--line); border-radius: 1.1rem 1.1rem 0 0; background: color-mix(in srgb, var(--surface) 65%, var(--canvas)); }
+.data-preview .format-count { margin-inline-start: auto; }
+.data-preview-controls { padding: 1rem 1.25rem; }
+.data-preview :is(th, td) { padding-inline: .7rem; }
+.data-preview th { background: var(--canvas); color: var(--muted); font-size: .74rem; text-transform: uppercase; }
+.data-preview tr:last-child td { border-bottom: 0; }
+.data-badges, .data-footer { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+.data-badges span { padding: .2rem .55rem; border-radius: 2rem; background: #e4e7ff; color: #3730a3; font-size: .75rem; }
+.data-badges span + span { background: #ccf7e6; color: #09664f; }
+#panel-1 h1 { margin-block: .4rem 0; }
+#panel-1 .data-intro { margin-bottom: 1.75rem; }
+.data-footer { justify-content: flex-end; margin-top: 1.8rem; }
+.data-footer small { margin-inline-end: auto; }
+.data-next { background: var(--indigo-600); color: white; font-weight: 700; }
+@media (max-width: 639px) { .data-grid { grid-template-columns: minmax(0, 1fr); } }
+.format-heading .format-icon { background: var(--format-icon-bg, #e9e7ff); color: var(--format-icon-ink, #4f46e5); }
+.format[data-format="2"] { --format-icon-bg: #dbeafe; --format-icon-ink: #1d4ed8; }
+.format[data-format="3"], .data-individual .data-icon { --format-icon-bg: #ede9fe; --format-icon-ink: #6d28d9; }
+.data-individual .data-icon { background: var(--format-icon-bg); color: var(--format-icon-ink); }
+.format[data-format="4"] { --format-icon-bg: #ccfbf1; --format-icon-ink: #0f766e; }
+.format[data-format="5"] { --format-icon-bg: #ffe4e6; --format-icon-ink: #be123c; }
+.format[data-format="6"] { --format-icon-bg: #fef3c7; --format-icon-ink: #92400e; }
+.format[data-format="7"] { --format-icon-bg: #dcfce7; --format-icon-ink: #166534; }
+.format[data-selected="true"] .format-icon, .format.custom .format-icon { background: rgb(255 255 255 / 20%); color: white; }
