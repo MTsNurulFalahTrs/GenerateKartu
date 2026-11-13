@@ -4,17 +4,19 @@ import { useEffect, useRef, useState } from 'react';
 import { maxBackupBytes, parseBackup } from '../../lib/cards/preferences';
 import type { Heading, Preferences } from '../../lib/cards/preferences';
 
-export function BackupPanel({ preferences, heading, onRestore, storageMessage }: {
+export function BackupPanel({ preferences, heading, onRestore, storageMessage, compact = false }: {
   preferences: Preferences;
   heading: Heading;
   onRestore: (preferences: Preferences, heading?: Heading) => void;
   storageMessage: string;
+  compact?: boolean;
 }) {
   const [includeHeading, setIncludeHeading] = useState(false);
   const [message, setMessage] = useState('');
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const generation = useRef(0);
+  const importInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const pending = generation;
@@ -59,6 +61,30 @@ export function BackupPanel({ preferences, heading, onRestore, storageMessage }:
       setMessage(error instanceof Error ? error.message : 'Backup gagal dibuat.');
     }
   }
+
+  if (compact) return <section className="layout-backup" aria-label="Ekspor dan impor konfigurasi">
+    <div className="layout-backup-actions">
+      <button type="button" className="action" onClick={download}><span aria-hidden="true">↓</span> Ekspor Konfigurasi</button>
+      <button type="button" className="action" disabled={busy} onClick={() => importInput.current?.click()}>
+        <span aria-hidden="true">↑</span> Impor Konfigurasi
+      </button>
+      <input ref={importInput} type="file" className="sr-only" tabIndex={-1} aria-label="Pilih berkas konfigurasi JSON"
+        accept=".json,application/json" disabled={busy} onChange={(event) => {
+          const file = event.currentTarget.files?.[0];
+          if (file) void restore(file);
+          event.currentTarget.value = '';
+        }} />
+    </div>
+    <details className="layout-export-options">
+      <summary>Opsi ekspor &amp; informasi backup</summary>
+      <label><input type="checkbox" checked={includeHeading} onChange={(event) => setIncludeHeading(event.currentTarget.checked)} />
+        Sertakan nama institusi, nama ujian, dan tahun pelajaran
+      </label>
+      <p>Backup JSON tidak memuat data murid, jadwal, foto, logo, tanda tangan, alamat, atau NIP.</p>
+    </details>
+    {storageMessage && <p role="status">{storageMessage}</p>}
+    {message && <p role={failed ? 'alert' : 'status'}>{message}</p>}
+  </section>;
 
   return <section className="panel mt-4">
     <h2>Backup dan pemulihan</h2>
