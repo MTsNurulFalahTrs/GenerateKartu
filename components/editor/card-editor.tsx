@@ -27,9 +27,23 @@ const sample: Participant = {
 };
 const optionalFields = ['NISN', 'Kelas', 'Ruang', 'Sesi', 'Username', 'TglLahir', 'NamaSatdik'] as const;
 
+const formatFieldLabels: Record<Field, string> = {
+  NamaMurid: 'Nama Murid', NoPeserta: 'No. Peserta', NISN: 'NISN', Kelas: 'Kelas',
+  Ruang: 'Ruang', Sesi: 'Sesi', Username: 'Username', TglLahir: 'Tgl. Lahir', NamaSatdik: 'Nama Satdik',
+};
+
+const formatTitles = [...formats.map((_, id) => `Format ${id + 1}`), 'Format Kustom'];
+const formatIcons = ['▣', '♙', '▢', '▤', '♙', '▥', '⌂', '✎'];
+
 export function CardEditor() {
   const [step, setStep] = useState(0);
-  const [format, setFormat] = useState<number | null>(null);
+  const [format, setFormat] = useState<number | null>(0);
+  const [formatQuery, setFormatQuery] = useState('');
+  const [previewFormat, setPreviewFormat] = useState<number | null>(null);
+  const [editingCustom, setEditingCustom] = useState(false);
+  const previewDialog = useRef<HTMLDialogElement>(null);
+  const previewTrigger = useRef<HTMLButtonElement>(null);
+  const customBuilder = useRef<HTMLHeadingElement>(null);
   const [setting, setSetting] = useState(0);
   const [dataset, setDataset] = useState<{ participants: Participant[]; selected: Set<string> }>({ participants: [], selected: new Set() });
   const [photos, setPhotos] = useState(new Map<string, Blob>());
@@ -53,7 +67,7 @@ export function CardEditor() {
 
   const restore = useCallback((saved: Preferences, savedHeading?: Heading) => {
     setDark(saved.dark);
-    setFormat(saved.format);
+    setFormat(saved.format ?? 0);
     setCustom(saved.custom);
     setHidden(saved.hidden);
     setCard((previous) => ({ ...previous, ...saved.settings, ...savedHeading }));
@@ -69,7 +83,7 @@ export function CardEditor() {
 
   function reset() {
     clearSession();
-    restore({ schemaVersion: 1, dark: false, format: null, custom: defaultCustom, hidden: [], settings: pickOptions(defaultCard) });
+    restore({ schemaVersion: 1, dark: false, format: 0, custom: defaultCustom, hidden: [], settings: pickOptions(defaultCard) });
     setSessionMessage('Sesi dan pengaturan telah direset.');
     try {
       localStorage.removeItem(storageKey);
@@ -151,6 +165,18 @@ export function CardEditor() {
   }, [clearSession]);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
+  useEffect(() => {
+    if (previewFormat !== null) previewDialog.current?.showModal();
+  }, [previewFormat]);
+
+  useEffect(() => {
+    if (editingCustom && step === 0) customBuilder.current?.focus();
+  }, [editingCustom, step]);
+
+  const completedSteps = [format !== null, dataset.participants.length > 0];
+  const visibleFormats = formatTitles.map((title, id) => ({ title, id })).filter(({ title, id }) =>
+    `${title} ${formats[id] ?? 'Buat Sendiri'}`.toLowerCase().includes(formatQuery.trim().toLowerCase()));
+
   function onTabKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
     event.preventDefault();
@@ -163,7 +189,7 @@ export function CardEditor() {
   return (
     <div className="editor" data-theme={dark ? 'dark' : 'light'}>
       <a className="skip-editor" href="#editor-content">Lewati ke isi editor</a>
-      <header className="header">
+      <header className="header" data-step={step}>
         <div className="header-inner">
           <Link className="brand" href="/">
             <span className="brand-icon" aria-hidden="true">
@@ -180,7 +206,7 @@ export function CardEditor() {
                   ref={(element) => { tabRefs.current[index] = element; }}
                   onKeyDown={(event) => onTabKey(event, index)}
                   onClick={() => setStep(index)}>
-                  <span aria-hidden="true">{index + 1}</span>{label}
+                  <span data-complete={!!completedSteps[index]} aria-hidden="true">{completedSteps[index] ? '✓' : index + 1}</span>{label}
                 </button>
               ))}
             </div>
@@ -196,27 +222,60 @@ export function CardEditor() {
         {steps.map((label, index) => (
           <section key={label} id={`panel-${index}`} role="tabpanel" aria-labelledby={`step-${index}`}
             tabIndex={0} hidden={step !== index}>
-            <h1>{index === 0 ? 'Pilih Format Kartu' : index === 2 ? 'Pengaturan Kartu' : label}</h1>
+            <h1 className={index === 0 ? 'sr-only' : undefined}>{index === 0 ? 'Pilih Format Kartu' : index === 2 ? 'Pengaturan Kartu' : label}</h1>
             {index === 0 && (
-              <div className="format-grid">
-                {formats.map((name, id) => (
-                  <article className="panel format" key={name} data-selected={format === id}>
-                    <h2>Format {id + 1}</h2><p>{name}</p>
-                    <button className="action" type="button" aria-pressed={format === id}
-                      id={`pick-format-${id + 1}`} aria-label={format === id ? `Dipilih · Format ${id + 1}` : `Pilih Format ${id + 1}`} onClick={() => setFormat(id)}>
-                      {format === id ? 'Dipilih' : 'Pilih Format'}
-                    </button>
-                  </article>
-                ))}
-                <article className="panel format custom" data-selected={format === 7}>
-                  <h2>Format Kustom</h2>
-                  <p>Susun kolom dan urutan biodata.</p>
-                  <button type="button" id="pick-custom-format" className="action" aria-pressed={format === 7} onClick={() => setFormat(7)}>Pilih format kustom</button>
-                </article>
-              </div>
+              <>
+                <p>Pilih tata letak yang sesuai standar ujian madrasah atau sekolah Anda.</p>
+                {format !== null && <div className="format-summary" role="status">
+                  <span className="format-icon" aria-hidden="true">✓</span>
+                  <div><small>Format Aktif</small><strong>{formatTitles[format]}{formats[format] && ` (${formats[format]})`}</strong></div>
+                  <span className="format-count">{fieldsFor(format, custom).length} field</span>
+                </div>}
+                <div className="format-toolbar">
+                  <input type="search" aria-label="Cari format" placeholder="Cari format..." value={formatQuery}
+                    onChange={(event) => setFormatQuery(event.target.value)} />
+                  <span className="format-count">Bawaan {formatTitles.length}</span>
+                </div>
+                {visibleFormats.length === 0 && <p role="status">Tidak ada format yang cocok.</p>}
+                <div className="format-grid">
+                  {visibleFormats.map(({ title, id }) => {
+                    const fields = fieldsFor(id, custom);
+                    const photoKey = id === 0 ? 'Username' : 'NoPeserta';
+                    return <article className={id === 7 ? 'format custom' : 'format'} key={id} data-selected={format === id}>
+                      <header className="format-heading">
+                        <span className="format-icon" aria-hidden="true">{formatIcons[id]}</span>
+                        <div><h2>{title}</h2><span>{formats[id] ?? 'Buat Sendiri'}</span></div>
+                        <span className="format-count">{fields.length} field</span>
+                      </header>
+                      <ul className="format-fields">
+                        {fields.map((field) => <li key={field}>
+                          <span className="format-check" aria-hidden="true">✓</span>
+                          <span>{formatFieldLabels[field]}</span>
+                          {field === photoKey && <span className="format-photo">Acuan Foto</span>}
+                        </li>)}
+                      </ul>
+                      <div className="format-actions">
+                        <button type="button" className="action format-pick" aria-pressed={format === id}
+                          id={id === 7 ? 'pick-custom-format' : `pick-format-${id + 1}`}
+                          aria-label={format === id ? `Format Aktif · ${title}` : `Pilih ${title}`}
+                          onClick={() => setFormat(id)}>{format === id ? 'Format Aktif' : 'Pilih Format'}</button>
+                        <button type="button" className="action" aria-haspopup="dialog" aria-label={`Preview ${title}`}
+                          onClick={(event) => {
+                            previewTrigger.current = event.currentTarget;
+                            setPreviewFormat(id);
+                          }}>Preview</button>
+                        {id === 7 && <button type="button" className="action" onClick={() => {
+                          if (editingCustom) customBuilder.current?.focus();
+                          else setEditingCustom(true);
+                        }}>Atur</button>}
+                      </div>
+                    </article>;
+                  })}
+                </div>
+              </>
             )}
-            {index === 0 && format === 7 && <div className="panel mt-4">
-              <h2>Susun format kustom</h2>
+            {index === 0 && (format === 7 || editingCustom) && <div className="panel mt-4">
+              <h2 ref={customBuilder} tabIndex={-1}>Susun format kustom</h2>
               <p>Nomor peserta dan nama wajib. Kolom lain dapat ditambahkan atau diurutkan.</p>
               <div className="flex flex-wrap gap-3">{optionalFields.map((field) => <label key={field}>
                 <input type="checkbox" checked={custom.includes(field)} onChange={(event) => {
@@ -272,6 +331,27 @@ export function CardEditor() {
           </section>
         ))}
       </main>
+      <dialog className="format-dialog" ref={previewDialog} aria-labelledby="format-preview-title" onClose={() => {
+        setPreviewFormat(null);
+        previewTrigger.current?.focus();
+      }}>
+        {previewFormat !== null && <>
+          <header>
+            <span className="format-icon" aria-hidden="true">◉</span>
+            <h2 id="format-preview-title">Preview: {formatTitles[previewFormat]}</h2>
+            <button type="button" className="action" aria-label="Tutup modal Preview"
+              onClick={() => previewDialog.current?.close()}>×</button>
+          </header>
+          <div className="format-preview-stage">
+            <CardPreview {...renderCard(sample, previewFormat)} photo={undefined}
+              hidden={previewFormat === format ? hidden : []} />
+          </div>
+          <footer>
+            <p>Jika isi kartu terpotong, sesuaikan ukuran kartu di <strong>Pengaturan → Tata Letak</strong>.</p>
+            <button type="button" className="action format-close" onClick={() => previewDialog.current?.close()}>Tutup Preview</button>
+          </footer>
+        </>}
+      </dialog>
     </div>
   );
 }
