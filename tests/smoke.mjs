@@ -117,7 +117,8 @@ try {
         /Kontributor Simulasi.*13 Nov 2026/);
       assert.equal(await page.$$eval('.community-card-fields li', (items) => items.length), 6);
       assert.equal(await page.$eval('.community-extra-fields', (el) => el.textContent.trim()), '+1 field lainnya');
-      await page.locator('.format-library-filters button:nth-child(3)').click();
+      await page.$eval('.format-library-filters button:nth-child(3)', (button) => button.click());
+      await page.waitForSelector('.format-library-filters button:nth-child(3)[aria-pressed="true"]');
       await page.waitForFunction(() => document.querySelectorAll('.format-grid article').length === 1);
       await page.locator('input[aria-label="Cari format"]').fill('Kontributor Simulasi');
       assert.equal(await page.$$eval('.community-card', (els) => els.length), 1);
@@ -131,11 +132,13 @@ try {
       assert.match(await page.$eval('#format-preview-title', (el) => el.textContent), /Format Uji Komunitas/);
       await page.locator('.format-close').click();
       await page.waitForFunction(() => !document.querySelector('.format-dialog[open]'));
-      await page.locator('.format-library-filters button:nth-child(2)').click();
+      await page.$eval('.format-library-filters button:nth-child(2)', (button) => button.click());
+      await page.waitForSelector('.format-library-filters button:nth-child(2)[aria-pressed="true"]');
       await page.waitForFunction(() => document.querySelectorAll('.community-card').length === 0);
       await page.locator('#pick-format-1').click();
       await page.waitForSelector('#pick-format-1[aria-pressed="true"]');
-      await page.locator('.format-library-filters button:nth-child(1)').click();
+      await page.$eval('.format-library-filters button:nth-child(1)', (button) => button.click());
+      await page.waitForSelector('.format-library-filters button:nth-child(1)[aria-pressed="true"]');
       await page.waitForFunction(() => document.querySelectorAll('.format-grid article').length === 9);
       assert.equal(await page.$eval('.community-card[data-selected="true"]', (els) => els.length), 0);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
