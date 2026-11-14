@@ -76,7 +76,7 @@ export function CardPreview({ format, custom, customAppearance, participant, pho
           <KopText settings={settings} />
           <div><CardImage blob={assets.logoRight} label="Logo kanan" /></div>
         </header>
-        <div className="exam-card-body">
+        <div className="exam-card-body" data-schedule={!!scheduleTable || schedule.length > 0}>
           <div className="min-w-0">
             <dl style={{ textAlign: settings.align }}>
               {fields.map((field) => <div key={field}><dt>{format === 7 ? customAppearance?.labels?.[field] || labels[field] : labels[field]}</dt><dd className={format === 7 && customAppearance?.mono.includes(field) ? "font-mono" : undefined}>{participant.values[field] || '—'}</dd></div>)}
@@ -86,25 +86,25 @@ export function CardPreview({ format, custom, customAppearance, participant, pho
               {settings.qr && participant.cardReference && <CardQr reference={participant.cardReference} />}
             </div>
           </div>
-          <div className="exam-card-sign" data-overlap={settings.signatureOverlap}>
+          <div className="exam-card-sign" data-overlap={settings.signatureOverlap && !!assets.signature} data-signature={!!assets.signature}>
             <span>{[settings.city, settings.date || new Intl.DateTimeFormat('id-ID', { dateStyle: 'long', timeZone: 'Asia/Jakarta' }).format(new Date())].filter(Boolean).join(', ')}</span>
             <span>Kepala {settings.institution || 'Sekolah/Madrasah'}</span>
             {assets.signature && <div className="exam-card-signature" style={{ height: `${settings.signatureSize}cm` }}>
               <CardImage blob={assets.signature} label="Tanda tangan" />
             </div>}
-            <strong>{settings.signer || '________________'}</strong>
+            <strong className="exam-card-signer">{settings.signer || '________________'}</strong>
             {settings.nip && <span>NIP {settings.nip}</span>}
           </div>
+          {scheduleTable ? <section className="exam-card-schedule"><strong>Jadwal Ujian</strong>
+            <table><thead><tr>{scheduleTable.columns.map((column) => <th key={column} scope="col">{column}</th>)}</tr></thead>
+              <tbody>{Array.from({ length: scheduleTable.rowCount }, (_, row) => <tr key={row}>
+                {scheduleTable.columns.map((column, index) => <td key={column}>{scheduleTable.rows[row]?.[index] || '\u00a0'}</td>)}
+              </tr>)}</tbody>
+            </table>
+          </section> : !!schedule.length && <section className="exam-card-schedule"><strong>Jadwal Ujian</strong>
+            <ul>{schedule.map((line, index) => <li key={index}>{line}</li>)}</ul>
+          </section>}
         </div>
-        {scheduleTable ? <section className="exam-card-schedule"><strong>Jadwal Ujian</strong>
-          <table><thead><tr>{scheduleTable.columns.map((column) => <th key={column} scope="col">{column}</th>)}</tr></thead>
-            <tbody>{Array.from({ length: scheduleTable.rowCount }, (_, row) => <tr key={row}>
-              {scheduleTable.columns.map((column, index) => <td key={column}>{scheduleTable.rows[row]?.[index] || '\u00a0'}</td>)}
-            </tr>)}</tbody>
-          </table>
-        </section> : !!schedule.length && <section className="exam-card-schedule"><strong>Jadwal Ujian</strong>
-          <ul>{schedule.map((line, index) => <li key={index}>{line}</li>)}</ul>
-        </section>}
       </div>
     </article>
     {overflow && <p role="alert">Isi melebihi tinggi kartu. Perbesar kartu, kecilkan teks, atau ringkas jadwal.</p>}

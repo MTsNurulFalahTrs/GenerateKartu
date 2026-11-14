@@ -61,9 +61,9 @@ a { color: var(--indigo-700); }
 .card-preview-wrap { max-width: 100%; overflow-x: auto; padding: .25rem; }
 .exam-card { background: white; color: #000; border: 1px solid black; overflow: hidden; line-height: 1.2; }
 .exam-card[data-bw="true"] { filter: grayscale(1); }
-.exam-card-content { padding: 1.5mm; overflow-wrap: anywhere; }
+.exam-card-content { min-height: 100%; display: flex; flex-direction: column; padding: 1.5mm; overflow-wrap: anywhere; }
 .exam-card-head { display: grid; grid-template-columns: 9mm 1fr 9mm; align-items: center; gap: 1mm; text-align: center; padding-bottom: 1mm; border-bottom: 1px solid black; }
-.exam-card-body { display: grid; grid-template-columns: 55fr 45fr; gap: 1mm; padding-top: 1mm; }
+.exam-card-body { display: grid; flex: 1; grid-template-columns: 55fr 45fr; gap: 1mm; padding-top: 1mm; }
 .exam-card dl > div { display: grid; grid-template-columns: 40fr 60fr; gap: .7mm; }
 .exam-card dt { font-weight: 600; }
 .exam-card-sign { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; }
@@ -333,10 +333,14 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 .kop-signature output { float: right; color: var(--indigo-700); font-weight: 700; }
 .kop-signature input[type="range"] { display: block; width: 100%; padding: 0; accent-color: #d97706; }
 .kop-save { display: block; width: 100%; margin-top: 1rem; background: var(--indigo-600); color: white; font-weight: 750; }
-.exam-card-sign { position: relative; }
-.exam-card-signature { width: 100%; }
+.exam-card-sign { position: relative; align-self: end; min-width: 0; }
+.exam-card-body[data-schedule="true"] { grid-template-rows: auto auto 1fr; }
+.exam-card-body[data-schedule="true"] .exam-card-sign { grid-row: 3; grid-column: 2; }
+.exam-card-body[data-schedule="true"] .exam-card-schedule { grid-row: 2; grid-column: 1 / -1; }
+.exam-card-sign[data-signature="false"] .exam-card-signer { margin-top: 4mm; }
+.exam-card-signature { width: 100%; margin-block: .8mm; }
 .exam-card-signature .card-asset { width: 100%; height: 100%; }
-.exam-card-sign[data-overlap="true"] .exam-card-signature { position: absolute; bottom: 0; }
+.exam-card-sign[data-overlap="true"] .exam-card-signature { position: absolute; bottom: 0; margin: 0; }
 @media (max-width: 639px) { .kop-grid { grid-template-columns: minmax(0, 1fr); } }
 
 .kop-save-note { display: block; margin-top: .45rem; color: var(--muted); }
@@ -1654,17 +1658,5 @@ body:has(.editor[data-theme="dark"]) .app-toast-stack .app-toast {
 .pdf-progress-body p svg { flex: none; }
 .pdf-progress-dialog footer { display: flex; justify-content: flex-end; padding: .8rem 1.15rem; border-top: 1px solid var(--line); }
 
-.output-batch {
-  flex-basis: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: .65rem;
-  padding: .75rem;
-  border: 1px solid var(--line);
-  border-radius: .75rem;
-  background: var(--canvas);
-}
-.print-summary .output-batch p { display: grid; gap: .15rem; margin: 0; }
-.output-batch > div { display: flex; flex-wrap: wrap; gap: .4rem; }
+.batch-result-dialog footer { flex-wrap: wrap; gap: .5rem; }
+.batch-result-dialog .pdf-progress-body p { margin: 0; }

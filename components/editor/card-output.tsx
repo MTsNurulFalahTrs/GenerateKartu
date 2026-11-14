@@ -13,6 +13,8 @@ import { cardPages, pageGrid } from '../../lib/cards/print-layout';
 
 const batchLimit = 100;
 
+type BatchResult = { run: OutputRun; error?: string };
+
 type OutputRun = {
   kind: 'print' | 'pdf';
   participants: Participant[];
@@ -47,7 +49,9 @@ export function CardOutput({ participants, renderCard, pending }: {
   pending: boolean;
 }) {
   const [batch, setBatch] = useState<OutputRun>();
-  const nextBatchButton = useRef<HTMLButtonElement>(null);
+  const [batchResult, setBatchResult] = useState<BatchResult>();
+  const batchDialog = useRef<HTMLDialogElement>(null);
+  const printTrigger = useRef<HTMLButtonElement>(null);
   const pdfDialog = useRef<HTMLDialogElement>(null);
   const pdfTrigger = useRef<HTMLButtonElement>(null);
   const [pdfProgress, setPdfProgress] = useState<{ cards: number; done: number; pages: number; paper: string }>();
@@ -64,11 +68,26 @@ export function CardOutput({ participants, renderCard, pending }: {
   useEffect(() => () => controller.current?.abort(), []);
 
   useEffect(() => {
-    if (!busy && pdfDialog.current?.open) {
+    if (busy) return;
+    if (pdfDialog.current?.open) {
       pdfDialog.current.close();
-      (nextBatchButton.current ?? pdfTrigger.current)?.focus({ preventScroll: true });
+      if (!batchResult) pdfTrigger.current?.focus({ preventScroll: true });
     }
-  }, [busy]);
+    if (batchResult && !batchDialog.current?.open) batchDialog.current?.showModal();
+  }, [busy, batchResult]);
+
+  function closeBatchResult() {
+    batchDialog.current?.close();
+    setBatchResult(undefined);
+  }
+
+  function finishBatch(kind: OutputRun['kind']) {
+    flushSync(() => {
+      closeBatchResult();
+      setBatch(undefined);
+    });
+    (kind === 'pdf' ? pdfTrigger : printTrigger).current?.focus({ preventScroll: true });
+  }
 
   function openPreview() {
     if (!participants.length) return;
@@ -103,12 +122,14 @@ export function CardOutput({ participants, renderCard, pending }: {
     const { kind, index } = run;
     const total = Math.ceil(run.participants.length / batchLimit);
     const offset = index * batchLimit;
-    const cards = run.participants.slice(offset, offset + batchLimit).map(run.renderCard);
+    closeBatchResult();
+    if (total > 1) setBatch(run);
     const current = new AbortController();
     controller.current = current;
     setBusy(true);
     setMessage(total > 1 ? `Menyiapkan batch ${index + 1} dari ${total}…` : 'Menyiapkan kartu…');
     try {
+      const cards = run.participants.slice(offset, offset + batchLimit).map(run.renderCard);
       const { settings } = cards[0];
       if (!validCardLayout(settings)) throw new Error('Periksa ukuran kartu dan ukuran teks di Layout & Cetak.');
       const { width, height } = settings;
@@ -174,7 +195,7 @@ export function CardOutput({ participants, renderCard, pending }: {
         } finally {
           document.body.classList.remove('card-print-ready');
         }
-        notify('info', 'Dialog cetak ditutup.');
+        if (total === 1) notify('info', 'Dialog cetak ditutup.');
       } else {
         const { buildCardPdf } = await import('../../lib/cards/pdf');
         const bytes = await buildCardPdf(pages, layout, current.signal,
@@ -187,11 +208,13 @@ export function CardOutput({ participants, renderCard, pending }: {
           : `kartu-peserta-ujian-batch-${index + 1}-dari-${total}.pdf`;
         link.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-        notify('success', `PDF berisi ${cards.length} kartu dalam ${pages.length} halaman siap diunduh.`);
+        if (total === 1) notify('success', `PDF berisi ${cards.length} kartu dalam ${pages.length} halaman siap diunduh.`);
       }
-      if (total > 1) setBatch(index + 1 < total || kind === 'print' ? { ...run, index: index + 1 } : undefined);
+      if (total > 1) setBatchResult({ run });
     } catch (cause) {
-      if (cause === pdfCanceled) notify('info', pdfCanceled.message);
+      if (total > 1 && !(current.signal.reason instanceof DOMException && current.signal.reason.name === 'AbortError')) {
+        setBatchResult({ run, error: cause instanceof Error ? cause.message : 'Keluaran gagal dibuat.' });
+      } else if (cause === pdfCanceled) notify('info', pdfCanceled.message);
       else if (cause !== current.signal.reason || current.signal.reason instanceof Error) {
         notify('error', cause instanceof Error ? cause.message : 'Keluaran gagal dibuat.');
       }
@@ -206,28 +229,45 @@ export function CardOutput({ participants, renderCard, pending }: {
     }
   }
 
+  const resultRun = batchResult?.run;
+  const error = batchResult?.error;
+  const resultTotal = Math.ceil((resultRun?.participants.length ?? 0) / batchLimit);
+  const hasNextBatch = !!resultRun && resultRun.index + 1 < resultTotal;
+
   return <>
     <div className="print-actions">
       <button id="preview-a4" type="button" className="action" disabled={busy || pending || !participants.length} onClick={openPreview}><EditorIcon name="document" /> Pratinjau Kertas</button>
       <button id="download-card-pdf" ref={pdfTrigger} aria-haspopup="dialog" type="button" className="action" disabled={!!batch || busy || pending || !participants.length} onClick={() => startOutput('pdf')}><EditorIcon name="download" /> Unduh PDF</button>
-      <button id="print-cards" type="button" className="action action-primary data-next" disabled={!!batch || busy || pending || !participants.length} onClick={() => startOutput('print')}><EditorIcon name="printer" /> Cetak ke Kertas</button>
+      <button id="print-cards" ref={printTrigger} type="button" className="action action-primary data-next" disabled={!!batch || busy || pending || !participants.length} onClick={() => startOutput('print')}><EditorIcon name="printer" /> Cetak ke Kertas</button>
       {busy && !pdfProgress && <button type="button" className="action" onClick={() => controller.current?.abort(new Error('Pembuatan keluaran dibatalkan.'))}>Batalkan keluaran</button>}
     </div>
-    {batch && <section className="output-batch" aria-label="Keluaran bertahap">
-      <p role="status"><strong>{batch.index * batchLimit >= batch.participants.length ? 'Semua dialog batch sudah dibuka'
-          : `${batch.kind === 'pdf' ? 'Unduh PDF' : 'Cetak'} · Batch ${batch.index + 1} dari ${Math.ceil(batch.participants.length / batchLimit)}`}</strong>
-        {batch.index * batchLimit < batch.participants.length &&
-          <span>Kartu {batch.index * batchLimit + 1}–{Math.min((batch.index + 1) * batchLimit, batch.participants.length)} dari {batch.participants.length}.</span>}
-        {batch.kind === 'print' && batch.index > 0 && <span>Jika batch sebelumnya batal dicetak, gunakan Cetak ulang.</span>}
-      </p>
-      <div>
-        {batch.kind === 'print' && batch.index > 0 && <button type="button" className="action" disabled={busy}
-          onClick={() => void output({ ...batch, index: batch.index - 1 })}>Cetak ulang batch {batch.index}</button>}
-        {batch.index * batchLimit < batch.participants.length && <button ref={nextBatchButton} type="button" className="action action-primary" disabled={busy}
-          onClick={() => void output(batch)}>{batch.kind === 'pdf' ? 'Unduh' : 'Cetak'} batch {batch.index + 1}</button>}
-        <button type="button" className="action" disabled={busy} onClick={() => setBatch(undefined)}>Akhiri batch</button>
-      </div>
-    </section>}
+    <dialog className="format-dialog pdf-progress-dialog batch-result-dialog" ref={batchDialog}
+      aria-labelledby="batch-result-title" aria-describedby="batch-result-description"
+      onCancel={(event) => {
+        event.preventDefault();
+        if (batchResult) finishBatch(batchResult.run.kind);
+      }}>
+      {resultRun && <>
+          <header>
+            <span className="pdf-progress-icon"><EditorIcon name={error ? 'warning' : resultRun.kind === 'print' ? 'printer' : 'check'} /></span>
+            <div><h2 id="batch-result-title">{error ? 'Batch belum selesai' : resultRun.kind === 'print' ? 'Dialog cetak ditutup' : 'PDF siap diunduh'}</h2>
+              <p>Batch {resultRun.index + 1} dari {resultTotal} · Kartu {resultRun.index * batchLimit + 1}–{Math.min((resultRun.index + 1) * batchLimit, resultRun.participants.length)} dari {resultRun.participants.length}</p>
+            </div>
+          </header>
+          <div className="pdf-progress-body">
+            <p id="batch-result-description">{error || (resultRun.kind === 'print'
+              ? 'Periksa hasil cetak sebelum melanjutkan. Jika dialog printer dibatalkan, ulangi batch ini.'
+              : hasNextBatch ? 'Unduhan batch ini sudah dimulai. Lanjutkan untuk membuat file berikutnya.' : 'Unduhan batch terakhir sudah dimulai.')}</p>
+          </div>
+          <footer>
+            <button type="button" className="action" onClick={() => finishBatch(resultRun.kind)}>{!error && !hasNextBatch ? 'Selesai' : 'Akhiri batch'}</button>
+            {(error || resultRun.kind === 'print') && <button type="button" className={error ? 'action action-primary' : 'action'}
+              autoFocus={!!error} onClick={() => void output(resultRun)}>Ulangi batch {resultRun.index + 1}</button>}
+            {!error && hasNextBatch && <button type="button" className="action action-primary" autoFocus
+              onClick={() => void output({ ...resultRun, index: resultRun.index + 1 })}>Lanjut ke batch {resultRun.index + 2}</button>}
+          </footer>
+      </>}
+    </dialog>
     {busy && !pdfProgress && message && <p role="status">{message}</p>}
     <dialog className="format-dialog pdf-progress-dialog" ref={pdfDialog}
       aria-labelledby="pdf-progress-title" aria-describedby="pdf-progress-description"
