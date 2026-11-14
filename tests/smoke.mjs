@@ -823,9 +823,8 @@ try {
           title: section.querySelector('h3').textContent,
           entries: [...section.querySelectorAll('li')].map((item) => item.textContent.trim()),
         })));
-      assert.deepEqual(displayedNotes, changelog.map(({ title, entries }) => ({
-        title, entries: entries.map((entry) => entry.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')),
-      })));
+      assert.deepEqual(displayedNotes, changelog);
+      assert.equal(await page.$$eval('.release-notes-dialog a', (links) => links.length), 0);
       await dialogAction(page, '.release-notes-footer button');
       await page.waitForSelector('.release-notes-dialog[open]', { hidden: true });
       assert.equal(await page.$eval('.help-nav', (button) => button.getAttribute('aria-pressed')), 'true');
