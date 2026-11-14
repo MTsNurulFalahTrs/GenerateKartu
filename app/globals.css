@@ -1653,3 +1653,18 @@ body:has(.editor[data-theme="dark"]) .app-toast-stack .app-toast {
 .pdf-progress-body p { display: flex; align-items: center; gap: .4rem; margin-top: .7rem; color: var(--muted); font-size: .8rem; }
 .pdf-progress-body p svg { flex: none; }
 .pdf-progress-dialog footer { display: flex; justify-content: flex-end; padding: .8rem 1.15rem; border-top: 1px solid var(--line); }
+
+.output-batch {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .65rem;
+  padding: .75rem;
+  border: 1px solid var(--line);
+  border-radius: .75rem;
+  background: var(--canvas);
+}
+.print-summary .output-batch p { display: grid; gap: .15rem; margin: 0; }
+.output-batch > div { display: flex; flex-wrap: wrap; gap: .4rem; }

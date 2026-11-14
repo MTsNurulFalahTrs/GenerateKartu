@@ -434,16 +434,28 @@ try {
         const printStart = performance.now();
         await page.$eval('#print-cards', (button) => button.click());
         await page.waitForFunction(() => window.printEvidence);
-        const printed = await page.evaluate(() => window.printEvidence);
-        assert.equal(printed.active, true);
-        assert.equal(printed.counts.length, 56);
-        assert.deepEqual(printed.counts.slice(-2), [9, 5]);
-        assert.deepEqual(printed.names, Array.from({ length: 500 }, (_, index) => 'Kartu ujian Peserta Uji ' + index));
-        const browserPdf = await PDFDocument.load(await page.pdf({ preferCSSPageSize: true, printBackground: true }));
-        assert.equal(browserPdf.getPageCount(), 56);
-        const heap = (await page.metrics()).JSHeapUsedSize / 1048576;
-        console.log(`Cetak 500 kartu: ${Math.round(performance.now() - printStart)} ms; heap JS ${heap.toFixed(1)} MiB`);
-        await page.evaluate(() => window.finishPrint());
+        const printedNames = [];
+        for (let batch = 0; batch < 5; batch++) {
+          const printed = await page.evaluate(() => window.printEvidence);
+          assert.equal(printed.active, true);
+          assert.equal(printed.counts.length, 12);
+          assert.equal(printed.counts.at(-1), 1);
+          assert.equal(printed.names.length, 100);
+          printedNames.push(...printed.names);
+          if (batch === 0) {
+            const browserPdf = await PDFDocument.load(await page.pdf({ preferCSSPageSize: true, printBackground: true }));
+            assert.equal(browserPdf.getPageCount(), 12);
+          }
+          await page.evaluate(() => { delete window.printEvidence; window.finishPrint(); });
+          if (batch < 4) {
+            await page.locator('.output-batch .action-primary').click();
+            await page.waitForFunction(() => window.printEvidence);
+          }
+        }
+        assert.deepEqual(printedNames, Array.from({ length: 500 }, (_, index) => 'Kartu ujian Peserta Uji ' + index));
+        await page.locator('.output-batch button:last-child').click();
+        await page.waitForSelector('.output-batch', { hidden: true });
+        console.log(`Cetak 500 kartu dalam 5 batch: ${Math.round(performance.now() - printStart)} ms`);
         await page.select('#preview-Kelas', 'IX-A');
         await page.waitForFunction(() => document.querySelector('#panel-3 .print-count')?.textContent.includes('10 dari 500'));
         await page.$eval('#step-2', (button) => button.click());

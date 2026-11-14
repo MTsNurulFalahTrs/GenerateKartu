@@ -11,6 +11,15 @@ import type { CardRenderModel } from '../../lib/cards/render-model';
 import { validCardLayout } from '../../lib/cards/settings';
 import { cardPages, pageGrid } from '../../lib/cards/print-layout';
 
+const batchLimit = 100;
+
+type OutputRun = {
+  kind: 'print' | 'pdf';
+  participants: Participant[];
+  renderCard: (participant: Participant) => CardRenderModel;
+  index: number;
+};
+
 const pdfCanceled = new Error('Pembuatan PDF dibatalkan.');
 
 const pageLabel = (layout: ReturnType<typeof cardPages>) =>
@@ -37,6 +46,8 @@ export function CardOutput({ participants, renderCard, pending }: {
   renderCard: (participant: Participant) => CardRenderModel;
   pending: boolean;
 }) {
+  const [batch, setBatch] = useState<OutputRun>();
+  const nextBatchButton = useRef<HTMLButtonElement>(null);
   const pdfDialog = useRef<HTMLDialogElement>(null);
   const pdfTrigger = useRef<HTMLButtonElement>(null);
   const [pdfProgress, setPdfProgress] = useState<{ cards: number; done: number; pages: number; paper: string }>();
@@ -55,7 +66,7 @@ export function CardOutput({ participants, renderCard, pending }: {
   useEffect(() => {
     if (!busy && pdfDialog.current?.open) {
       pdfDialog.current.close();
-      pdfTrigger.current?.focus({ preventScroll: true });
+      (nextBatchButton.current ?? pdfTrigger.current)?.focus({ preventScroll: true });
     }
   }, [busy]);
 
@@ -80,13 +91,23 @@ export function CardOutput({ participants, renderCard, pending }: {
     setCancelingPdf(true);
   }
 
-  async function output(kind: 'print' | 'pdf') {
-    if (!participants.length || controller.current) return;
-    const cards = participants.map((participant) => renderCard(participant));
+  function startOutput(kind: OutputRun['kind']) {
+    if (batch || pending || !participants.length || controller.current) return;
+    const run = { kind, participants, renderCard, index: 0 };
+    if (participants.length > batchLimit) setBatch(run);
+    void output(run);
+  }
+
+  async function output(run: OutputRun) {
+    if (controller.current) return;
+    const { kind, index } = run;
+    const total = Math.ceil(run.participants.length / batchLimit);
+    const offset = index * batchLimit;
+    const cards = run.participants.slice(offset, offset + batchLimit).map(run.renderCard);
     const current = new AbortController();
     controller.current = current;
     setBusy(true);
-    setMessage('Menyiapkan kartu…');
+    setMessage(total > 1 ? `Menyiapkan batch ${index + 1} dari ${total}…` : 'Menyiapkan kartu…');
     try {
       const { settings } = cards[0];
       if (!validCardLayout(settings)) throw new Error('Periksa ukuran kartu dan ukuran teks di Layout & Cetak.');
@@ -111,12 +132,17 @@ export function CardOutput({ participants, renderCard, pending }: {
         }
         await Promise.all(Array.from(host.querySelectorAll('img'), (image) => image.decode()));
       };
+      let onAbort: (() => void) | undefined;
       const timeout = setTimeout(() => current.abort(new Error('Font atau gambar kartu belum siap setelah 15 detik.')), deadline - performance.now());
       try {
-        await Promise.race([wait(), new Promise<never>((_, reject) =>
-          current.signal.addEventListener('abort', () => reject(current.signal.reason), { once: true }))]);
+        current.signal.throwIfAborted();
+        await Promise.race([wait(), new Promise<never>((_, reject) => {
+          onAbort = () => reject(current.signal.reason);
+          current.signal.addEventListener('abort', onAbort, { once: true });
+        })]);
       } finally {
         clearTimeout(timeout);
+        if (onAbort) current.signal.removeEventListener('abort', onAbort);
       }
       const pages = Array.from(host.querySelectorAll('.print-sheet'), (sheet) =>
         Array.from(sheet.querySelectorAll<HTMLElement>('.exam-card')));
@@ -157,11 +183,13 @@ export function CardOutput({ participants, renderCard, pending }: {
         const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }));
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'kartu-peserta-ujian.pdf';
+        link.download = total === 1 ? 'kartu-peserta-ujian.pdf'
+          : `kartu-peserta-ujian-batch-${index + 1}-dari-${total}.pdf`;
         link.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         notify('success', `PDF berisi ${cards.length} kartu dalam ${pages.length} halaman siap diunduh.`);
       }
+      if (total > 1) setBatch(index + 1 < total || kind === 'print' ? { ...run, index: index + 1 } : undefined);
     } catch (cause) {
       if (cause === pdfCanceled) notify('info', pdfCanceled.message);
       else if (cause !== current.signal.reason || current.signal.reason instanceof Error) {
@@ -181,10 +209,25 @@ export function CardOutput({ participants, renderCard, pending }: {
   return <>
     <div className="print-actions">
       <button id="preview-a4" type="button" className="action" disabled={busy || pending || !participants.length} onClick={openPreview}><EditorIcon name="document" /> Pratinjau Kertas</button>
-      <button id="download-card-pdf" ref={pdfTrigger} aria-haspopup="dialog" type="button" className="action" disabled={busy || pending || !participants.length} onClick={() => void output('pdf')}><EditorIcon name="download" /> Unduh PDF</button>
-      <button id="print-cards" type="button" className="action action-primary data-next" disabled={busy || pending || !participants.length} onClick={() => void output('print')}><EditorIcon name="printer" /> Cetak ke Kertas</button>
+      <button id="download-card-pdf" ref={pdfTrigger} aria-haspopup="dialog" type="button" className="action" disabled={!!batch || busy || pending || !participants.length} onClick={() => startOutput('pdf')}><EditorIcon name="download" /> Unduh PDF</button>
+      <button id="print-cards" type="button" className="action action-primary data-next" disabled={!!batch || busy || pending || !participants.length} onClick={() => startOutput('print')}><EditorIcon name="printer" /> Cetak ke Kertas</button>
       {busy && !pdfProgress && <button type="button" className="action" onClick={() => controller.current?.abort(new Error('Pembuatan keluaran dibatalkan.'))}>Batalkan keluaran</button>}
     </div>
+    {batch && <section className="output-batch" aria-label="Keluaran bertahap">
+      <p role="status"><strong>{batch.index * batchLimit >= batch.participants.length ? 'Semua dialog batch sudah dibuka'
+          : `${batch.kind === 'pdf' ? 'Unduh PDF' : 'Cetak'} · Batch ${batch.index + 1} dari ${Math.ceil(batch.participants.length / batchLimit)}`}</strong>
+        {batch.index * batchLimit < batch.participants.length &&
+          <span>Kartu {batch.index * batchLimit + 1}–{Math.min((batch.index + 1) * batchLimit, batch.participants.length)} dari {batch.participants.length}.</span>}
+        {batch.kind === 'print' && batch.index > 0 && <span>Jika batch sebelumnya batal dicetak, gunakan Cetak ulang.</span>}
+      </p>
+      <div>
+        {batch.kind === 'print' && batch.index > 0 && <button type="button" className="action" disabled={busy}
+          onClick={() => void output({ ...batch, index: batch.index - 1 })}>Cetak ulang batch {batch.index}</button>}
+        {batch.index * batchLimit < batch.participants.length && <button ref={nextBatchButton} type="button" className="action action-primary" disabled={busy}
+          onClick={() => void output(batch)}>{batch.kind === 'pdf' ? 'Unduh' : 'Cetak'} batch {batch.index + 1}</button>}
+        <button type="button" className="action" disabled={busy} onClick={() => setBatch(undefined)}>Akhiri batch</button>
+      </div>
+    </section>}
     {busy && !pdfProgress && message && <p role="status">{message}</p>}
     <dialog className="format-dialog pdf-progress-dialog" ref={pdfDialog}
       aria-labelledby="pdf-progress-title" aria-describedby="pdf-progress-description"
@@ -193,7 +236,8 @@ export function CardOutput({ participants, renderCard, pending }: {
         <header>
           <span className="pdf-progress-icon"><EditorIcon name="document" /></span>
           <div><h2 id="pdf-progress-title">Menyiapkan PDF</h2>
-            <p id="pdf-progress-description">Unduhan dimulai otomatis setelah file siap.</p></div>
+            <p id="pdf-progress-description">{batch && `Batch ${batch.index + 1} dari ${Math.ceil(batch.participants.length / batchLimit)}. `}
+              Unduhan dimulai otomatis setelah file siap.</p></div>
         </header>
         <div className="pdf-progress-body">
           <dl>
