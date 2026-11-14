@@ -105,6 +105,7 @@ export function CardEditor() {
   const [savedUntil, setSavedUntil] = useState<number>();
   const [sessionRemaining, setSessionRemaining] = useState(0);
   const [dismissedDeadline, setDismissedDeadline] = useState<number>();
+  const resetTrigger = useRef<HTMLButtonElement>(null);
   const resetDialog = useRef<HTMLDialogElement>(null);
   const warningDialog = useRef<HTMLDialogElement>(null);
   const options = pickOptions(card);
@@ -420,7 +421,7 @@ export function CardEditor() {
               </>}
               actions={index === 2 && <>
                 {savedUntil && <span className="format-count" aria-label="Sisa sesi pengaturan">Sisa sesi {countdown}</span>}
-                <button className="action reset-trigger" id="reset-card-session" type="button" aria-haspopup="dialog"
+                <button className="action reset-trigger" id="reset-card-session" ref={resetTrigger} type="button" aria-haspopup="dialog"
                   onClick={() => resetDialog.current?.showModal()}>
                   <EditorIcon name="reset" /> Reset
                 </button>
@@ -686,7 +687,7 @@ export function CardEditor() {
         </section>
       </main>
       <dialog ref={resetDialog} className="format-dialog reset-dialog" aria-labelledby="reset-dialog-title"
-        aria-describedby="reset-dialog-description">
+        aria-describedby="reset-dialog-description" onClose={() => resetTrigger.current?.focus({ preventScroll: true })}>
         <header>
           <span className="reset-dialog-icon"><EditorIcon name="reset" /></span>
           <div>
