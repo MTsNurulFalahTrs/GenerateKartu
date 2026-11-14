@@ -483,9 +483,23 @@ try {
         assert.ok(Math.abs(configuredPrint.getPage(0).getHeight() * 25.4 / 72 - 210) < 1);
         await page.evaluate(() => window.finishPrint());
         await page.waitForSelector('#download-card-pdf:enabled');
+        const pdfDialog = '.pdf-progress-dialog[open]';
+        const started = await page.$eval('#download-card-pdf', (button) => {
+          button.click();
+          const dialog = document.querySelector('.pdf-progress-dialog[open]');
+          const progress = dialog?.querySelector('progress');
+          dialog?.querySelector('footer button').click();
+          return { cards: progress?.max, done: progress?.value };
+        });
+        assert.deepEqual(started, { cards: 10, done: 0 });
+        await page.waitForSelector(pdfDialog, { hidden: true });
+        await page.waitForFunction(() => document.activeElement?.id === 'download-card-pdf');
+        assert.equal(await page.evaluate(() => typeof window.pdfEvidence), 'undefined');
         const pdfStart = performance.now();
         await page.$eval('#download-card-pdf', (button) => button.click());
+        await page.waitForSelector(pdfDialog, { visible: true });
         await page.waitForFunction(() => window.pdfEvidence, { timeout: 60000 });
+        await page.waitForSelector(pdfDialog, { hidden: true });
         const bytes = await page.evaluate(() => window.pdfEvidence);
         const pdf = await PDFDocument.load(new Uint8Array(bytes));
         console.log(`PDF 10 kartu: ${Math.round(performance.now() - pdfStart)} ms; ${bytes.length} byte`);
