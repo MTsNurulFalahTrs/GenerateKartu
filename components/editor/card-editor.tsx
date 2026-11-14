@@ -105,6 +105,7 @@ export function CardEditor() {
   const [savedUntil, setSavedUntil] = useState<number>();
   const [sessionRemaining, setSessionRemaining] = useState(0);
   const [dismissedDeadline, setDismissedDeadline] = useState<number>();
+  const resetDialog = useRef<HTMLDialogElement>(null);
   const warningDialog = useRef<HTMLDialogElement>(null);
   const options = pickOptions(card);
   const preferences: Preferences = { schemaVersion: 1, dark, format, custom, customAppearance, hidden, settings: options };
@@ -419,9 +420,10 @@ export function CardEditor() {
               </>}
               actions={index === 2 && <>
                 {savedUntil && <span className="format-count" aria-label="Sisa sesi pengaturan">Sisa sesi {countdown}</span>}
-                <button className="action" id="reset-card-session" type="button" onClick={() => {
-                  if (window.confirm('Reset pengaturan dan hapus data peserta, foto, serta aset dari sesi ini?')) reset();
-                }}>Reset</button>
+                <button className="action reset-trigger" id="reset-card-session" type="button" aria-haspopup="dialog"
+                  onClick={() => resetDialog.current?.showModal()}>
+                  <EditorIcon name="reset" /> Reset
+                </button>
                 <span className="format-count" role="status">{savedSettings?.snapshot === settingsSnapshot && savedSettings.assets === assets ? 'Disimpan' : 'Belum disimpan'}</span>
               </>}
             />
@@ -666,6 +668,36 @@ export function CardEditor() {
           {helpOpen && <HelpContent inEditor participants={dataset.participants.length} photos={photos.size} communityCount={catalogStatus === 'ready' ? catalog.length : undefined} />}
         </section>
       </main>
+      <dialog ref={resetDialog} className="format-dialog reset-dialog" aria-labelledby="reset-dialog-title"
+        aria-describedby="reset-dialog-description">
+        <header>
+          <span className="reset-dialog-icon"><EditorIcon name="reset" /></span>
+          <div>
+            <h2 id="reset-dialog-title">Reset Pengaturan?</h2>
+            <p id="reset-dialog-description">Setelan editor kembali ke bawaan dan sesi saat ini berakhir.</p>
+          </div>
+          <button type="button" className="action action-icon" aria-label="Tutup konfirmasi reset"
+            onClick={() => resetDialog.current?.close()}><EditorIcon name="close" /></button>
+        </header>
+        <div className="reset-dialog-body">
+          <ul>
+            <li><EditorIcon name="clipboard" /><div><strong>Setelan editor</strong>
+              <span>KOP, jadwal, ukuran kartu, kertas cetak, dan format kustom lokal direset.</span></div></li>
+            <li><EditorIcon name="users" /><div><strong>Data dari sesi ini</strong>
+              <span>Data murid, foto, logo, dan tanda tangan dikeluarkan dari editor.</span></div></li>
+          </ul>
+          <p className="reset-dialog-note"><EditorIcon name="warning" />
+            <span>Reset tidak dapat dibatalkan. Jika perlu, ekspor konfigurasi terlebih dahulu dari Pengaturan.</span>
+          </p>
+        </div>
+        <footer>
+          <button type="button" className="action" autoFocus onClick={() => resetDialog.current?.close()}>Batal</button>
+          <button type="button" className="action action-danger" onClick={() => {
+            resetDialog.current?.close();
+            reset();
+          }}><EditorIcon name="reset" /> Reset Pengaturan</button>
+        </footer>
+      </dialog>
       <dialog ref={warningDialog} className="format-dialog community-share-dialog" aria-labelledby="session-warning-title"
         onCancel={(event) => { event.preventDefault(); setDismissedDeadline(savedUntil); }}>
         <header><h2 id="session-warning-title">Sesi pengaturan segera berakhir</h2></header>
