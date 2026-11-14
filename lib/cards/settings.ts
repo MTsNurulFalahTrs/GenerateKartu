@@ -1,3 +1,5 @@
+import { defaultPaper } from './print-layout.ts';
+
 export type ScheduleTable = { columns: string[]; rowCount: number; rows: string[][] };
 
 export const kopFields = ['institution', 'exam', 'year', 'address'] as const;
@@ -21,6 +23,7 @@ export const defaultCard = {
   },
   signatureSize: 0.8,
   signatureOverlap: false,
+  paper: defaultPaper,
   width: 86,
   height: 54,
   fontSize: 7,

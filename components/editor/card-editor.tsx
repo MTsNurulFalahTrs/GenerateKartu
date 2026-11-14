@@ -15,6 +15,8 @@ import { BackupPanel } from './backup-panel';
 import { defaultCustom, idleLimit, parseBackup, pickHeading, pickOptions, storageKey } from '../../lib/cards/preferences';
 import { packSessionCard, sessionCardKey, unpackSessionCard } from '../../lib/cards/session-settings';
 import type { CustomAppearance, Heading, Preferences } from '../../lib/cards/preferences';
+import { PaperSettingsPanel } from './paper-settings';
+import { paperLayoutError } from '../../lib/cards/print-layout';
 import { CardSettingsPanel } from './card-settings';
 import { PreviewPanel } from './preview-panel';
 import type { CardRenderModel } from '../../lib/cards/render-model';
@@ -28,7 +30,12 @@ import { EditorIcon } from './editor-icon';
 import { ParticipantPanel } from './participant-panel';
 import { formats, moveStep, steps } from '../../lib/editor';
 
-const settings = ['KOP & Identitas', 'Layout & Cetak', 'Tabel Jadwal'] as const;
+const settings = [
+  { name: 'KOP & Identitas', hint: 'Logo dan penandatangan', icon: 'building' },
+  { name: 'Layout & Cetak', hint: 'Ukuran dan isi kartu', icon: 'table' },
+  { name: 'Tabel Jadwal', hint: 'Kolom dan jadwal ujian', icon: 'calendar' },
+  { name: 'Kertas Cetak', hint: 'Ukuran, margin, perataan', icon: 'printer' },
+] as const;
 const sample: Participant = {
   id: 'CONTOH-001',
   cardReference: 'GK1:00000000000000000000000000000000',
@@ -108,6 +115,8 @@ export function CardEditor() {
   function saveSettings() {
     try {
       if (!validCardLayout(card)) throw new Error('Perbaiki ukuran kartu dan font sebelum menyimpan.');
+      const paperError = paperLayoutError(card.paper, card.width, card.height);
+      if (paperError) throw new Error('Perbaiki pengaturan Kertas Cetak. ' + paperError);
       parseBackup(serialized, false);
       // Preferences are durable, while names/identities and schedules stay tab-scoped.
       // Neither participants, photos, signatures nor logo files are serialized.
@@ -581,26 +590,46 @@ export function CardEditor() {
             {index === 2 && (
               <>
               <div className="panel kop-shell">
-                <div className="subtabs" role="group" aria-label="Bagian pengaturan">
-                  {settings.map((name, id) => (
-                    <button className="action" id={`card-settings-${id}`} key={name} type="button" aria-pressed={setting === id} onClick={() => setSetting(id)}>{name}</button>
+                <div className="settings-tabs" role="tablist" aria-label="Bagian pengaturan">
+                  {settings.map(({ name, hint, icon }, id) => (
+                    <button id={`card-settings-${id}`} key={name} type="button" role="tab"
+                      aria-selected={setting === id} aria-controls={`settings-panel-${id}`}
+                      tabIndex={setting === id ? 0 : -1} onClick={() => setSetting(id)}
+                      onKeyDown={(event) => {
+                        const offsets: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, Home: -id, End: settings.length - 1 - id };
+                        if (!Object.hasOwn(offsets, event.key)) return;
+                        event.preventDefault();
+                        const next = (id + offsets[event.key] + settings.length) % settings.length;
+                        setSetting(next);
+                        document.getElementById(`card-settings-${next}`)?.focus();
+                      }}>
+                      <span className="settings-tab-icon"><EditorIcon name={icon} /></span>
+                      <span><strong>{name}</strong><small>{hint}</small></span>
+                    </button>
                   ))}
                 </div>
-                <CardSettingsPanel key={`settings-${revision}`} section={setting} value={card} onChange={setCard} assets={assets}
-                  onAssets={(name, asset) => setAssets((previous) => ({ ...previous, [name]: asset }))} />
-                {setting === 1 && <details className="layout-extra layout-card-preview">
-                  <summary>Kolom kartu &amp; pratinjau</summary>
-                  {format !== null && <fieldset className="mt-4">
-                    <legend>Kolom kartu</legend>
-                    <div className="flex flex-wrap gap-3">{fieldsFor(format, custom).filter((field) =>
-                      field !== 'NamaMurid' && field !== photoFieldFor(format, customAppearance?.photoKey)).map((field) =>
-                      <label key={field}><input type="checkbox" checked={!hidden.includes(field)} onChange={(event) =>
-                        setHidden(event.target.checked ? hidden.filter((item) => item !== field) : [...hidden, field])
-                      } /> {field}</label>)}</div>
-                  </fieldset>}
-                  {format !== null && <div className="layout-card-preview-stage"><CardPreview {...renderCard(previewParticipant)} /></div>}
-                </details>}
-                {setting === 2 && <details className="print-extra"><summary>Pratinjau kartu</summary><CardPreview {...renderCard(previewParticipant)} /></details>}
+                {settings.map(({ name }, id) =>
+                  <div key={name} id={`settings-panel-${id}`} role="tabpanel" aria-labelledby={`card-settings-${id}`}
+                    tabIndex={0} hidden={setting !== id}>
+                  {setting === id && <>
+                    {id === 3 ? <PaperSettingsPanel value={card} onChange={setCard} /> :
+                      <CardSettingsPanel key={`settings-${revision}`} section={id} value={card} onChange={setCard} assets={assets}
+                        onAssets={(name, asset) => setAssets((previous) => ({ ...previous, [name]: asset }))} />}
+                    {id === 1 && <details className="layout-extra layout-card-preview">
+                      <summary>Kolom kartu &amp; pratinjau</summary>
+                      {format !== null && <fieldset className="mt-4">
+                        <legend>Kolom kartu</legend>
+                        <div className="flex flex-wrap gap-3">{fieldsFor(format, custom).filter((field) =>
+                          field !== 'NamaMurid' && field !== photoFieldFor(format, customAppearance?.photoKey)).map((field) =>
+                          <label key={field}><input type="checkbox" checked={!hidden.includes(field)} onChange={(event) =>
+                            setHidden(event.target.checked ? hidden.filter((item) => item !== field) : [...hidden, field])
+                          } /> {field}</label>)}</div>
+                      </fieldset>}
+                      {format !== null && <div className="layout-card-preview-stage"><CardPreview {...renderCard(previewParticipant)} /></div>}
+                    </details>}
+                    {id === 2 && <details className="print-extra"><summary>Pratinjau kartu</summary><CardPreview {...renderCard(previewParticipant)} /></details>}
+                  </>}
+                  </div>)}
                 <div className="kop-save-bar">
                   <button className="action action-primary kop-save" type="button" onClick={saveSettings}>
                     <EditorIcon name="download" /> Simpan Pengaturan

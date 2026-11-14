@@ -333,7 +333,7 @@ try {
       assert.equal(savedAppearance.signatureSize, 1.2);
       assert.equal(savedAppearance.signatureOverlap, true);
       await page.$eval('#card-settings-1', (button) => button.click());
-      await page.waitForSelector('#card-settings-1[aria-pressed=true]');
+      await page.waitForSelector('#card-settings-1[aria-selected=true]');
       assert.equal(await page.$eval('#layout-card-size', (el) => el.value), '86x54');
       assert.equal(await page.$eval('#layout-printer-mode', (el) => el.value), 'color');
       await page.select('#layout-card-size', 'custom');
@@ -354,7 +354,7 @@ try {
       });
       await page.waitForSelector('#panel-2 svg[aria-label="QR referensi kartu"]');
       await page.$eval('#card-settings-2', (button) => button.click());
-      await page.waitForSelector('#card-settings-2[aria-pressed=true]');
+      await page.waitForSelector('#card-settings-2[aria-selected=true]');
       await page.$eval('#step-3', (button) => button.click());
       await page.waitForSelector('#panel-3', { visible: true });
       assert.match(await page.locator('#panel-3').map((el) => el.textContent).wait(), /Lengkap Ruang/);
@@ -446,6 +446,42 @@ try {
         await page.evaluate(() => window.finishPrint());
         await page.select('#preview-Kelas', 'IX-A');
         await page.waitForFunction(() => document.querySelector('#panel-3 .print-count')?.textContent.includes('10 dari 500'));
+        await page.$eval('#step-2', (button) => button.click());
+        await page.waitForSelector('#card-settings-3', { visible: true });
+        await page.focus('#card-settings-2');
+        await page.keyboard.press('ArrowRight');
+        await page.waitForSelector('#card-settings-3[aria-selected=true]');
+        const paperSelects = await page.$$('#settings-panel-3 select');
+        await paperSelects[0].select('A5');
+        await paperSelects[1].select('portrait');
+        await paperSelects[2].select('center');
+        await paperSelects[3].select('end');
+        for (const [index, margin] of [10, 12, 14, 16].entries()) {
+          await dialogAction(page, `#settings-panel-3 label:has(input):nth-child(${index + 1}) input`, 'fill', String(margin));
+        }
+        await page.waitForFunction(() => document.querySelector('.paper-overview [role="status"]')?.textContent.includes('3 kartu per lembar'));
+        await page.locator('.kop-save').click();
+        await page.waitForFunction(() => JSON.parse(localStorage.getItem('generate-kartu:preferences:v1'))?.settings.paper.size === 'A5');
+        await page.$eval('#step-3', (button) => button.click());
+        await page.waitForSelector('#preview-a4:enabled');
+        await page.select('#preview-Kelas', 'IX-A');
+        await page.waitForFunction(() => document.querySelector('#panel-3 .print-count')?.textContent.includes('10 dari 500'));
+        await page.locator('#preview-a4').click();
+        await page.waitForSelector('.print-a4-dialog[open] .print-sheet');
+        const placement = await page.$eval('.print-a4-dialog .print-sheet', (sheet) =>
+          [sheet.style.width, sheet.style.height, sheet.style.paddingLeft, sheet.style.paddingTop]);
+        assert.deepEqual(placement, ['148mm', '210mm', '33mm', '28mm']);
+        await page.keyboard.press('Escape');
+        await page.waitForSelector('.print-a4-dialog[open]', { hidden: true });
+        await page.evaluate(() => { delete window.printEvidence; });
+        await page.locator('#print-cards').click();
+        await page.waitForFunction(() => window.printEvidence);
+        assert.deepEqual(await page.evaluate(() => window.printEvidence.counts), [3, 3, 3, 1]);
+        const configuredPrint = await PDFDocument.load(await page.pdf({ preferCSSPageSize: true, printBackground: true }));
+        assert.equal(configuredPrint.getPageCount(), 4);
+        assert.ok(Math.abs(configuredPrint.getPage(0).getWidth() * 25.4 / 72 - 148) < 1);
+        assert.ok(Math.abs(configuredPrint.getPage(0).getHeight() * 25.4 / 72 - 210) < 1);
+        await page.evaluate(() => window.finishPrint());
         await page.waitForSelector('#download-card-pdf:enabled');
         const pdfStart = performance.now();
         await page.$eval('#download-card-pdf', (button) => button.click());
@@ -453,9 +489,10 @@ try {
         const bytes = await page.evaluate(() => window.pdfEvidence);
         const pdf = await PDFDocument.load(new Uint8Array(bytes));
         console.log(`PDF 10 kartu: ${Math.round(performance.now() - pdfStart)} ms; ${bytes.length} byte`);
-        assert.equal(pdf.getPageCount(), 2);
-        assert.deepEqual(pdf.getPages().map((sheet) => sheet.node.Resources().lookup(pdfName.of('XObject')).keys().length), [9, 1]);
-        assert.ok(Math.abs(pdf.getPage(0).getWidth() * 25.4 / 72 - 297) < 0.1);
+        assert.equal(pdf.getPageCount(), 4);
+        assert.deepEqual(pdf.getPages().map((sheet) => sheet.node.Resources().lookup(pdfName.of('XObject')).keys().length), [3, 3, 3, 1]);
+        assert.ok(Math.abs(pdf.getPage(0).getWidth() * 25.4 / 72 - 148) < 0.1);
+        assert.ok(Math.abs(pdf.getPage(0).getHeight() * 25.4 / 72 - 210) < 0.1);
         await page.$eval('#panel-3 input', (input) => {
           Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '');
           input.dispatchEvent(new Event('input', { bubbles: true }));

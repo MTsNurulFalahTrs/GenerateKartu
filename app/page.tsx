@@ -7,7 +7,7 @@ const steps = [
   ['Pilih format', 'Gunakan format bawaan, pilih format komunitas, atau susun kolom sendiri.', 'clipboard'],
   ['Impor data murid', 'Unduh template Excel, isi data peserta, lalu tambahkan foto jika diperlukan.', 'excel'],
   ['Sesuaikan kartu', 'Atur kop, logo, penandatangan, dan tata letak cetak.', 'edit'],
-  ['Cetak atau unduh PDF', 'Periksa pratinjau A4 dan pilih peserta yang ingin dicetak.', 'printer'],
+  ['Cetak atau unduh PDF', 'Periksa pratinjau kertas dan pilih peserta yang ingin dicetak.', 'printer'],
 ] as const;
 
 export default function HomePage() {
