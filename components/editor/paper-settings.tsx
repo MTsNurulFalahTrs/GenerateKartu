@@ -1,3 +1,4 @@
+import { EditorIcon } from './editor-icon';
 import { cardPages, defaultPaper, pageGrid, paperDimensions, paperEdges, paperLayoutError, paperSizes } from '../../lib/cards/print-layout';
 import type { PaperSettings } from '../../lib/cards/print-layout';
 import { validCardLayout } from '../../lib/cards/settings';
@@ -25,7 +26,8 @@ export function PaperSettingsPanel({ value, onChange }: {
   return <div className="paper-settings">
     <div className="paper-fields">
       <fieldset>
-        <legend>Ukuran & orientasi</legend>
+        <legend><EditorIcon name="document" /> Ukuran & orientasi</legend>
+        <p className="settings-control-help">Pilih ukuran lembar dan arah cetaknya.</p>
         <div className="paper-options">
           <label>Ukuran kertas<select value={paper.size} onChange={(event) =>
             update({ size: event.target.value as PaperSettings['size'] })}>
@@ -40,22 +42,24 @@ export function PaperSettingsPanel({ value, onChange }: {
       </fieldset>
 
       <fieldset>
-        <legend>Margin kertas (mm)</legend>
+        <legend><EditorIcon name="clipboard" /> Margin kertas (mm)</legend>
+        <p className="settings-control-help">Atur jarak dari setiap tepi kertas antara 0 dan 50 mm.</p>
         <div className="paper-options">
           {paperEdges.map((edge) => {
             const margin = paper.margins[edge];
             return <label key={edge}>{edgeLabels[edge]}
-              <input type="number" min={0} max={50} step="any" value={Number.isNaN(margin) ? '' : margin}
+              <span className="paper-margin-input"><input type="number" min={0} max={50} step="any" value={Number.isNaN(margin) ? '' : margin}
                 aria-invalid={!Number.isFinite(margin) || margin < 0 || margin > 50}
                 aria-describedby={error ? 'paper-settings-error' : undefined}
-                onChange={(event) => update({ margins: { ...paper.margins, [edge]: event.target.valueAsNumber } })} />
+                onChange={(event) => update({ margins: { ...paper.margins, [edge]: event.target.valueAsNumber } })} /><span aria-hidden="true">mm</span></span>
             </label>;
           })}
         </div>
       </fieldset>
 
       <fieldset>
-        <legend>Perataan susunan kartu</legend>
+        <legend><EditorIcon name="table" /> Perataan susunan kartu</legend>
+        <p className="settings-control-help">Tentukan posisi kelompok kartu di dalam area margin.</p>
         <div className="paper-options">
           <label>Horizontal<select value={paper.horizontal} onChange={(event) =>
             update({ horizontal: event.target.value as PaperSettings['horizontal'] })}>
@@ -66,13 +70,12 @@ export function PaperSettingsPanel({ value, onChange }: {
             <option value="start">Atas</option><option value="center">Tengah</option><option value="end">Bawah</option>
           </select></label>
         </div>
-        <p>Perataan berlaku untuk susunan kartu di setiap lembar.</p>
       </fieldset>
       <button className="action" type="button" onClick={() => update(defaultPaper)}>Pulihkan setelan kertas bawaan</button>
     </div>
 
     <div className="paper-overview">
-      <h3>Pratinjau susunan kertas</h3>
+      <h3><EditorIcon name="eye" /> Pratinjau susunan kertas</h3>
       <p>{paper.size} · {sheet.width} × {sheet.height} mm</p>
       <div className="paper-diagram" style={{ aspectRatio: sheet.width / sheet.height }} aria-hidden="true">
         {grid && layout && <>
@@ -87,6 +90,7 @@ export function PaperSettingsPanel({ value, onChange }: {
           }} />)}
         </>}
       </div>
+      {grid && <ul className="paper-diagram-key"><li>Area di dalam margin</li><li>Posisi kartu</li></ul>}
       {error ? <p className="field-error" id="paper-settings-error" role="alert">{error}</p> :
         <p role="status"><strong>{capacity} kartu per lembar</strong> ({layout?.columns} kolom × {layout?.rows} baris)</p>}
       <small>Untuk cetak fisik, pilih ukuran kertas yang sama di dialog printer, skala 100%, dan tanpa margin tambahan.</small>

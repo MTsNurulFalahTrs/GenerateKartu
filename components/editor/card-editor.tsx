@@ -617,19 +617,36 @@ export function CardEditor() {
                     {id === 3 ? <PaperSettingsPanel value={card} onChange={setCard} /> :
                       <CardSettingsPanel key={`settings-${revision}`} section={id} value={card} onChange={setCard} assets={assets}
                         onAssets={(name, asset) => setAssets((previous) => ({ ...previous, [name]: asset }))} />}
-                    {id === 1 && <details className="layout-extra layout-card-preview">
-                      <summary>Kolom kartu &amp; pratinjau</summary>
-                      {format !== null && <fieldset className="mt-4">
-                        <legend>Kolom kartu</legend>
-                        <div className="flex flex-wrap gap-3">{fieldsFor(format, custom).filter((field) =>
-                          field !== 'NamaMurid' && field !== photoFieldFor(format, customAppearance?.photoKey)).map((field) =>
-                          <label key={field}><input type="checkbox" checked={!hidden.includes(field)} onChange={(event) =>
-                            setHidden(event.target.checked ? hidden.filter((item) => item !== field) : [...hidden, field])
-                          } /> {field}</label>)}</div>
-                      </fieldset>}
-                      {format !== null && <div className="layout-card-preview-stage"><CardPreview {...renderCard(previewParticipant)} /></div>}
+                    {id === 1 && <details className="layout-extra layout-card-preview settings-disclosure">
+                      <summary><EditorIcon name="table" /><span><strong>Kolom kartu &amp; pratinjau</strong>
+                        <small>Pilih informasi yang dicetak dan periksa hasilnya langsung.</small></span></summary>
+                      {format === null ? <p className="settings-preview-copy">Pilih format kartu untuk menampilkan pratinjau.</p> : <>
+                        <fieldset>
+                          <legend>Kolom opsional</legend>
+                          <p className="settings-control-help">Nama murid dan acuan foto ditentukan oleh format aktif.</p>
+                          <div className="settings-column-options">{fieldsFor(format, custom).filter((field) =>
+                            field !== 'NamaMurid' && field !== photoFieldFor(format, customAppearance?.photoKey)).map((field) =>
+                            <label key={field}><input type="checkbox" checked={!hidden.includes(field)} onChange={(event) =>
+                              setHidden((previous) => event.target.checked ? previous.filter((item) => item !== field) : [...previous, field])
+                            } /> {customAppearance?.labels?.[field] && format === 7 ? customAppearance.labels[field] : formatFieldLabels[field]}</label>)}</div>
+                        </fieldset>
+                        <div className="settings-preview-copy"><strong>Pratinjau langsung</strong>
+                          <small>{previewParticipant === sample ? 'Data contoh' : 'Data murid yang dimuat'} · {card.width} × {card.height} mm</small></div>
+                        <div className="layout-card-preview-stage"><CardPreview {...renderCard(previewParticipant)} /></div>
+                      </>}
                     </details>}
-                    {id === 2 && <details className="print-extra"><summary>Pratinjau kartu</summary><CardPreview {...renderCard(previewParticipant)} /></details>}
+                    {id === 2 && <details className="layout-extra layout-card-preview settings-disclosure">
+                      <summary><EditorIcon name="eye" /><span><strong>Pratinjau kartu</strong>
+                        <small>Periksa letak tabel jadwal pada kartu peserta.</small></span></summary>
+                      <div className="settings-preview-copy">
+                        <strong>{!card.showSchedule ? 'Tabel jadwal disembunyikan' : card.scheduleTable
+                          ? `Jadwal diterapkan · ${card.scheduleTable.columns.length} kolom × ${card.scheduleTable.rowCount} baris`
+                          : card.schedule.trim() ? 'Jadwal teks ditampilkan' : 'Jadwal belum diterapkan'}</strong>
+                        <small>{!card.showSchedule ? 'Aktifkan Tabel Jadwal di Kartu pada Layout & Cetak.'
+                          : 'Gunakan Terapkan Konfigurasi Jadwal untuk memperbarui pratinjau ini.'}</small>
+                      </div>
+                      <div className="layout-card-preview-stage"><CardPreview {...renderCard(previewParticipant)} /></div>
+                    </details>}
                   </>}
                   </div>)}
                 <div className="kop-save-bar">
