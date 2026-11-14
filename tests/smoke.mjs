@@ -372,9 +372,19 @@ try {
       await page.locator('#panel-3 input[placeholder="Cari nama, NISN, atau no. peserta…"]').fill('0002');
       await page.waitForFunction(() => document.querySelector('#panel-3 .print-count')?.textContent.includes('1 dari 500'));
       assert.equal(await page.$$eval('#panel-3 .exam-card', (cards) => cards.length), 1);
+      await page.waitForFunction(() => {
+        const grid = document.querySelector('.print-card-grid');
+        const card = grid?.querySelector('.exam-card');
+        return card && card.getBoundingClientRect().width <= grid.clientWidth && grid.scrollWidth <= grid.clientWidth + 1;
+      });
       await page.locator('#preview-a4').click();
       await page.waitForSelector('.print-a4-dialog[open] .exam-card');
       assert.equal(await page.$$eval('.print-a4-dialog[open] .exam-card', (cards) => cards.length), 1);
+      await page.waitForFunction(() => {
+        const frame = document.querySelector('.print-a4-dialog[open] .fit-preview');
+        const sheet = frame?.querySelector('.print-sheet');
+        return sheet && sheet.getBoundingClientRect().width <= frame.clientWidth + 1;
+      });
       await page.keyboard.press('Escape');
       await page.waitForSelector('.print-a4-dialog[open]', { hidden: true });
       await page.locator('#panel-3 input[placeholder="Cari nama, NISN, atau no. peserta…"]').fill('tidak ditemukan');

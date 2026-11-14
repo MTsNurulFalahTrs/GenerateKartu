@@ -450,12 +450,25 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 .print-view-options { flex-basis: 100%; font-size: .82rem; }
 .print-view-options summary { cursor: pointer; }
 .print-view-options > div { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: .5rem; }
-.print-card-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); padding: clamp(.6rem, 2vw, 1.25rem); border-radius: 1rem; background: repeating-linear-gradient(0deg, transparent 0 23px, rgb(127 127 127 / 10%) 24px), repeating-linear-gradient(90deg, transparent 0 23px, rgb(127 127 127 / 10%) 24px), var(--canvas); }
-.print-card-grid .exam-card { margin-inline: auto; }
-.print-a4-dialog { width: min(76rem, calc(100% - 1.5rem)); }
-.print-a4-scroll { overflow: auto; max-height: 65dvh; padding: .75rem; background: var(--canvas); }
-.print-a4-scroll .print-sheet { background: white; }
-.print-a4-controls { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem; }
+.print-card-grid { grid-template-columns: repeat(auto-fit, minmax(0, min(100%, var(--preview-card-width)))); justify-content: center; gap: clamp(.85rem, 2vw, 1.4rem); padding: clamp(.6rem, 2vw, 1.25rem); border-radius: 1rem; background: repeating-linear-gradient(0deg, transparent 0 23px, rgb(127 127 127 / 10%) 24px), repeating-linear-gradient(90deg, transparent 0 23px, rgb(127 127 127 / 10%) 24px), var(--canvas); }
+.print-card-grid .card-preview-wrap { overflow: visible; padding: 0; }
+.print-a4-dialog { width: min(76rem, calc(100% - 1.5rem)); overflow: hidden; }
+.print-a4-dialog[open] { display: flex; flex-direction: column; }
+.print-a4-dialog > header, .print-a4-dialog > footer { flex: none; background: var(--surface); }
+.print-preview-heading { flex: 1; min-width: 0; }
+.print-preview-heading p, .print-preview-status small { color: var(--muted); font-size: .76rem; }
+.print-preview-status { display: grid; text-align: center; font-size: .82rem; }
+.fit-preview { width: 100%; min-width: 0; margin-inline: auto; }
+.print-a4-scroll { overflow-y: auto; overflow-x: hidden; min-height: 0; padding: clamp(.65rem, 2vw, 1.25rem); background: var(--canvas); }
+.print-a4-scroll .print-sheet { background: white; box-shadow: 0 2px 12px #0f172a29; }
+.print-a4-controls { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: .45rem; border-top: 1px solid var(--line); }
+.print-a4-controls button:first-child { justify-self: start; }
+.print-a4-controls button:last-child { justify-self: end; }
+@media (max-width: 480px) {
+  .print-a4-dialog { width: calc(100% - .75rem); max-height: calc(100dvh - .75rem); }
+  .print-a4-dialog > header, .print-a4-dialog > footer { padding: .65rem; }
+  .print-a4-controls .action { padding-inline: .4rem; font-size: .75rem; }
+}
 @media (min-width: 960px) {
   .print-actions { justify-content: flex-end; }
 }

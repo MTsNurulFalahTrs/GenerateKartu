@@ -3,6 +3,8 @@
 import { useDeferredValue, useMemo, useState } from 'react';
 import { EditorIcon } from './editor-icon';
 import { CardOutput } from './card-output';
+import { FitPreview } from './fit-preview';
+import type { CSSProperties } from 'react';
 import { CardPreview } from './card-preview';
 import { filterPreview, previewFilters } from '../../lib/cards/render-model';
 import type { CardRenderModel, PreviewFilter, PreviewScope } from '../../lib/cards/render-model';
@@ -49,6 +51,10 @@ export function PreviewPanel({ participants, selected, renderCard, active }: {
   const pages = Math.ceil(filtered.length / size);
   const current = Math.min(page, Math.max(0, pages - 1));
   const visible = filtered.slice(current * size, (current + 1) * size);
+
+  const previewCards = active ? visible.map((participant) => renderCard(participant)) : [];
+  const widthMm = previewCards[0]?.settings.width;
+  const gridStyle = { '--preview-card-width': (widthMm ?? 0) > 0 ? `${widthMm}mm` : '19rem' } as CSSProperties;
 
   return <div className="print-workspace">
     <section className="panel print-summary" aria-label="Ringkasan dan keluaran cetak">
@@ -101,8 +107,10 @@ export function PreviewPanel({ participants, selected, renderCard, active }: {
     {!filtered.length && <p className="panel print-empty">{scope === 'selected' && !selected.size
       ? 'Belum ada peserta terpilih. Pilih peserta di Data Murid atau ubah cakupan.'
       : 'Tidak ada kartu yang cocok dengan pencarian dan filter.'}</p>}
-    <div className="card-batch print-card-grid" data-view={mode} aria-busy={query !== deferredQuery}>
-      {active && visible.map((participant) => <CardPreview key={participant.id} {...renderCard(participant)} />)}
+    <div className="card-batch print-card-grid" data-view={mode} style={gridStyle} aria-busy={query !== deferredQuery}>
+      {previewCards.map((card) => <FitPreview key={card.participant.id} widthMm={card.settings.width || 86}>
+        <CardPreview {...card} />
+      </FitPreview>)}
     </div>
     {pages > 1 && <nav className="print-pagination" aria-label="Halaman pratinjau">
       <button type="button" className="action" disabled={current === 0} onClick={() => setPage(current - 1)}>Sebelumnya</button>
