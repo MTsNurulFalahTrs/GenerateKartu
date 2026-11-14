@@ -52,6 +52,13 @@ export function CardOutput({ participants, renderCard, pending }: {
 
   useEffect(() => () => controller.current?.abort(), []);
 
+  useEffect(() => {
+    if (!busy && pdfDialog.current?.open) {
+      pdfDialog.current.close();
+      pdfTrigger.current?.focus({ preventScroll: true });
+    }
+  }, [busy]);
+
   function openPreview() {
     if (!participants.length) return;
     try {
@@ -164,11 +171,9 @@ export function CardOutput({ participants, renderCard, pending }: {
       controller.current = null;
       setBusy(false);
       setJob(null);
-      if (kind === 'pdf' && pdfDialog.current?.open) {
-        pdfDialog.current.close();
+      if (kind === 'pdf') {
         setPdfProgress(undefined);
         setCancelingPdf(false);
-        requestAnimationFrame(() => pdfTrigger.current?.focus({ preventScroll: true }));
       }
     }
   }
