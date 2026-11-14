@@ -1545,3 +1545,45 @@ body:has(.editor[data-theme="dark"]) .app-toast-stack .app-toast {
   .settings-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .paper-settings { grid-template-columns: minmax(0, 1fr); }
 }
+
+.reset-trigger { display: inline-flex; align-items: center; gap: .4rem; }
+.reset-dialog { width: min(31rem, calc(100% - 1.5rem)); }
+.reset-dialog > header { align-items: flex-start; padding: 1.15rem; border-bottom: 1px solid var(--line); }
+.reset-dialog header > div { flex: 1; }
+.reset-dialog h2 { font-size: 1.2rem; }
+.reset-dialog header p { margin-top: .25rem; color: var(--muted); font-size: .84rem; }
+.reset-dialog-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2.75rem;
+  height: 2.75rem;
+  border-radius: .8rem;
+  color: var(--feedback-error);
+  background: color-mix(in srgb, var(--feedback-error) 12%, var(--surface));
+}
+.reset-dialog-body { display: grid; gap: .9rem; padding: 1rem 1.15rem; }
+.reset-dialog-body ul {
+  display: grid;
+  gap: .8rem;
+  padding: .85rem;
+  border: 1px solid var(--line);
+  border-radius: .8rem;
+  background: var(--canvas);
+}
+.reset-dialog-body li, .reset-dialog-note { display: flex; align-items: flex-start; gap: .65rem; }
+.reset-dialog-body svg { flex: none; margin-top: .15rem; }
+.reset-dialog-body li svg { color: var(--indigo-700); }
+.reset-dialog-body strong, .reset-dialog-body li span { display: block; font-size: .84rem; }
+.reset-dialog-body li span { margin-top: .15rem; color: var(--muted); }
+.reset-dialog-note { color: var(--feedback-error); font-size: .8rem; }
+.reset-dialog footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .55rem;
+  padding: .85rem 1.15rem;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 420px) {
+  .reset-dialog footer .action { flex: 1 1 auto; }
+}

@@ -702,10 +702,20 @@ try {
         });
         await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('Sesi kedaluwarsa')));
         await page.waitForFunction(() => document.querySelector('#kop-institution')?.value !== 'Madrasah Pulih');
-        await page.$eval('#reset-card-session', (button) => {
-          window.confirm = () => true;
-          button.click();
-        });
+        const resetDialog = '.reset-dialog[open]';
+        await page.focus('#reset-card-session');
+        const savedBeforeReset = await page.evaluate(() => localStorage.getItem('generate-kartu:preferences:v1'));
+        await dialogAction(page, '#reset-card-session');
+        await page.waitForSelector(resetDialog, { visible: true });
+        assert.equal(await page.evaluate(() => document.activeElement.textContent), 'Batal');
+        assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).overflowY), 'hidden');
+        await page.keyboard.press('Escape');
+        await page.waitForSelector(resetDialog, { hidden: true });
+        assert.equal(await page.evaluate(() => document.activeElement.id), 'reset-card-session');
+        assert.equal(await page.evaluate(() => localStorage.getItem('generate-kartu:preferences:v1')), savedBeforeReset);
+        await dialogAction(page, '#reset-card-session');
+        await dialogAction(page, `${resetDialog} .action-danger`);
+        await page.waitForSelector(resetDialog, { hidden: true });
         await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('direset')));
       }
       await page.locator('.help-nav').click();
