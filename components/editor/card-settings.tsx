@@ -222,8 +222,9 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
           <li>Untuk ukuran custom, uji cetak 1 kartu terlebih dahulu sebelum mencetak semua.</li>
         </ul>
       </aside>
-      <details className="layout-extra">
-        <summary>Pengaturan teks lanjutan</summary>
+      <details className="layout-extra settings-disclosure">
+        <summary><EditorIcon name="edit" /><span><strong>Pengaturan teks lanjutan</strong>
+          <small>Sesuaikan ukuran dan perataan teks isi kartu.</small></span></summary>
         <div className="layout-advanced-grid">
           <label>Ukuran teks (pt)
             <input type="number" min={6} max={12} step={0.5} value={value.fontSize || ''}
@@ -234,8 +235,9 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
                   update('fontSize', Number.isFinite(next) ? Math.min(12, Math.max(6, next)) : defaultCard.fontSize);
                 }
               }} />
+            <small>6–12 pt · bawaan {defaultCard.fontSize} pt</small>
           </label>
-          <label>Posisi teks
+          <label>Perataan teks
             <select value={value.align} onChange={(event) => {
               const align = event.currentTarget.value;
               if (align === 'left' || align === 'center' || align === 'right') update('align', align);
@@ -244,6 +246,7 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
               <option value="center">Tengah</option>
               <option value="right">Kanan</option>
             </select>
+            <small>Lihat hasilnya di Kolom kartu &amp; pratinjau.</small>
           </label>
         </div>
       </details>

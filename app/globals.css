@@ -1587,3 +1587,43 @@ body:has(.editor[data-theme="dark"]) .app-toast-stack .app-toast {
 @media (max-width: 420px) {
   .reset-dialog footer .action { flex: 1 1 auto; }
 }
+
+.settings-disclosure > summary {
+  display: flex; align-items: center; gap: .7rem; list-style: none;
+  min-height: 64px; color: var(--ink);
+}
+.settings-disclosure > summary::-webkit-details-marker { display: none; }
+.settings-disclosure > summary > svg { flex: none; color: var(--indigo-700); }
+.settings-disclosure > summary::after {
+  content: ""; flex: 0 0 .45rem; height: .45rem; margin-inline: auto .25rem;
+  border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.settings-disclosure[open] > summary::after { transform: rotate(225deg); }
+.settings-disclosure small, .settings-preview-copy small { display: block; color: var(--muted); font-weight: 500; }
+.settings-preview-copy { padding: .75rem .85rem; }
+.layout-card-preview-stage {
+  min-width: 0; border-radius: 0 0 .72rem .72rem;
+  background: color-mix(in srgb, var(--indigo-500) 6%, var(--canvas));
+}
+.editor .settings-control-help { color: var(--muted); font-size: .8rem; margin: 0 0 .65rem; }
+.settings-column-options { display: flex; flex-wrap: wrap; gap: .45rem; }
+.editor .settings-column-options label {
+  padding: .2rem .65rem; border: 1px solid var(--line); border-radius: .55rem;
+}
+.settings-column-options label:has(:checked) {
+  background: color-mix(in srgb, var(--indigo-500) 9%, var(--surface));
+}
+.paper-fields fieldset { background: color-mix(in srgb, var(--canvas) 45%, var(--surface)); }
+.paper-fields legend, .paper-overview h3 { display: flex; align-items: center; gap: .45rem; }
+.paper-fields legend { padding-inline: .35rem; }
+.paper-fields svg, .paper-overview h3 svg { color: var(--indigo-700); }
+.paper-margin-input { position: relative; }
+.editor .paper-margin-input input { padding-inline-end: 3rem; }
+.paper-margin-input > span {
+  pointer-events: none; position: absolute; inset-inline-end: .65rem; top: 50%;
+  transform: translateY(-50%); color: var(--muted); font-size: .75rem;
+}
+.paper-diagram-key { display: flex; flex-wrap: wrap; justify-content: center; gap: .35rem .85rem; font-size: .72rem; color: var(--muted); }
+.paper-diagram-key li { display: flex; align-items: center; gap: .35rem; }
+.paper-diagram-key li::before { content: ""; width: .75rem; height: .65rem; border: 1px dashed currentColor; }
+.paper-diagram-key li + li::before { border: 1px solid #6366f1; background: #e0e7ff; }
