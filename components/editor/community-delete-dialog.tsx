@@ -25,8 +25,8 @@ export function CommunityDeleteDialog({ id, name, onClose, onDeleted }: {
         <h2 id="community-delete-title">Hapus Format Komunitas?</h2>
         <p id="community-delete-description">Akses khusus pengembang atau pemilik aplikasi.</p>
       </div>
-      <button type="button" className="action delete-format-close" aria-label="Tutup modal hapus"
-        disabled={busy} onClick={onClose}>×</button>
+      <button type="button" className="action action-icon delete-format-close" aria-label="Tutup modal hapus"
+        disabled={busy} onClick={onClose}><EditorIcon name="close" /></button>
     </header>
     <form aria-busy={busy} onSubmit={async (event) => {
       event.preventDefault();
@@ -54,7 +54,10 @@ export function CommunityDeleteDialog({ id, name, onClose, onDeleted }: {
           onDeleted(id);
           return;
         }
-        setInvalidPin(response.status === 403);
+        if (response.status === 403) {
+          setInvalidPin(true);
+          return;
+        }
         notify('error', data.message || 'Format belum berhasil dihapus.');
       } catch {
         notify('error', 'Status penghapusan belum dapat dipastikan. Coba lagi.');
@@ -80,12 +83,12 @@ export function CommunityDeleteDialog({ id, name, onClose, onDeleted }: {
             <button type="button" className="action" disabled={busy}
               onClick={() => setShowPin(!showPin)}>{showPin ? 'Sembunyikan' : 'Tampilkan'}</button>
           </div>
-          <small id="community-pin-hint">{invalidPin ? 'PIN salah. Periksa kembali sebelum mencoba lagi.' : 'Gunakan PIN yang terdiri dari 8–16 angka.'}</small>
+          <small id="community-pin-hint" className={invalidPin ? 'field-error' : undefined} role={invalidPin ? 'alert' : undefined}>{invalidPin ? 'PIN salah. Periksa kembali sebelum mencoba lagi.' : 'Gunakan PIN yang terdiri dari 8–16 angka.'}</small>
         </div>
       </div>
       <footer className="delete-format-footer">
         <button type="button" className="action" disabled={busy} onClick={onClose}>Batal</button>
-        <button type="submit" className="action delete-format-submit" disabled={busy}>
+        <button type="submit" className="action action-danger delete-format-submit" disabled={busy}>
           <EditorIcon name="trash" /> {busy ? 'Menghapus…' : 'Hapus Format'}
         </button>
       </footer>

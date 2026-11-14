@@ -55,8 +55,8 @@ function ReleaseNotesDialog({ onClose }: { onClose: () => void }) {
       <span className="release-notes-icon"><EditorIcon name="document" /></span>
       <div><h2 id="release-notes-title">Catatan Pembaruan</h2>
         <p id="release-notes-description">Ringkasan perubahan dan kemampuan GenerateKartu.</p></div>
-      <button type="button" className="action" aria-label="Tutup catatan pembaruan"
-        onClick={() => dialog.current?.close()}>×</button>
+      <button type="button" className="action action-icon" aria-label="Tutup catatan pembaruan"
+        onClick={() => dialog.current?.close()}><EditorIcon name="close" /></button>
     </header>
     <div className="release-notes-body">
       <div className="release-notes-summary"><strong>Kartu Ujian Pro</strong>
@@ -69,7 +69,7 @@ function ReleaseNotesDialog({ onClose }: { onClose: () => void }) {
       <p className="release-notes-privacy">Perubahan akan terus diperbarui dalam aplikasi. Gunakan tab Bantuan untuk langkah penggunaan dan FAQ.</p>
     </div>
     <footer className="release-notes-footer">
-      <button type="button" className="action data-next" onClick={() => dialog.current?.close()}>Mengerti</button>
+      <button type="button" className="action action-primary data-next" onClick={() => dialog.current?.close()}>Mengerti</button>
     </footer>
   </dialog>;
 }

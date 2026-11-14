@@ -213,7 +213,8 @@ try {
       await catalogPage.waitForSelector('#community-owner-pin');
       await dialogAction(catalogPage, '#community-owner-pin', 'fill', '87654321');
       await dialogAction(catalogPage, 'dialog[open] button[type="submit"]');
-      await catalogPage.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('PIN pemilik salah.')));
+      await catalogPage.waitForFunction(() =>
+        document.querySelector('#community-pin-hint[role="alert"]')?.textContent.includes('PIN salah'));
       assert.equal(await dialogCount(catalogPage, '.community-card'), 1);
       await dialogAction(catalogPage, '#community-owner-pin', 'fill', '12345678');
       await dialogAction(catalogPage, 'dialog[open] button[type="submit"]');
@@ -532,7 +533,7 @@ try {
       await page.waitForFunction((selector) => !!document.querySelector(selector), {}, `${customDialog} .custom-excel-duplicate`);
       assert.equal(await dialogCount(page, `${customDialog} .custom-excel-duplicate`), 2);
       await dialogAction(page, `${customDialog} .custom-save`);
-      await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('Kolom Excel')));
+      await page.waitForFunction(() => document.activeElement?.getAttribute('aria-describedby')?.startsWith('custom-excel-error-'));
       await dialogAction(page, `${customDialog} [aria-label="Kolom Excel baris 4"]`, 'fill', 'NomorBangku');
       await page.waitForFunction(() => document.querySelectorAll('.custom-excel-duplicate').length === 0);
       await dialogAction(page, `${customDialog} .custom-community input`);
@@ -549,17 +550,12 @@ try {
         };
       });
       await dialogAction(page, `${customDialog} .custom-save`);
-      await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('sudah digunakan')));
+      await page.waitForFunction(() => document.querySelector('#custom-format-name-error')?.textContent.includes('sudah digunakan'));
       await dialogAction(page, `${customDialog} .custom-format-name input`, 'fill', 'Format_Baru_2026');
-      await dialogAction(page, `${customDialog} .custom-save`);
-      const shareDialog = '.community-share-dialog[open]';
-      await page.waitForFunction((selector) => !!document.querySelector(selector), {}, shareDialog);
-      assert.equal(await dialogValue(page, `${shareDialog} h2`), 'Bagikan ke Komunitas?');
-      assert.ok((await dialogValue(page, `${shareDialog} .community-share-notice`)).includes('Format_Baru_2026'));
-      await dialogAction(page, `${shareDialog} .community-share-confirm`);
-      await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('Nama atau inisial')));
-      const toastState = await page.evaluate(() => {
-        const confirm = document.querySelector('.community-share-dialog[open] .community-share-confirm');
+      const toastState = await page.evaluate(async () => {
+        const confirm = document.querySelector('.custom-format-dialog[open] .custom-save');
+        const fetchCatalog = window.fetch;
+        window.fetch = () => Promise.resolve(new Response(null, { status: 503 }));
         const original = window.setTimeout;
         const expirations = [];
         // Chromium can throttle timers in background targets on CI.
@@ -569,9 +565,13 @@ try {
           return 0;
         };
         try {
-          for (let index = 0; index < 4; index++) confirm.click();
+          for (let index = 0; index < 4; index++) {
+            confirm.click();
+            await new Promise((resolve) => original(resolve, 20));
+          }
         } finally {
           window.setTimeout = original;
+          window.fetch = fetchCatalog;
         }
         const visible = [...document.querySelectorAll('.app-toast-stack:popover-open .app-toast')].map((item) => {
           const style = getComputedStyle(item);
@@ -582,6 +582,14 @@ try {
         return { visible, timers: expirations.length, remaining: document.querySelectorAll('.app-toast').length };
       });
       assert.deepEqual(toastState, { visible: [true, true, true], timers: 4, remaining: 0 });
+      await dialogAction(page, `${customDialog} .custom-save`);
+      const shareDialog = '.community-share-dialog[open]';
+      await page.waitForFunction((selector) => !!document.querySelector(selector), {}, shareDialog);
+      assert.equal(await dialogValue(page, `${shareDialog} h2`), 'Bagikan ke Komunitas?');
+      assert.ok((await dialogValue(page, `${shareDialog} .community-share-notice`)).includes('Format_Baru_2026'));
+      await dialogAction(page, `${shareDialog} .community-share-confirm`);
+      await page.waitForSelector('#contributor-name-error[role="alert"]');
+      assert.equal(await dialogValue(page, '#community-contributor-name', 'ariaInvalid'), 'true');
       await dialogAction(page, '#community-contributor-name', 'fill', 'rANDY uJI123!');
       assert.equal(await dialogValue(page, '#community-contributor-name', 'value'), 'Randy Uji');
       await dialogAction(page, `${shareDialog} .community-share-anonymous input`);

@@ -45,6 +45,7 @@ export function notify(icon: SweetAlertIcon, message: string) {
   popup.setAttribute('role', icon === 'error' || icon === 'warning' ? 'alert' : 'status');
   popup.setAttribute('aria-label', message);
   popup.classList.add('app-toast');
+  popup.dataset.tone = icon;
   if (visible.length === 3) remove(visible[0]);
   visible.push(popup);
   stack.append(popup);

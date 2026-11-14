@@ -135,9 +135,6 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
         const values = defaultMapping(data.input.headers, fields, excelHeaders, formatId === 7);
         setMapped({ schema, values });
         setInput(data.input);
-        const issues = validateRows(data.input, formatId, values, custom, customPhotoKey).issues;
-        if (issues.length) notify('warning', 'Data Excel perlu diperiksa. Lihat rincian pada modal impor.');
-        else notify('success', 'Data Excel siap diimpor.');
       } else {
         download(new Blob([data.template], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `template-format-${formatId + 1}.xlsx`);
         if (request.action === 'template') stop();
@@ -244,7 +241,7 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
             <p id="participant-import-description">Periksa sheet, pemetaan kolom dan data sebelum diterapkan.</p>
           </div>
           <span className="import-dialog-private"><EditorIcon name="lock" /> Diproses lokal</span>
-          <button type="button" className="action import-close" aria-label="Tutup impor data murid" onClick={closeImport}>×</button>
+          <button type="button" className="action action-icon import-close" aria-label="Tutup impor data murid" onClick={closeImport}><EditorIcon name="close" /></button>
         </header>
         <div className="import-dialog-body">
           <ol className="import-steps" aria-label="Tahapan impor data">
@@ -301,14 +298,14 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
                 </table>
               </div>
               {validation.issues.length ? <div className="import-validation-error" role="alert">
-                <h4>⚠ {validation.issues.length} masalah ditemukan</h4>
+                <h4><EditorIcon name="warning" /> {validation.issues.length} masalah ditemukan</h4>
                 <p>Perbaiki workbook atau pemetaan kolom, kemudian periksa ulang sebelum mengimpor.</p>
                 <ul>{validation.issues.slice(0, 10).map((issue, index) =>
                   <li key={index}><strong>Baris {issue.row} · {issue.column}:</strong> {issue.message}</li>)}</ul>
                 <button className="action" type="button" onClick={() => downloadIssues(validation.issues)}>
                   <EditorIcon name="download" /> Unduh Laporan Kesalahan
                 </button>
-              </div> : <div className="import-validation-ok" role="status"><span>✓</span>
+              </div> : <div className="import-validation-ok" role="status"><span><EditorIcon name="check" /></span>
                 <div><strong>Data siap diimpor</strong>
                   <p>{validation.participants.length} murid telah lolos pemeriksaan dan siap digunakan pada kartu.</p></div>
               </div>}
@@ -322,7 +319,7 @@ export function ParticipantPanel({ active, format, custom, customPhotoKey, custo
           </span>
           <div className="import-footer-buttons">
             <button type="button" className="action" onClick={closeImport}>Batal</button>
-            <button id="apply-participant-import" className="action data-next" type="button"
+            <button id="apply-participant-import" className="action action-primary data-next" type="button"
               disabled={busy || !validation || !!validation.issues.length} onClick={applyImport}>
               <EditorIcon name="table" /> {dataset ? 'Ganti Data Murid' : 'Terapkan Impor'}
             </button>

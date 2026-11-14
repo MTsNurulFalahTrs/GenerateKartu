@@ -58,6 +58,9 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
       { id: 'row-2', field: '', label: '', excel: '', mono: false },
       { id: 'row-3', field: '', label: '', excel: '', mono: false },
     ]);
+  const [validationError, setValidationError] = useState('');
+  const [nameError, setNameError] = useState('');
+  const nameInput = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(appearance?.name ?? 'Format Kustom');
   const [photoRow, setPhotoRow] = useState(() => {
     const selected = fields.findIndex((field) => field === appearance?.photoKey);
@@ -141,12 +144,12 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving || pendingShare) return;
+    setValidationError('');
+    setNameError('');
     const selected = rows.filter((row) => row.field !== '');
     const duplicated = findDuplicateExcelColumns(rows);
     if (duplicated.size) {
-      const first = [...duplicated.entries()][0];
-      notify('error', 'Kolom Excel pada baris ' + first[1].join(' dan ') +
-        ' sama. Setiap baris harus menggunakan header Excel yang unik; urutan 1–6 mengikuti posisi baris.');
+      event.currentTarget.querySelector<HTMLInputElement>('input[aria-describedby^="custom-excel-error-"]')?.focus();
       return;
     }
     if (!name.trim() || !rows.length || rows.length > maxRows || selected.length !== rows.length ||
@@ -156,7 +159,7 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
       new Set(selected.map((row) => row.field)).size !== selected.length ||
       new Set(selected.map((row) => row.excel.trim().toLowerCase())).size !== selected.length ||
       !selected.some((row) => row.id === photoRow && row.field !== 'Password')) {
-      notify('error', 'Lengkapi setiap Field Bawaan, Label Tampilan, dan Kolom Excel (maks. 6 baris). Gunakan kolom Excel yang berbeda dan pilih satu Acuan Foto selain Password.');
+      setValidationError('Lengkapi setiap Field Bawaan, Label Tampilan, dan Kolom Excel (maks. 6 baris). Gunakan kolom Excel yang berbeda dan pilih satu Acuan Foto selain Password.');
       return;
     }
     const entries = selected as (FormatRow & { field: Field })[];
@@ -172,7 +175,8 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
 
     if (share) {
       if (!validCommunityName(appearance.name)) {
-        notify('error', 'Nama format komunitas hanya boleh huruf, angka, minus (-), dan underscore (_), tanpa spasi.');
+        setNameError('Gunakan hanya huruf, angka, tanda minus (-), atau garis bawah (_).');
+        nameInput.current?.focus();
         return;
       }
       setSaving(true);
@@ -183,7 +187,8 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
         if (!response.ok) throw new Error('Pemeriksaan nama format belum tersedia. Coba lagi.');
         const result: { exists: boolean } = await response.json();
         if (result.exists) {
-          notify('error', 'Nama format sudah digunakan di komunitas. Gunakan nama lain.');
+          setNameError('Nama ini sudah digunakan di komunitas. Masukkan nama lain.');
+          nameInput.current?.focus();
           return;
         }
 
@@ -204,13 +209,19 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
       <span className="format-icon"><EditorIcon name="edit" /></span>
       <div><h2 id="custom-format-title">Buat Format Kustom</h2>
         <p>Tentukan sendiri field yang tampil di kartu ujian (maks. 6 baris)</p></div>
-      <button className="action custom-format-close" type="button" disabled={saving} aria-label="Tutup Format Kustom"
-        onClick={() => dialog.current?.close()}>×</button>
+      <button className="action action-icon custom-format-close" type="button" disabled={saving} aria-label="Tutup Format Kustom"
+        onClick={() => dialog.current?.close()}><EditorIcon name="close" /></button>
     </header>
-    <form onSubmit={save} aria-busy={saving}>
+    <form onSubmit={save} aria-busy={saving} onChange={() => setValidationError('')}>
       <div className="custom-format-body">
         <label className="custom-format-name">Nama Format
-          <input required maxLength={60} value={name} onChange={(event) => setName(share ? publicName(event.currentTarget.value) : event.currentTarget.value)} />
+          <input ref={nameInput} required maxLength={60} value={name} aria-invalid={!!nameError}
+            aria-describedby={nameError ? 'custom-format-name-error' : undefined}
+            onChange={(event) => {
+              setNameError('');
+              setName(share ? publicName(event.currentTarget.value) : event.currentTarget.value);
+            }} />
+          {nameError && <small id="custom-format-name-error" className="field-error" role="alert">{nameError}</small>}
           {share && <small className="custom-public-name-help">Hanya huruf, angka, minus (-) dan underscore (_). Nama harus unik di komunitas.</small>}
         </label>
         <div className="custom-format-fields-heading">
@@ -296,15 +307,16 @@ export function CustomFormatDialog({ fields, appearance, labels, onSave, onClose
         </aside>
       </div>
       <footer className="custom-format-footer">
+        {validationError && <p className="field-error" role="alert">{validationError}</p>}
         <label className="custom-community"><input type="checkbox" checked={share} disabled={saving}
-          onChange={(event) => { const checked = event.currentTarget.checked; setShare(checked); if (checked) setName((previous) => publicName(previous)); }} />
+          onChange={(event) => { const checked = event.currentTarget.checked; setShare(checked); setNameError(''); if (checked) setName((previous) => publicName(previous)); }} />
           <span className="community-share-icon"><EditorIcon name="users" /></span>
           <span><strong>Bagikan format ini ke komunitas</strong>
             <small>Publikasikan nama dan susunan kolom agar format dapat dipakai pengguna lain. Anda dapat memilih ikon dan berbagi secara anonim.</small></span></label>
         <div>
           <button className="action" type="button" disabled={saving} onClick={() => dialog.current?.close()}>Batal</button>
-          <button className="action custom-save" type="submit" disabled={saving}>
-            {saving ? 'Menyimpan…' : '✓ Simpan & Aktifkan'}
+          <button className="action action-primary custom-save" type="submit" disabled={saving}>
+            <EditorIcon name="check" /> {saving ? 'Menyimpan…' : 'Simpan & Aktifkan'}
           </button>
         </div>
       </footer>
