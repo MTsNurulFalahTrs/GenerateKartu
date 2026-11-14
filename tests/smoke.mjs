@@ -774,7 +774,7 @@ try {
         assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).overflowY), 'hidden');
         await page.keyboard.press('Escape');
         await page.waitForSelector(resetDialog, { hidden: true });
-        assert.equal(await page.evaluate(() => document.activeElement.id), 'reset-card-session');
+        await page.waitForFunction(() => document.activeElement?.id === 'reset-card-session');
         assert.equal(await page.evaluate(() => localStorage.getItem('generate-kartu:preferences:v1')), savedBeforeReset);
         await dialogAction(page, '#reset-card-session');
         await dialogAction(page, `${resetDialog} .action-danger`);
