@@ -5,6 +5,8 @@ import { MasonryGrid } from './masonry-grid';
 import { useEffect, useRef, useState } from 'react';
 import { PageHeading } from './page-chrome';
 import { EditorIcon } from './editor-icon';
+import { changelogUrl } from '../../lib/changelog';
+import type { Changelog } from '../../lib/changelog';
 import { formats } from '../../lib/editor';
 import { maxParticipants } from '../../lib/participants/model';
 
@@ -28,23 +30,7 @@ const faq = [
   ['Apakah format komunitas tersedia?', 'Ya. Centang opsi berbagi saat menyimpan Format Kustom untuk menambahkannya ke katalog publik di tab Format.'],
 ];
 
-const releaseNotes = [
-  { title: 'Format dan komunitas', entries: [
-    'Membuat format kartu kustom dengan pengaturan field, label tampilan, header Excel, urutan, dan Acuan Foto.',
-    'Membagikan format ke katalog komunitas dengan konfirmasi serta nama kontributor atau opsi anonim.',
-    'Mencari format, memfilter format bawaan/komunitas, dan melihat pratinjau sebelum memilih.',
-  ] },
-  { title: 'Data murid dan hasil kartu', entries: [
-    'Mengimpor XLS/XLSX, memetakan kolom dan memvalidasi data murid sebelum dipakai.',
-    'Menggunakan foto peserta dan mencetak kartu dalam tata letak kertas yang dipilih atau mengunduh PDF.',
-  ] },
-  { title: 'Pengaturan dan keamanan', entries: [
-    'Mengatur KOP, penandatangan, ukuran kartu, tampilan cetak, jadwal, serta backup JSON preferensi.',
-    'Data peserta dan foto diproses secara lokal di browser; metadata format komunitas tidak memuat data murid.',
-  ] },
-] as const;
-
-function ReleaseNotesDialog({ onClose }: { onClose: () => void }) {
+function ReleaseNotesDialog({ changelog, onClose }: { changelog: Changelog; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { dialog.current?.showModal(); }, []);
 
@@ -54,27 +40,35 @@ function ReleaseNotesDialog({ onClose }: { onClose: () => void }) {
     <header className="release-notes-header">
       <span className="release-notes-icon"><EditorIcon name="document" /></span>
       <div><h2 id="release-notes-title">Catatan Pembaruan</h2>
-        <p id="release-notes-description">Ringkasan perubahan dan kemampuan GenerateKartu.</p></div>
+        <p id="release-notes-description">Riwayat perubahan dari changelog repositori.</p></div>
       <button type="button" className="action action-icon" aria-label="Tutup catatan pembaruan"
         onClick={() => dialog.current?.close()}><EditorIcon name="close" /></button>
     </header>
     <div className="release-notes-body">
-      <div className="release-notes-summary"><strong>Kartu Ujian Pro</strong>
-        <span>Fitur terbaru dapat digunakan langsung dari tab aplikasi tanpa membuka situs lain.</span>
-      </div>
-      {releaseNotes.map(({ title, entries }, index) => <section className="release-notes-group" key={title}>
-        <div className="release-notes-group-heading"><span>{String(index + 1).padStart(2, '0')}</span><h3>{title}</h3></div>
-        <ul>{entries.map((entry) => <li key={entry}>{entry}</li>)}</ul>
+      {changelog.map(({ title, entries }) => <section className="release-notes-group" key={title}>
+        <h3>{title}</h3>
+        <ul>{entries.map((entry, index) => <li key={index}>
+          {entry.split(/(\[[^\]]+\]\([^)]+\))/).map((part, partIndex) => {
+            const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(part);
+            if (!link) return part;
+            const [ , label, href] = link;
+            const safeHref = href.startsWith('https://') ? href
+              : /^[\w./-]+$/.test(href) ? new URL(href, changelogUrl).href : undefined;
+            return safeHref ? <a key={partIndex} href={safeHref} target="_blank" rel="noreferrer">{label}</a> : label;
+          })}
+        </li>)}</ul>
       </section>)}
-      <p className="release-notes-privacy">Perubahan akan terus diperbarui dalam aplikasi. Gunakan tab Bantuan untuk langkah penggunaan dan FAQ.</p>
+      {!changelog.length && <p>Belum ada catatan pembaruan.</p>}
     </div>
     <footer className="release-notes-footer">
-      <button type="button" className="action action-primary data-next" onClick={() => dialog.current?.close()}>Mengerti</button>
+      <a href={changelogUrl} target="_blank" rel="noreferrer">Lihat di GitHub</a>
+      <button type="button" className="action action-primary" onClick={() => dialog.current?.close()}>Tutup</button>
     </footer>
   </dialog>;
 }
 
-export function HelpContent({ participants = 0, photos = 0, communityCount, inEditor = false }: {
+export function HelpContent({ participants = 0, photos = 0, communityCount, inEditor = false, changelog }: {
+  changelog: Changelog;
   participants?: number;
   photos?: number;
   inEditor?: boolean;
@@ -146,7 +140,7 @@ export function HelpContent({ participants = 0, photos = 0, communityCount, inEd
 
       </section>
     </MasonryGrid>
-    {notesOpen && <ReleaseNotesDialog onClose={() => {
+    {notesOpen && <ReleaseNotesDialog changelog={changelog} onClose={() => {
       setNotesOpen(false);
       requestAnimationFrame(() => noteButton.current?.focus());
     }} />}
