@@ -411,6 +411,8 @@ try {
           const heap = (await page.metrics()).JSHeapUsedSize / 1048576;
           console.log(`Preview ${count} peserta: ${Math.round(performance.now() - start)} ms; heap JS ${heap.toFixed(1)} MiB`);
         }
+        const previewFields = await page.$$eval('#panel-3 .print-card-grid .exam-card dl', (lists) =>
+          lists.map((list) => [...list.children].map((row) => row.textContent)));
         await page.evaluate(() => {
           const add = window.addEventListener.bind(window);
           window.addEventListener = (type, listener, options) => {
@@ -422,8 +424,21 @@ try {
             window.printEvidence = {
               active: document.body.classList.contains('card-print-ready'),
               counts: pages.map((page) => page.querySelectorAll('.exam-card').length),
+              fields: pages.flatMap((page) => [...page.querySelectorAll('.exam-card dl')].map((list) =>
+                [...list.children].map((row) => row.textContent))),
               names: pages.flatMap((page) => [...page.querySelectorAll('.exam-card')].map((card) => card.getAttribute('aria-label'))),
             };
+          };
+          const drawImage = CanvasRenderingContext2D.prototype.drawImage;
+          window.pdfCardFields = [];
+          CanvasRenderingContext2D.prototype.drawImage = function (image, ...args) {
+            const prefix = 'data:image/svg+xml;charset=utf-8,';
+            if (image instanceof HTMLImageElement && image.src.startsWith(prefix)) {
+              const card = new DOMParser().parseFromString(decodeURIComponent(image.src.slice(prefix.length)), 'image/svg+xml');
+              const list = card.querySelector('.exam-card dl');
+              if (list) window.pdfCardFields.push([...list.children].map((row) => row.textContent));
+            }
+            return drawImage.call(this, image, ...args);
           };
           const click = HTMLAnchorElement.prototype.click;
           HTMLAnchorElement.prototype.click = function () {
@@ -451,6 +466,7 @@ try {
           assert.equal(printed.names.length, 100);
           printedNames.push(...printed.names);
           if (batch === 0) {
+            assert.deepEqual(printed.fields.slice(0, previewFields.length), previewFields);
             const browserPdf = await PDFDocument.load(await page.pdf({ preferCSSPageSize: true, printBackground: true }));
             assert.equal(browserPdf.getPageCount(), 12);
           }
@@ -515,12 +531,15 @@ try {
         await page.waitForSelector(pdfDialog, { hidden: true });
         await page.waitForFunction(() => document.activeElement?.id === 'download-card-pdf');
         assert.equal(await page.evaluate(() => typeof window.pdfEvidence), 'undefined');
+        const expectedPdfFields = await page.$$eval('#panel-3 .print-card-grid .exam-card dl', (lists) =>
+          lists.map((list) => [...list.children].map((row) => row.textContent)));
         const pdfStart = performance.now();
         await page.$eval('#download-card-pdf', (button) => button.click());
         await page.waitForSelector(pdfDialog, { visible: true });
         await page.waitForFunction(() => window.pdfEvidence, { timeout: 60000 });
         await page.waitForSelector(pdfDialog, { hidden: true });
         const bytes = await page.evaluate(() => window.pdfEvidence);
+        assert.deepEqual(await page.evaluate((count) => window.pdfCardFields.slice(0, count), expectedPdfFields.length), expectedPdfFields);
         const pdf = await PDFDocument.load(new Uint8Array(bytes));
         console.log(`PDF 10 kartu: ${Math.round(performance.now() - pdfStart)} ms; ${bytes.length} byte`);
         assert.equal(pdf.getPageCount(), 4);

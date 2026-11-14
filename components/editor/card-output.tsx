@@ -129,7 +129,7 @@ export function CardOutput({ participants, renderCard, pending }: {
     setBusy(true);
     setMessage(total > 1 ? `Menyiapkan batch ${index + 1} dari ${total}…` : 'Menyiapkan kartu…');
     try {
-      const cards = run.participants.slice(offset, offset + batchLimit).map(run.renderCard);
+      const cards = run.participants.slice(offset, offset + batchLimit).map((participant) => run.renderCard(participant));
       const { settings } = cards[0];
       if (!validCardLayout(settings)) throw new Error('Periksa ukuran kartu dan ukuran teks di Layout & Cetak.');
       const { width, height } = settings;
