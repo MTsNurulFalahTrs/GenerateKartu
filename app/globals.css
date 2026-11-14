@@ -1627,3 +1627,29 @@ body:has(.editor[data-theme="dark"]) .app-toast-stack .app-toast {
 .paper-diagram-key li { display: flex; align-items: center; gap: .35rem; }
 .paper-diagram-key li::before { content: ""; width: .75rem; height: .65rem; border: 1px dashed currentColor; }
 .paper-diagram-key li + li::before { border: 1px solid #6366f1; background: #e0e7ff; }
+
+.pdf-progress-dialog { width: min(30rem, calc(100% - 1.5rem)); }
+.pdf-progress-dialog > header { padding: 1rem 1.15rem; border-bottom: 1px solid var(--line); }
+.pdf-progress-dialog header p { color: var(--muted); font-size: .85rem; }
+.pdf-progress-icon {
+  display: grid; place-items: center; flex: 0 0 2.6rem; height: 2.6rem;
+  border-radius: .7rem; color: var(--indigo-700);
+  background: color-mix(in srgb, var(--indigo-500) 12%, var(--surface));
+}
+.pdf-progress-body { padding: 1rem 1.15rem; }
+.pdf-progress-body dl {
+  display: flex; flex-wrap: wrap; gap: .65rem 1.35rem;
+  padding: .75rem; margin-bottom: 1rem; border: 1px solid var(--line);
+  border-radius: .75rem; background: var(--canvas);
+}
+.pdf-progress-body dt { font-size: .75rem; color: var(--muted); }
+.pdf-progress-body dd { font-size: .9rem; font-weight: 700; }
+.pdf-progress-status {
+  display: flex; justify-content: space-between; flex-wrap: wrap;
+  gap: .25rem .6rem; font-size: .82rem;
+}
+.pdf-progress-status span { color: var(--muted); }
+.pdf-progress-body progress { width: 100%; height: .72rem; accent-color: var(--indigo-600); }
+.pdf-progress-body p { display: flex; align-items: center; gap: .4rem; margin-top: .7rem; color: var(--muted); font-size: .8rem; }
+.pdf-progress-body p svg { flex: none; }
+.pdf-progress-dialog footer { display: flex; justify-content: flex-end; padding: .8rem 1.15rem; border-top: 1px solid var(--line); }
