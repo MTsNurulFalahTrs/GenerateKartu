@@ -1,5 +1,6 @@
 import { PDFDocument } from 'pdf-lib';
-import { paper } from './print-layout';
+import { pageGrid } from './print-layout';
+import type { PrintLayout } from './print-layout';
 
 const pt = (mm: number) => mm * 72 / 25.4;
 
@@ -54,20 +55,22 @@ async function rasterize(card: HTMLElement, assets: Map<string, Promise<string>>
 }
 
 export async function buildCardPdf(
-  pages: HTMLElement[][], columns: number, width: number, height: number,
+  pages: HTMLElement[][], layout: PrintLayout,
   signal: AbortSignal, progress: (count: number) => void,
 ) {
   const pdf = await PDFDocument.create();
   const assets = new Map<string, Promise<string>>();
+  const { sheet, width, height, gap } = layout;
   let count = 0;
   for (const cards of pages) {
-    const page = pdf.addPage([pt(paper.width), pt(paper.height)]);
+    const grid = pageGrid(layout, cards.length);
+    const page = pdf.addPage([pt(sheet.width), pt(sheet.height)]);
     for (const [index, card] of cards.entries()) {
       signal.throwIfAborted();
       const image = await pdf.embedPng(await rasterize(card, assets));
       page.drawImage(image, {
-        x: pt(paper.margin + (index % columns) * (width + paper.gap)),
-        y: pt(paper.height - paper.margin - height - Math.floor(index / columns) * (height + paper.gap)),
+        x: pt(grid.left + (index % grid.columns) * (width + gap)),
+        y: pt(sheet.height - grid.top - height - Math.floor(index / grid.columns) * (height + gap)),
         width: pt(width), height: pt(height),
       });
       progress(++count);

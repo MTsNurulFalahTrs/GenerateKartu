@@ -217,7 +217,7 @@ export function CardSettingsPanel({ section, value, onChange, assets, onAssets }
         <strong>Tips Cetak Optimal</strong>
         <ul>
           <li>Pastikan <b>Scale/Skala</b> printer diatur ke <b>100%</b>.</li>
-          <li>Atur <b>Margin</b> printer ke <b>None / Tidak Ada</b>.</li>
+          <li>Pilih ukuran sesuai subtab <b>Kertas Cetak</b> dan atur margin printer ke <b>Tidak Ada</b>.</li>
           <li>Aktifkan opsi <b>Cetak Latar Belakang</b> di pengaturan browser.</li>
           <li>Untuk ukuran custom, uji cetak 1 kartu terlebih dahulu sebelum mencetak semua.</li>
         </ul>

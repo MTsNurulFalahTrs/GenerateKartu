@@ -13,7 +13,7 @@ const instructions = [
   ['Unggah data', 'Unduh template Excel dari Data Murid, isi datanya, lalu cocokkan kolom sebelum menerapkan impor.'],
   ['Tambahkan foto (opsional)', 'Unggah foto satu per satu atau dalam ZIP. Nama berkas harus sesuai dengan Acuan Foto pada format aktif.'],
   ['Atur kartu', 'Isi KOP, logo, penandatangan, ukuran kartu, dan jadwal sesuai kebutuhan.'],
-  ['Cetak kartu', 'Pilih peserta, periksa Pratinjau A4, lalu cetak atau unduh PDF.'],
+  ['Cetak kartu', 'Pilih peserta, periksa Pratinjau Kertas, lalu cetak atau unduh PDF.'],
 ];
 
 const faq = [
@@ -24,7 +24,7 @@ const faq = [
   ['Bagaimana cara mencadangkan pengaturan?', 'Gunakan Ekspor Konfigurasi di tab Pengaturan. Gunakan Impor Konfigurasi untuk memulihkannya.'],
   ['Apa yang terjadi setelah satu jam tanpa aktivitas?', 'Data peserta dan aset sesi dibersihkan. Preferensi tampilan yang tersimpan di browser tetap dapat digunakan.'],
   ['Bisakah saya mencetak kartu untuk kelas tertentu?', 'Ya. Pilih kelas pada Filter Cetak, lalu periksa jumlah kartu sebelum mencetak.'],
-  ['Apa yang harus dilakukan jika hasil cetak terpotong?', 'Periksa Pratinjau A4, gunakan skala 100% dan margin Tidak Ada. Jika isi kartu melebihi batas, sesuaikan ukuran di Layout & Cetak.'],
+  ['Apa yang harus dilakukan jika hasil cetak terpotong?', 'Periksa Pratinjau Kertas, gunakan skala 100% dan margin Tidak Ada. Jika isi kartu melebihi batas, sesuaikan ukuran di Layout & Cetak.'],
   ['Apakah format komunitas tersedia?', 'Ya. Centang opsi berbagi saat menyimpan Format Kustom untuk menambahkannya ke katalog publik di tab Format.'],
 ];
 
@@ -36,7 +36,7 @@ const releaseNotes = [
   ] },
   { title: 'Data murid dan hasil kartu', entries: [
     'Mengimpor XLS/XLSX, memetakan kolom dan memvalidasi data murid sebelum dipakai.',
-    'Menggunakan foto peserta dan mencetak kartu dalam tata letak A4 atau mengunduh PDF.',
+    'Menggunakan foto peserta dan mencetak kartu dalam tata letak kertas yang dipilih atau mengunduh PDF.',
   ] },
   { title: 'Pengaturan dan keamanan', entries: [
     'Mengatur KOP, penandatangan, ukuran kartu, tampilan cetak, jadwal, serta backup JSON preferensi.',

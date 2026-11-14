@@ -74,3 +74,13 @@ test('custom Password field persists only as field and label metadata', () => {
     },
   })), /Metadata/);
 });
+
+
+test('paper configuration round-trips and legacy backups use the default paper', () => {
+  const { paper, ...legacy } = preferences.settings;
+  assert.deepEqual(parseBackup(JSON.stringify({ ...preferences, settings: legacy })).preferences.settings.paper, paper);
+  const chosen = { ...paper, size: 'A5', orientation: 'portrait', horizontal: 'center', margins: { ...paper.margins, right: 12 } };
+  const backup = { ...preferences, settings: { ...preferences.settings, paper: chosen } };
+  assert.deepEqual(parseBackup(JSON.stringify(backup)).preferences, backup);
+  assert.throws(() => parseBackup(JSON.stringify({ ...backup, settings: { ...backup.settings, width: 150 } })), /tidak sesuai dengan kertas/);
+});

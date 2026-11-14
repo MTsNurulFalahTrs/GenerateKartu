@@ -9,7 +9,26 @@ import { CardPreview } from './card-preview';
 import type { Participant } from '../../lib/participants/model';
 import type { CardRenderModel } from '../../lib/cards/render-model';
 import { validCardLayout } from '../../lib/cards/settings';
-import { cardPages, paper } from '../../lib/cards/print-layout';
+import { cardPages, pageGrid } from '../../lib/cards/print-layout';
+
+const pageLabel = (layout: ReturnType<typeof cardPages>) =>
+  `${layout.paper.size} · ${layout.paper.orientation === 'landscape' ? 'Lanskap' : 'Potret'}`;
+
+function PrintSheet({ cards, layout }: {
+  cards: CardRenderModel[];
+  layout: ReturnType<typeof cardPages<CardRenderModel>>;
+}) {
+  const grid = pageGrid(layout, cards.length);
+  return <div className="print-sheet" style={{
+    width: `${layout.sheet.width}mm`,
+    height: `${layout.sheet.height}mm`,
+    gridTemplateColumns: `repeat(${grid.columns}, ${layout.width}mm)`,
+    gridAutoRows: `${layout.height}mm`,
+    paddingLeft: `${grid.left}mm`,
+    paddingTop: `${grid.top}mm`,
+    gap: `${layout.gap}mm`,
+  }}>{cards.map((card) => <CardPreview key={card.participant.id} {...card} output />)}</div>;
+}
 
 export function CardOutput({ participants, renderCard, pending }: {
   participants: Participant[];
@@ -19,10 +38,9 @@ export function CardOutput({ participants, renderCard, pending }: {
   const previewDialog = useRef<HTMLDialogElement>(null);
   const [preview, setPreview] = useState<ReturnType<typeof cardPages<CardRenderModel>> | null>(null);
   const [previewPage, setPreviewPage] = useState(0);
-  const [job, setJob] = useState<CardRenderModel[][] | null>(null);
+  const [job, setJob] = useState<ReturnType<typeof cardPages<CardRenderModel>> | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const [columns, setColumns] = useState(1);
   const root = useRef<HTMLDivElement>(null);
   const controller = useRef<AbortController | null>(null);
 
@@ -35,11 +53,11 @@ export function CardOutput({ participants, renderCard, pending }: {
       const { settings } = cards[0];
       if (!validCardLayout(settings)) throw new Error('Periksa ukuran kartu dan ukuran teks di Layout & Cetak.');
       setPreviewPage(0);
-      setPreview(cardPages(cards, settings.width, settings.height));
+      setPreview(cardPages(cards, settings.width, settings.height, settings.paper));
       setMessage('');
       previewDialog.current?.showModal();
     } catch (cause) {
-      notify('error', cause instanceof Error ? cause.message : 'Pratinjau A4 gagal dibuka.');
+      notify('error', cause instanceof Error ? cause.message : 'Pratinjau kertas gagal dibuka.');
     }
   }
 
@@ -54,8 +72,8 @@ export function CardOutput({ participants, renderCard, pending }: {
       const { settings } = cards[0];
       if (!validCardLayout(settings)) throw new Error('Periksa ukuran kartu dan ukuran teks di Layout & Cetak.');
       const { width, height } = settings;
-      const layout = cardPages(cards, width, height);
-      flushSync(() => { setColumns(layout.columns); setJob(layout.pages); });
+      const layout = cardPages(cards, width, height, settings.paper);
+      flushSync(() => setJob(layout));
       const deadline = performance.now() + 15000;
       const host = root.current;
       if (!host) throw new Error('Area keluaran tidak tersedia.');
@@ -110,7 +128,7 @@ export function CardOutput({ participants, renderCard, pending }: {
         notify('info', 'Dialog cetak ditutup.');
       } else {
         const { buildCardPdf } = await import('../../lib/cards/pdf');
-        const bytes = await buildCardPdf(pages, layout.columns, width, height, current.signal,
+        const bytes = await buildCardPdf(pages, layout, current.signal,
           (count) => setMessage(`Membuat PDF · ${count}/${cards.length} kartu`));
         current.signal.throwIfAborted();
         const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }));
@@ -132,22 +150,19 @@ export function CardOutput({ participants, renderCard, pending }: {
 
   return <>
     <div className="print-actions">
-      <button id="preview-a4" type="button" className="action" disabled={busy || pending || !participants.length} onClick={openPreview}><EditorIcon name="document" /> Pratinjau A4</button>
+      <button id="preview-a4" type="button" className="action" disabled={busy || pending || !participants.length} onClick={openPreview}><EditorIcon name="document" /> Pratinjau Kertas</button>
       <button id="download-card-pdf" type="button" className="action" disabled={busy || pending || !participants.length} onClick={() => void output('pdf')}><EditorIcon name="download" /> Unduh PDF</button>
       <button id="print-cards" type="button" className="action action-primary data-next" disabled={busy || pending || !participants.length} onClick={() => void output('print')}><EditorIcon name="printer" /> Cetak ke Kertas</button>
       {busy && <button type="button" className="action" onClick={() => controller.current?.abort(new Error('Pembuatan keluaran dibatalkan.'))}>Batalkan keluaran</button>}
     </div>
     {busy && message && <p role="status">{message}</p>}
     <dialog className="format-dialog print-a4-dialog" ref={previewDialog} aria-labelledby="print-a4-title" onClose={() => setPreview(null)}>
-      <header><h2 id="print-a4-title">Pratinjau A4</h2>
-        <button type="button" className="action action-icon" aria-label="Tutup pratinjau A4" onClick={() => previewDialog.current?.close()}><EditorIcon name="close" /></button>
+      <header><h2 id="print-a4-title">Pratinjau Kertas{preview && ` · ${pageLabel(preview)}`}</h2>
+        <button type="button" className="action action-icon" aria-label="Tutup pratinjau kertas" onClick={() => previewDialog.current?.close()}><EditorIcon name="close" /></button>
       </header>
       {preview && <>
-        <div className="print-a4-scroll" tabIndex={0} role="region" aria-label="Lembar A4">
-          <div className="print-sheet" style={{
-            gridTemplateColumns: `repeat(${preview.columns}, ${preview.pages[previewPage][0].settings.width}mm)`,
-            gap: `${paper.gap}mm`,
-          }}>{preview.pages[previewPage].map((card) => <CardPreview key={card.participant.id} {...card} output />)}</div>
+        <div className="print-a4-scroll" tabIndex={0} role="region" aria-label={`Lembar ${pageLabel(preview)}`}>
+          <PrintSheet cards={preview.pages[previewPage]} layout={preview} />
         </div>
         <footer className="print-a4-controls">
           <button type="button" className="action" disabled={previewPage === 0} onClick={() => setPreviewPage(previewPage - 1)}>Sebelumnya</button>
@@ -157,10 +172,8 @@ export function CardOutput({ participants, renderCard, pending }: {
       </>}
     </dialog>
     {job && createPortal(<div ref={root} className="card-print-root" aria-hidden="true">
-      {job.map((page, index) => <div key={index} className="print-sheet" style={{
-        gridTemplateColumns: `repeat(${columns}, ${page[0].settings.width}mm)`,
-        gap: `${paper.gap}mm`,
-      }}>{page.map((card) => <CardPreview key={card.participant.id} {...card} output />)}</div>)}
+      <style>{`@media print { @page { size: ${job.sheet.width}mm ${job.sheet.height}mm; margin: 0; } }`}</style>
+      {job.pages.map((page, index) => <PrintSheet key={index} cards={page} layout={job} />)}
     </div>, document.body)}
   </>;
 }

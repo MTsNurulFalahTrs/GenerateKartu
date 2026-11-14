@@ -1,3 +1,5 @@
+import { defaultPaper, paperAlignments, paperEdges, paperLayoutError, paperSizes } from './print-layout.ts';
+import type { PaperSettings } from './print-layout';
 import { defaultCard, kopFields, kopSizes } from './settings.ts';
 import type { CardSettings } from './settings.ts';
 import { customFieldIds } from '../participants/model.ts';
@@ -28,13 +30,13 @@ export type Preferences = {
   custom: Field[];
   customAppearance?: CustomAppearance;
   hidden: Field[];
-  settings: Pick<CardSettings, (typeof optionKeys)[number] | (typeof appearanceKeys)[number]>;
+  settings: Pick<CardSettings, (typeof optionKeys)[number] | (typeof appearanceKeys)[number] | 'paper'>;
 };
 export type Heading = Pick<CardSettings, (typeof headingKeys)[number]>;
 
 export function pickOptions(settings: CardSettings): Preferences['settings'] {
   const { width, height, fontSize, align, monochrome, photo, qr, showSchedule } = settings;
-  return { width, height, fontSize, align, monochrome, photo, qr, showSchedule, kopStyles: settings.kopStyles, signatureSize: settings.signatureSize, signatureOverlap: settings.signatureOverlap };
+  return { paper: settings.paper, width, height, fontSize, align, monochrome, photo, qr, showSchedule, kopStyles: settings.kopStyles, signatureSize: settings.signatureSize, signatureOverlap: settings.signatureOverlap };
 }
 
 export function pickHeading(settings: CardSettings): Heading {
@@ -71,7 +73,23 @@ export function parseBackup(raw: string, allowHeading = true): { preferences: Pr
   if (value.schemaVersion !== 1) throw new Error('Versi backup tidak didukung.');
   const hasAppearance = !!value.settings && typeof value.settings === 'object' &&
     appearanceKeys.some((key) => Object.hasOwn(value.settings as object, key));
-  const options = object(value.settings, hasAppearance ? [...optionKeys, ...appearanceKeys] : optionKeys);
+  const settingsKeys: string[] = hasAppearance ? [...optionKeys, ...appearanceKeys] : [...optionKeys];
+  const hasPaper = !!value.settings && typeof value.settings === 'object' && Object.hasOwn(value.settings, 'paper');
+  if (hasPaper) settingsKeys.push('paper');
+  const options = object(value.settings, settingsKeys);
+  let paper = defaultPaper;
+  if (hasPaper) {
+    const candidate = object(options.paper, ['size', 'orientation', 'margins', 'horizontal', 'vertical']);
+    const margins = object(candidate.margins, paperEdges);
+    if (typeof candidate.size !== 'string' || !Object.hasOwn(paperSizes, candidate.size) ||
+      (candidate.orientation !== 'portrait' && candidate.orientation !== 'landscape') ||
+      !paperAlignments.some((alignment) => alignment === candidate.horizontal) ||
+      !paperAlignments.some((alignment) => alignment === candidate.vertical) ||
+      paperEdges.some((edge) => !between(margins[edge], 0, 50))) {
+      throw new Error('Pengaturan kertas tidak valid.');
+    }
+    paper = candidate as PaperSettings;
+  }
   const appearance = hasAppearance ? options : defaultCard;
   const styles = object(appearance.kopStyles, kopFields);
   for (const key of kopFields) {
@@ -127,7 +145,10 @@ export function parseBackup(raw: string, allowHeading = true): { preferences: Pr
     (custom as Field[]).some((field) => customFieldIds.includes(field as typeof customFieldIds[number]))) {
     throw new Error('Format kustom tidak valid.');
   }
-  const preferences = { schemaVersion, dark, format, custom, ...(customAppearance ? { customAppearance } : {}), hidden, settings: { ...options, kopStyles: styles, signatureSize: appearance.signatureSize, signatureOverlap: appearance.signatureOverlap } } as Preferences;
+  if (paperLayoutError(paper, options.width as number, options.height as number)) {
+    throw new Error('Ukuran kartu dan margin tidak sesuai dengan kertas.');
+  }
+  const preferences = { schemaVersion, dark, format, custom, ...(customAppearance ? { customAppearance } : {}), hidden, settings: { ...options, paper, kopStyles: styles, signatureSize: appearance.signatureSize, signatureOverlap: appearance.signatureOverlap } } as Preferences;
   if (!hasHeading) return { preferences };
   const heading = object(value.heading, headingKeys);
   if (headingKeys.some((key) => typeof heading[key] !== 'string' || heading[key].length > 160)) {
