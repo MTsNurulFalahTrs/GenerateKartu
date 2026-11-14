@@ -134,7 +134,7 @@ export function ScheduleSettings({ initial, legacy, onApply }: {
       </label>
       {busy && <p role="status">Membaca jadwal…</p>}
     </section>
-    <button className="action schedule-apply" type="button" disabled={invalid || busy} onClick={() => {
+    <button className="action action-primary schedule-apply" type="button" disabled={invalid || busy} onClick={() => {
       onApply({ columns: headers, rowCount, rows });
       notify('success', 'Konfigurasi jadwal diterapkan pada kartu untuk sesi ini.');
     }}>Terapkan Konfigurasi Jadwal</button>

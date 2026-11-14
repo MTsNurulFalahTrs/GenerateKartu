@@ -12,6 +12,7 @@
   --canvas: #f5f5f7;
   --surface: #fff;
   --line: #cbd5e1;
+  --feedback-error: #b42318;
 }
 
 body { margin: 0; color: var(--ink); background: var(--canvas); font-family: "Plus Jakarta Sans", system-ui, sans-serif; }
@@ -19,7 +20,7 @@ button { cursor: pointer; }
 a { color: var(--indigo-700); }
 :focus-visible { outline: 2px solid var(--indigo-500); outline-offset: 3px; }
 .editor { min-height: 100dvh; color: var(--ink); background: radial-gradient(circle at 1px 1px, rgb(99 102 241 / 8%) 1px, transparent 0) 0 0 / 28px 28px, var(--canvas); }
-.editor[data-theme="dark"] { color-scheme: dark; --canvas: #0f172a; --surface: #172033; --ink: #f1f5f9; --muted: #cbd5e1; --line: #475569; --indigo-700: #c7d2fe; }
+.editor[data-theme="dark"] { color-scheme: dark; --canvas: #0f172a; --surface: #172033; --ink: #f1f5f9; --muted: #cbd5e1; --line: #475569; --indigo-700: #c7d2fe; --feedback-error: #fda4af; }
 .header { position: sticky; top: 0; z-index: 5; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter: blur(14px); }
 .header-inner, .content { max-width: 72rem; margin-inline: auto; padding-inline: clamp(1rem, 3vw, 2rem); }
 .header-inner, .navigation, .brand, .stepper, .subtabs { display: flex; align-items: center; gap: .6rem; }
@@ -1324,6 +1325,9 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
   box-shadow: 0 .35rem 1.25rem #17203324;
   overflow: hidden;
 }
+.app-toast[data-tone="success"] { --toast-accent: #059669; }
+.app-toast[data-tone="error"] { --toast-accent: #dc2626; }
+.app-toast[data-tone="warning"] { --toast-accent: #d97706; }
 .app-toast-stack .swal2-html-container { color: inherit; overflow-wrap: anywhere; }
 body:has(.editor[data-theme="dark"]) .app-toast-stack .app-toast {
   background: #1e293b;
@@ -1335,7 +1339,7 @@ body:has(.editor[data-theme="dark"]) .app-toast-stack .app-toast {
   position: absolute;
   inset: auto 0 0;
   height: 2px;
-  background: #7953e8;
+  background: var(--toast-accent, var(--indigo-600));
   transform-origin: left;
   animation: app-toast-expiry 2s linear forwards;
 }
@@ -1412,16 +1416,6 @@ body:has(.editor[data-theme="dark"]) .app-toast-stack .app-toast {
   padding: .85rem 1.2rem;
 }
 .delete-format-footer .action { min-height: 44px; }
-.delete-format-footer .delete-format-submit {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  background: #b42318;
-  color: #fff;
-  border-color: #b42318;
-  font-weight: 700;
-}
-.delete-format-submit:hover:enabled { background: #912018; }
 @media (max-width: 420px) {
   .community-delete-dialog .delete-format-footer .action { flex: 1 1 auto; justify-content: center; }
 }
@@ -1435,3 +1429,53 @@ body:has(.editor[data-theme="dark"]) .app-toast-stack .app-toast {
   grid-column: var(--masonry-column, auto);
   grid-row: var(--masonry-row, auto);
 }
+
+/* Shared roles for editor and dialog actions. */
+.action:enabled:hover:not([aria-pressed="true"]) {
+  border-color: color-mix(in srgb, var(--indigo-500) 65%, var(--line));
+}
+.action svg { flex-shrink: 0; vertical-align: middle; }
+.action.action-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: 44px;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  padding: 0;
+}
+.editor .action.action-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  border: 1px solid transparent;
+  background: var(--indigo-600);
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 3px 8px rgb(79 70 229 / 20%);
+}
+.editor .action.action-primary:hover:enabled { background: #4338ca; }
+.editor .action.action-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  background: #b42318;
+  border-color: #b42318;
+  color: white;
+  font-weight: 700;
+}
+.editor .action.action-danger:hover:enabled { background: #912018; }
+.editor .action:disabled { cursor: not-allowed; box-shadow: none; }
+.editor [aria-invalid="true"]:is(input, select) {
+  border-color: var(--feedback-error);
+  box-shadow: inset 0 0 0 1px var(--feedback-error);
+}
+.editor .field-error {
+  color: var(--feedback-error);
+  font-size: .8rem;
+  line-height: 1.5;
+  margin-block: .35rem 0;
+}
+.import-validation-error h4 { display: flex; align-items: center; gap: .35rem; }

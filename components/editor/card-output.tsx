@@ -107,7 +107,7 @@ export function CardOutput({ participants, renderCard, pending }: {
         } finally {
           document.body.classList.remove('card-print-ready');
         }
-        notify('success', `Dialog cetak ditutup · ${cards.length} kartu dalam ${pages.length} halaman.`);
+        notify('info', 'Dialog cetak ditutup.');
       } else {
         const { buildCardPdf } = await import('../../lib/cards/pdf');
         const bytes = await buildCardPdf(pages, layout.columns, width, height, current.signal,
@@ -134,13 +134,13 @@ export function CardOutput({ participants, renderCard, pending }: {
     <div className="print-actions">
       <button id="preview-a4" type="button" className="action" disabled={busy || pending || !participants.length} onClick={openPreview}><EditorIcon name="document" /> Pratinjau A4</button>
       <button id="download-card-pdf" type="button" className="action" disabled={busy || pending || !participants.length} onClick={() => void output('pdf')}><EditorIcon name="download" /> Unduh PDF</button>
-      <button id="print-cards" type="button" className="action data-next" disabled={busy || pending || !participants.length} onClick={() => void output('print')}><EditorIcon name="printer" /> Cetak ke Kertas</button>
+      <button id="print-cards" type="button" className="action action-primary data-next" disabled={busy || pending || !participants.length} onClick={() => void output('print')}><EditorIcon name="printer" /> Cetak ke Kertas</button>
       {busy && <button type="button" className="action" onClick={() => controller.current?.abort(new Error('Pembuatan keluaran dibatalkan.'))}>Batalkan keluaran</button>}
     </div>
     {busy && message && <p role="status">{message}</p>}
     <dialog className="format-dialog print-a4-dialog" ref={previewDialog} aria-labelledby="print-a4-title" onClose={() => setPreview(null)}>
       <header><h2 id="print-a4-title">Pratinjau A4</h2>
-        <button type="button" className="action" aria-label="Tutup pratinjau A4" onClick={() => previewDialog.current?.close()}>×</button>
+        <button type="button" className="action action-icon" aria-label="Tutup pratinjau A4" onClick={() => previewDialog.current?.close()}><EditorIcon name="close" /></button>
       </header>
       {preview && <>
         <div className="print-a4-scroll" tabIndex={0} role="region" aria-label="Lembar A4">

@@ -574,7 +574,7 @@ export function CardEditor() {
                 <footer className="page-footer">
                   <small>Tip: Foto bersifat opsional. Kartu tetap bisa dicetak tanpa foto.</small>
                   <button className="action" type="button" onClick={() => setStep(0)}>‹ Kembali</button>
-                  <button className="action data-next" type="button" onClick={() => setStep(2)}>Lanjut ke Pengaturan ›</button>
+                  <button className="action action-primary data-next" type="button" onClick={() => setStep(2)}>Lanjut ke Pengaturan ›</button>
                 </footer>
               </>
             )}
@@ -602,7 +602,7 @@ export function CardEditor() {
                 </details>}
                 {setting === 2 && <details className="print-extra"><summary>Pratinjau kartu</summary><CardPreview {...renderCard(previewParticipant)} /></details>}
                 <div className="kop-save-bar">
-                  <button className="action kop-save" type="button" onClick={saveSettings}>
+                  <button className="action action-primary kop-save" type="button" onClick={saveSettings}>
                     <EditorIcon name="download" /> Simpan Pengaturan
                   </button>
                   <span className="kop-save-result" role="status" aria-live="polite">
@@ -617,7 +617,7 @@ export function CardEditor() {
               </div>
               <footer className="page-footer">
                 <button className="action" type="button" onClick={() => setStep(1)}>‹ Kembali</button>
-                <button className="action data-next" type="button" disabled={!validCardLayout(card)} onClick={() => setStep(3)}>Lihat & Cetak Kartu ›</button>
+                <button className="action action-primary data-next" type="button" disabled={!validCardLayout(card)} onClick={() => setStep(3)}>Lihat & Cetak Kartu ›</button>
               </footer>
               </>
             )}
@@ -645,7 +645,7 @@ export function CardEditor() {
         </div>
         <footer className="community-share-footer">
           <button type="button" className="action" onClick={() => setDismissedDeadline(savedUntil)}>Jangan Perpanjang</button>
-          <button type="button" className="action community-share-confirm" onClick={extendSession}>Perpanjang Sesi</button>
+          <button type="button" className="action action-primary community-share-confirm" onClick={extendSession}>Perpanjang Sesi</button>
         </footer>
       </dialog>
       {deletingCommunity && <CommunityDeleteDialog id={deletingCommunity.id} name={deletingCommunity.name}
@@ -697,8 +697,8 @@ export function CardEditor() {
           <header>
             <span className="format-icon" aria-hidden="true"><EditorIcon name="eye" /></span>
             <h2 id="format-preview-title">Preview: {communityPreview?.name ?? titles[previewFormat]}</h2>
-            <button type="button" className="action" aria-label="Tutup modal Preview"
-              onClick={() => previewDialog.current?.close()}>×</button>
+            <button type="button" className="action action-icon" aria-label="Tutup modal Preview"
+              onClick={() => previewDialog.current?.close()}><EditorIcon name="close" /></button>
           </header>
           <div className="format-preview-stage">
             <CardPreview {...renderCard(sample, previewFormat)} photo={undefined}
@@ -707,7 +707,7 @@ export function CardEditor() {
           </div>
           <footer>
             <p>Jika isi kartu terpotong, sesuaikan ukuran kartu di <strong>Pengaturan → Layout & Cetak</strong>.</p>
-            <button type="button" className="action format-close" onClick={() => previewDialog.current?.close()}>Tutup Preview</button>
+            <button type="button" className="action action-primary format-close" onClick={() => previewDialog.current?.close()}>Tutup Preview</button>
           </footer>
         </>}
       </dialog>

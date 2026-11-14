@@ -132,8 +132,8 @@ export function BackupPanel({ preferences, heading, onRestore, compact = false }
         <span className="backup-console-badge"><EditorIcon name="upload" /></span>
         <div><h2 id="backup-confirm-title">Konfirmasi Pemulihan</h2>
           <p id="backup-confirm-description">Periksa detail konfigurasi sebelum mengganti pengaturan.</p></div>
-        <button type="button" className="action" aria-label="Tutup konfirmasi pemulihan"
-          onClick={() => confirmation.current?.close()}>×</button>
+        <button type="button" className="action action-icon" aria-label="Tutup konfirmasi pemulihan"
+          onClick={() => confirmation.current?.close()}><EditorIcon name="close" /></button>
       </header>
       <div className="backup-confirm-content">
         <dl>
@@ -146,7 +146,7 @@ export function BackupPanel({ preferences, heading, onRestore, compact = false }
       </div>
       <footer className="backup-confirm-footer">
         <button className="action" type="button" onClick={() => confirmation.current?.close()}>Batal</button>
-        <button id="confirm-backup-restore" className="action data-next" type="button"
+        <button id="confirm-backup-restore" className="action action-primary data-next" type="button"
           onClick={restoreConfirmed}>Ya, Pulihkan Pengaturan</button>
       </footer>
     </dialog>}

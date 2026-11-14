@@ -1,4 +1,7 @@
 const paths = {
+  close: 'M6 6l12 12M18 6 6 18',
+  check: 'm5 12 4 4L19 6',
+  warning: 'M12 3 2 21h20L12 3z M12 9v4 M12 17h.01',
   trash: 'M4 7h16 M9 7V4h6v3 M6 7l1 13h10l1-13 M10 10v6 M14 10v6',
   monitor: 'M3 4h18v13H3z M8 21h8 M12 17v4',
   users: 'M12 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M7 20v-2a5 5 0 0 1 10 0v2z M7 12a4 4 0 0 0-4 4v4h2 M17 12a4 4 0 0 1 4 4v4h-2',

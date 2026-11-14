@@ -1,4 +1,3 @@
-import { notify } from '../../lib/ui/notify';
 import { communityIcons, validIco } from '../../lib/cards/community-icons';
 import type { CommunityIcon } from '../../lib/cards/community-icons';
 import { useEffect, useRef, useState } from 'react';
@@ -15,6 +14,9 @@ export function CommunityShareDialog({ formatName, busy, onCancel, onConfirm }: 
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [name, setName] = useState('');
+  const [nameError, setNameError] = useState(false);
+  const [iconError, setIconError] = useState(false);
+  const nameInput = useRef<HTMLInputElement>(null);
   const [anonymous, setAnonymous] = useState(false);
   const [iconPreset, setIconPreset] = useState<CommunityIcon>('users');
   const [uploadedIcon, setUploadedIcon] = useState<{ name: string; size: number; data: string }>();
@@ -29,7 +31,8 @@ export function CommunityShareDialog({ formatName, busy, onCancel, onConfirm }: 
     const contributorName = properContributorName(name.trim());
     if (!anonymous && (!contributorName || contributorName.length > 60 ||
       !/^\p{L}+(?: \p{L}+)*$/u.test(contributorName))) {
-      notify('error', 'Nama atau inisial hanya boleh menggunakan huruf dan spasi, atau pilih anonim.');
+      setNameError(true);
+      nameInput.current?.focus();
       return;
     }
 
@@ -62,13 +65,17 @@ export function CommunityShareDialog({ formatName, busy, onCancel, onConfirm }: 
           <span>Masukkan nama atau inisial Anda sebagai bentuk apresiasi atas kontribusi kepada komunitas.
             Nama otomatis ditulis dengan huruf kapital di awal setiap kata. Anda juga dapat berbagi anonim.</span>
         </label>
-        <input id="community-contributor-name" autoFocus maxLength={60} disabled={anonymous || busy}
+        <input ref={nameInput} id="community-contributor-name" aria-invalid={nameError}
+          aria-describedby={nameError ? 'contributor-name-error' : undefined} autoFocus maxLength={60} disabled={anonymous || busy}
           placeholder="Masukkan nama atau inisial Anda" value={name}
-          onChange={(event) => { setName(cleanContributorInput(event.currentTarget.value)); }}
+          onChange={(event) => { setName(cleanContributorInput(event.currentTarget.value)); setNameError(false); }}
           />
+        {nameError && <p id="contributor-name-error" className="field-error" role="alert">
+          Masukkan nama atau inisial dengan huruf dan spasi, atau pilih opsi anonim.
+        </p>}
         <label className="community-share-anonymous">
           <input type="checkbox" checked={anonymous} disabled={busy}
-            onChange={(event) => { setAnonymous(event.currentTarget.checked); }} />
+            onChange={(event) => { setAnonymous(event.currentTarget.checked); setNameError(false); }} />
           <span><strong>Bagikan secara Anonim</strong>
             <small>Nama Anda tidak akan ditampilkan — kontribusi tetap tercatat sebagai &quot;Anonim&quot;.</small>
           </span>
@@ -80,7 +87,7 @@ export function CommunityShareDialog({ formatName, busy, onCancel, onConfirm }: 
             {(Object.keys(communityIcons) as CommunityIcon[]).map((key) => {
               const selected = !uploadedIcon && iconPreset === key;
               return <button key={key} type="button" aria-pressed={selected} className="community-icon-option"
-                onClick={() => { setIconPreset(key); setUploadedIcon(undefined); }}>
+                onClick={() => { setIconPreset(key); setUploadedIcon(undefined); setIconError(false); }}>
                 <span className="community-icon-tile"><EditorIcon name={key} /></span>
                 <span>{communityIcons[key]}</span>
                 {selected && <span className="community-icon-check" aria-hidden="true">✓</span>}
@@ -102,12 +109,13 @@ export function CommunityShareDialog({ formatName, busy, onCancel, onConfirm }: 
             <button type="button" className="action" aria-label={uploadedIcon ? 'Ganti berkas ikon' : 'Pilih berkas ikon'}
               onClick={() => uploadInput.current?.click()}>{uploadedIcon ? 'Ganti' : 'Pilih berkas'}</button>
             {uploadedIcon && <button type="button" className="action" aria-label="Hapus ikon unggahan"
-              onClick={() => setUploadedIcon(undefined)}>Hapus</button>}
+              onClick={() => { setUploadedIcon(undefined); setIconError(false); }}>Hapus</button>}
             <input ref={uploadInput} type="file" accept=".ico" hidden onChange={async (event) => {
               const file = event.currentTarget.files?.[0];
               event.currentTarget.value = '';
               if (!file) return;
               setReading(true);
+              setIconError(false);
               try {
                 if (!/\.ico$/i.test(file.name) || file.size < 10240 || file.size > 256000) throw new Error();
                 const bytes = new Uint8Array(await file.arrayBuffer());
@@ -115,18 +123,20 @@ export function CommunityShareDialog({ formatName, busy, onCancel, onConfirm }: 
                 let binary = '';
                 for (const byte of bytes) binary += String.fromCharCode(byte);
                 setUploadedIcon({ name: file.name, size: file.size, data: btoa(binary) });
-                notify('success', 'Ikon unggahan dipilih.');
               } catch {
-                notify('error', 'Pilih berkas .ico yang valid berukuran 10–250 KB.');
+                setIconError(true);
               } finally { setReading(false); }
             }} />
           </div>
+          {iconError && <p className="field-error" role="alert">
+            Pilih berkas .ico yang valid berukuran 10–250 KB.
+          </p>}
         </fieldset>
       </div>
       <footer className="community-share-footer">
         <button type="button" className="action community-share-cancel" disabled={busy} onClick={onCancel}>Batal</button>
-        <button type="submit" className="action community-share-confirm" disabled={busy || reading}>
-          <span aria-hidden="true">✓</span>
+        <button type="submit" className="action action-primary community-share-confirm" disabled={busy || reading}>
+          <EditorIcon name="check" />
           <span>{busy ? 'Membagikan…' : 'Ya, Bagikan Sekarang'}</span>
         </button>
       </footer>
