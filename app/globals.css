@@ -459,7 +459,15 @@ html[data-card-session-paused] .format-dialog { visibility: hidden; }
 .print-preview-heading p, .print-preview-status small { color: var(--muted); font-size: .76rem; }
 .print-preview-status { display: grid; text-align: center; font-size: .82rem; }
 .fit-preview { width: 100%; min-width: 0; margin-inline: auto; overflow: clip; }
-.print-a4-scroll { overflow-y: auto; overflow-x: hidden; min-height: 0; padding: clamp(.65rem, 2vw, 1.25rem); background: var(--canvas); }
+.print-a4-scroll { overflow: auto; overscroll-behavior: contain; min-height: 0; padding: clamp(.65rem, 2vw, 1.25rem); background: var(--canvas); }
+.print-a4-scroll[data-zoomed="true"] .fit-preview { overflow: visible; margin-inline: 0; }
+.print-preview-zoom {
+  display: flex; flex: none; flex-wrap: wrap; justify-content: center; align-items: center;
+  gap: .35rem; padding: .4rem .65rem; border-block: 1px solid var(--line);
+  background: var(--surface);
+}
+.print-preview-zoom output { min-width: 3.5rem; text-align: center; font-variant-numeric: tabular-nums; }
+.print-preview-zoom .action-icon { font-size: 1.15rem; }
 .print-a4-scroll .print-sheet { background: white; box-shadow: 0 2px 12px #0f172a29; }
 .print-a4-controls { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: .45rem; border-top: 1px solid var(--line); }
 .print-a4-controls button:first-child { justify-self: start; }

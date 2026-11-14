@@ -385,6 +385,24 @@ try {
         const sheet = frame?.querySelector('.print-sheet');
         return sheet && sheet.getBoundingClientRect().width <= frame.clientWidth + 1;
       });
+      await page.evaluate(() => {
+        const zoom = document.querySelector('.print-preview-zoom button[aria-label="Perbesar lembar"]');
+        const click = () => new Promise((resolve) => requestAnimationFrame(() => { zoom.click(); resolve(); }));
+        return Array.from({ length: 8 }).reduce((chain) => chain.then(click), Promise.resolve());
+      });
+      await page.waitForFunction(() => {
+        const area = document.querySelector('.print-a4-scroll');
+        return area.scrollWidth > area.clientWidth && area.scrollHeight > area.clientHeight;
+      });
+      assert.equal(await page.$eval('.print-a4-scroll', (area) => {
+        area.scrollTo(area.scrollWidth, area.scrollHeight);
+        return area.scrollLeft > 0 && area.scrollTop > 0;
+      }), true);
+      await page.locator('.print-preview-zoom button:last-child').click();
+      await page.waitForFunction(() => {
+        const area = document.querySelector('.print-a4-scroll');
+        return area.scrollWidth <= area.clientWidth + 1 && area.scrollLeft === 0 && area.scrollTop === 0;
+      });
       await page.keyboard.press('Escape');
       await page.waitForSelector('.print-a4-dialog[open]', { hidden: true });
       await page.locator('#panel-3 input[placeholder="Cari nama, NISN, atau no. peserta…"]').fill('tidak ditemukan');
