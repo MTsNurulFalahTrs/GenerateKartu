@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { utils, write } from 'xlsx';
@@ -8,6 +8,9 @@ import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 import axe from 'axe-core';
 import { execFileSync } from 'node:child_process';
+import { parseChangelog } from '../lib/changelog.ts';
+
+const changelog = parseChangelog(await readFile(new URL('../CHANGELOG.md', import.meta.url), 'utf8'));
 
 
 async function dialogAction(page, selector, action = 'click', value = '') {
@@ -815,7 +818,14 @@ try {
       await page.waitForSelector('#editor-help-faq details[open] p', { visible: true });
       await page.$eval('.help-release-button', (button) => button.click());
       await page.waitForSelector('.release-notes-dialog[open]', { visible: true });
-      assert.match(await dialogValue(page, '.release-notes-dialog'), /Format dan komunitas/);
+      const displayedNotes = await page.$$eval('.release-notes-group', (sections) =>
+        sections.map((section) => ({
+          title: section.querySelector('h3').textContent,
+          entries: [...section.querySelectorAll('li')].map((item) => item.textContent.trim()),
+        })));
+      assert.deepEqual(displayedNotes, changelog.map(({ title, entries }) => ({
+        title, entries: entries.map((entry) => entry.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')),
+      })));
       await dialogAction(page, '.release-notes-footer button');
       await page.waitForSelector('.release-notes-dialog[open]', { hidden: true });
       assert.equal(await page.$eval('.help-nav', (button) => button.getAttribute('aria-pressed')), 'true');

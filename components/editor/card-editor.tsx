@@ -4,6 +4,7 @@ import { MasonryGrid } from './masonry-grid';
 
 import { notify } from '../../lib/ui/notify';
 import { CommunityDeleteDialog } from './community-delete-dialog';
+import type { Changelog } from '../../lib/changelog';
 import { HelpContent } from './help-content';
 import { AppBrand, PageHeading } from './page-chrome';
 import { flushSync } from 'react-dom';
@@ -68,7 +69,7 @@ function publicationDate(value?: string) {
   }).format(timestamp);
 }
 
-export function CardEditor() {
+export function CardEditor({ changelog }: { changelog: Changelog }) {
   const [step, setStep] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
   const [format, setFormat] = useState<number | null>(0);
@@ -683,7 +684,7 @@ export function CardEditor() {
           </section>
         ))}
         <section id="editor-help-panel" hidden={!helpOpen}>
-          {helpOpen && <HelpContent inEditor participants={dataset.participants.length} photos={photos.size} communityCount={catalogStatus === 'ready' ? catalog.length : undefined} />}
+          {helpOpen && <HelpContent changelog={changelog} inEditor participants={dataset.participants.length} photos={photos.size} communityCount={catalogStatus === 'ready' ? catalog.length : undefined} />}
         </section>
       </main>
       <dialog ref={resetDialog} className="format-dialog reset-dialog" aria-labelledby="reset-dialog-title"
