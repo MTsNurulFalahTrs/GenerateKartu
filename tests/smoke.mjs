@@ -39,6 +39,7 @@ async function dialogCount(page, selector) {
 
 const origin = process.env.SMOKE_ORIGIN ?? 'http://127.0.0.1:3000';
 const output = process.env.SMOKE_SCREENSHOTS;
+const editorUrl = new URL('/editor', origin).href;
 
 async function waitForServer() {
   for (let attempt = 0; attempt < 40; attempt++) {
@@ -102,6 +103,11 @@ try {
       await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: name === 'mobile', hasTouch: name === 'mobile' });
       const home = await page.goto(origin, { waitUntil: 'domcontentloaded' });
       assert.equal(home?.status(), 200);
+      assert.match(await page.$eval('h1', (heading) => heading.textContent), /Buat kartu peserta ujian dari Excel/);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      await page.locator('main a[href="/editor"]').click();
+      await page.waitForFunction(() => location.pathname === '/editor');
+      assert.equal(home?.status(), 200);
       const headers = home.headers();
       assert.equal(headers['x-content-type-options'], 'nosniff');
       assert.equal(headers['x-frame-options'], 'DENY');
@@ -156,7 +162,7 @@ try {
         }
       };
       catalogPage.on('request', communityRequest);
-      await catalogPage.goto(origin, { waitUntil: 'domcontentloaded' });
+      await catalogPage.goto(editorUrl, { waitUntil: 'domcontentloaded' });
       await catalogPage.waitForSelector('.community-card[data-community-id="9001"]', { visible: true });
       await catalogPage.waitForSelector('.community-card[data-community-id="9001"]', { visible: true });
       assert.match(await catalogPage.$eval('.community-card-byline', (el) => el.textContent),
@@ -482,7 +488,7 @@ try {
       });
       page.on('pageerror', (error) => errors.push(error.message));
       page.on('console', (entry) => { if (entry.type() === 'error') errors.push(entry.text()); });
-      await page.goto(origin, { waitUntil: 'domcontentloaded' });
+      await page.goto(editorUrl, { waitUntil: 'domcontentloaded' });
       await page.waitForSelector('#pick-custom-format');
       await page.$eval('#step-0', (button) => button.click());
       await page.waitForSelector('#panel-0', { visible: true });
@@ -684,7 +690,7 @@ try {
         await page.evaluateOnNewDocument(() => {
           Storage.prototype.setItem = () => { throw new DOMException('Simulasi kuota', 'QuotaExceededError'); };
         });
-        await page.goto(origin, { waitUntil: 'domcontentloaded' });
+        await page.goto(editorUrl, { waitUntil: 'domcontentloaded' });
         await page.$eval('#step-2', (button) => button.click());
         await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('Penyimpanan browser penuh atau diblokir')));
         await page.$eval('.theme', (button) => button.click());
