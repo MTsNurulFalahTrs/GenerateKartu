@@ -431,8 +431,16 @@ try {
             window.pdfEvidence = fetch(this.href).then((response) => response.arrayBuffer()).then((bytes) => [...new Uint8Array(bytes)]);
           };
         });
-        const printStart = performance.now();
+        await page.evaluate(() => {
+          window.printBatch = window.print;
+          window.print = () => { throw new Error('Printer uji gagal'); };
+        });
         await page.$eval('#print-cards', (button) => button.click());
+        await page.waitForFunction(() => document.querySelector('.batch-result-dialog[open]')?.textContent.includes('Printer uji gagal'));
+        assert.match(await page.$eval('.batch-result-dialog[open] .action-primary', (button) => button.textContent), /Ulangi batch 1/);
+        await page.evaluate(() => { window.print = window.printBatch; });
+        const printStart = performance.now();
+        await page.locator('.batch-result-dialog[open] .action-primary').click();
         await page.waitForFunction(() => window.printEvidence);
         const printedNames = [];
         for (let batch = 0; batch < 5; batch++) {
@@ -448,13 +456,13 @@ try {
           }
           await page.evaluate(() => { delete window.printEvidence; window.finishPrint(); });
           if (batch < 4) {
-            await page.locator('.output-batch .action-primary').click();
+            await page.locator('.batch-result-dialog[open] .action-primary').click();
             await page.waitForFunction(() => window.printEvidence);
           }
         }
         assert.deepEqual(printedNames, Array.from({ length: 500 }, (_, index) => 'Kartu ujian Peserta Uji ' + index));
-        await page.locator('.output-batch button:last-child').click();
-        await page.waitForSelector('.output-batch', { hidden: true });
+        await page.locator('.batch-result-dialog[open] footer button:first-child').click();
+        await page.waitForSelector('.batch-result-dialog[open]', { hidden: true });
         console.log(`Cetak 500 kartu dalam 5 batch: ${Math.round(performance.now() - printStart)} ms`);
         await page.select('#preview-Kelas', 'IX-A');
         await page.waitForFunction(() => document.querySelector('#panel-3 .print-count')?.textContent.includes('10 dari 500'));
