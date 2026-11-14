@@ -5,7 +5,6 @@ import { MasonryGrid } from './masonry-grid';
 import { useEffect, useRef, useState } from 'react';
 import { PageHeading } from './page-chrome';
 import { EditorIcon } from './editor-icon';
-import { changelogUrl } from '../../lib/changelog';
 import type { Changelog } from '../../lib/changelog';
 import { formats } from '../../lib/editor';
 import { maxParticipants } from '../../lib/participants/model';
@@ -40,28 +39,18 @@ function ReleaseNotesDialog({ changelog, onClose }: { changelog: Changelog; onCl
     <header className="release-notes-header">
       <span className="release-notes-icon"><EditorIcon name="document" /></span>
       <div><h2 id="release-notes-title">Catatan Pembaruan</h2>
-        <p id="release-notes-description">Riwayat perubahan dari changelog repositori.</p></div>
+        <p id="release-notes-description">Riwayat fitur, perbaikan, dan pemeliharaan aplikasi.</p></div>
       <button type="button" className="action action-icon" aria-label="Tutup catatan pembaruan"
         onClick={() => dialog.current?.close()}><EditorIcon name="close" /></button>
     </header>
     <div className="release-notes-body">
       {changelog.map(({ title, entries }) => <section className="release-notes-group" key={title}>
         <h3>{title}</h3>
-        <ul>{entries.map((entry, index) => <li key={index}>
-          {entry.split(/(\[[^\]]+\]\([^)]+\))/).map((part, partIndex) => {
-            const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(part);
-            if (!link) return part;
-            const [ , label, href] = link;
-            const safeHref = href.startsWith('https://') ? href
-              : /^[\w./-]+$/.test(href) ? new URL(href, changelogUrl).href : undefined;
-            return safeHref ? <a key={partIndex} href={safeHref} target="_blank" rel="noreferrer">{label}</a> : label;
-          })}
-        </li>)}</ul>
+        <ul>{entries.map((entry, index) => <li key={index}>{entry}</li>)}</ul>
       </section>)}
       {!changelog.length && <p>Belum ada catatan pembaruan.</p>}
     </div>
     <footer className="release-notes-footer">
-      <a href={changelogUrl} target="_blank" rel="noreferrer">Lihat di GitHub</a>
       <button type="button" className="action action-primary" onClick={() => dialog.current?.close()}>Tutup</button>
     </footer>
   </dialog>;
