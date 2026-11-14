@@ -765,8 +765,9 @@ try {
         });
         await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('Sesi kedaluwarsa')));
         await page.waitForFunction(() => document.querySelector('#kop-institution')?.value !== 'Madrasah Pulih');
-        await page.waitForFunction(() => !document.documentElement.hasAttribute('data-card-session-paused') &&
-          !document.querySelector('dialog[open]') && !document.querySelector('.app-toast'));
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.locator('#step-2').click();
+        await page.waitForSelector('#reset-card-session', { visible: true });
         const resetDialog = '.reset-dialog[open]';
         await page.focus('#reset-card-session');
         const savedBeforeReset = await page.evaluate(() => localStorage.getItem('generate-kartu:preferences:v1'));
