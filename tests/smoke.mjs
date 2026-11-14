@@ -372,9 +372,19 @@ try {
       await page.locator('#panel-3 input[placeholder="Cari nama, NISN, atau no. peserta…"]').fill('0002');
       await page.waitForFunction(() => document.querySelector('#panel-3 .print-count')?.textContent.includes('1 dari 500'));
       assert.equal(await page.$$eval('#panel-3 .exam-card', (cards) => cards.length), 1);
+      await page.waitForFunction(() => {
+        const grid = document.querySelector('.print-card-grid');
+        const card = grid?.querySelector('.exam-card');
+        return card && card.getBoundingClientRect().width <= grid.clientWidth && grid.scrollWidth <= grid.clientWidth + 1;
+      });
       await page.locator('#preview-a4').click();
       await page.waitForSelector('.print-a4-dialog[open] .exam-card');
       assert.equal(await page.$$eval('.print-a4-dialog[open] .exam-card', (cards) => cards.length), 1);
+      await page.waitForFunction(() => {
+        const frame = document.querySelector('.print-a4-dialog[open] .fit-preview');
+        const sheet = frame?.querySelector('.print-sheet');
+        return sheet && sheet.getBoundingClientRect().width <= frame.clientWidth + 1;
+      });
       await page.keyboard.press('Escape');
       await page.waitForSelector('.print-a4-dialog[open]', { hidden: true });
       await page.locator('#panel-3 input[placeholder="Cari nama, NISN, atau no. peserta…"]').fill('tidak ditemukan');
@@ -755,6 +765,9 @@ try {
         });
         await page.waitForFunction(() => [...document.querySelectorAll('.app-toast')].some((toast) => toast.textContent.includes('Sesi kedaluwarsa')));
         await page.waitForFunction(() => document.querySelector('#kop-institution')?.value !== 'Madrasah Pulih');
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.locator('#step-2').click();
+        await page.waitForSelector('#reset-card-session', { visible: true });
         const resetDialog = '.reset-dialog[open]';
         await page.focus('#reset-card-session');
         const savedBeforeReset = await page.evaluate(() => localStorage.getItem('generate-kartu:preferences:v1'));
@@ -764,7 +777,7 @@ try {
         assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).overflowY), 'hidden');
         await page.keyboard.press('Escape');
         await page.waitForSelector(resetDialog, { hidden: true });
-        assert.equal(await page.evaluate(() => document.activeElement.id), 'reset-card-session');
+        await page.waitForFunction(() => document.activeElement?.id === 'reset-card-session');
         assert.equal(await page.evaluate(() => localStorage.getItem('generate-kartu:preferences:v1')), savedBeforeReset);
         await dialogAction(page, '#reset-card-session');
         await dialogAction(page, `${resetDialog} .action-danger`);

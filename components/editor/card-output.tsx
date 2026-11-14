@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { createPortal } from 'react-dom';
 import { EditorIcon } from './editor-icon';
+import { FitPreview } from './fit-preview';
 import { CardPreview } from './card-preview';
 import type { Participant } from '../../lib/participants/model';
 import type { CardRenderModel } from '../../lib/cards/render-model';
@@ -298,16 +299,23 @@ export function CardOutput({ participants, renderCard, pending }: {
       </>}
     </dialog>
     <dialog className="format-dialog print-a4-dialog" ref={previewDialog} aria-labelledby="print-a4-title" onClose={() => setPreview(null)}>
-      <header><h2 id="print-a4-title">Pratinjau Kertas{preview && ` · ${pageLabel(preview)}`}</h2>
+      <header>
+        <span className="pdf-progress-icon"><EditorIcon name="document" /></span>
+        <div className="print-preview-heading"><h2 id="print-a4-title">Pratinjau Kertas</h2>
+          {preview && <p>{pageLabel(preview)} · {preview.sheet.width} × {preview.sheet.height} mm</p>}
+        </div>
         <button type="button" className="action action-icon" aria-label="Tutup pratinjau kertas" onClick={() => previewDialog.current?.close()}><EditorIcon name="close" /></button>
       </header>
       {preview && <>
         <div className="print-a4-scroll" tabIndex={0} role="region" aria-label={`Lembar ${pageLabel(preview)}`}>
-          <PrintSheet cards={preview.pages[previewPage]} layout={preview} />
+          <FitPreview widthMm={preview.sheet.width}>
+            <PrintSheet cards={preview.pages[previewPage]} layout={preview} />
+          </FitPreview>
         </div>
         <footer className="print-a4-controls">
           <button type="button" className="action" disabled={previewPage === 0} onClick={() => setPreviewPage(previewPage - 1)}>Sebelumnya</button>
-          <span role="status">Halaman {previewPage + 1} dari {preview.pages.length}</span>
+          <div className="print-preview-status" role="status"><strong>Halaman {previewPage + 1} dari {preview.pages.length}</strong>
+            <small>{preview.pages[previewPage].length} kartu</small></div>
           <button type="button" className="action" disabled={previewPage + 1 >= preview.pages.length} onClick={() => setPreviewPage(previewPage + 1)}>Berikutnya</button>
         </footer>
       </>}
