@@ -59,6 +59,8 @@ export function CardOutput({ participants, renderCard, pending }: {
   const [cancelingPdf, setCancelingPdf] = useState(false);
   const previewDialog = useRef<HTMLDialogElement>(null);
   const [preview, setPreview] = useState<ReturnType<typeof cardPages<CardRenderModel>> | null>(null);
+  const [previewZoom, setPreviewZoom] = useState(100);
+  const previewScroll = useRef<HTMLDivElement>(null);
   const [previewPage, setPreviewPage] = useState(0);
   const [job, setJob] = useState<ReturnType<typeof cardPages<CardRenderModel>> | null>(null);
   const [message, setMessage] = useState('');
@@ -97,6 +99,7 @@ export function CardOutput({ participants, renderCard, pending }: {
       const { settings } = cards[0];
       if (!validCardLayout(settings)) throw new Error('Periksa ukuran kartu dan ukuran teks di Layout & Cetak.');
       setPreviewPage(0);
+      setPreviewZoom(100);
       setPreview(cardPages(cards, settings.width, settings.height, settings.paper));
       setMessage('');
       previewDialog.current?.showModal();
@@ -307,8 +310,19 @@ export function CardOutput({ participants, renderCard, pending }: {
         <button type="button" className="action action-icon" aria-label="Tutup pratinjau kertas" onClick={() => previewDialog.current?.close()}><EditorIcon name="close" /></button>
       </header>
       {preview && <>
-        <div className="print-a4-scroll" tabIndex={0} role="region" aria-label={`Lembar ${pageLabel(preview)}`}>
-          <FitPreview widthMm={preview.sheet.width}>
+        <div className="print-preview-zoom" role="group" aria-label="Zoom lembar">
+          <button type="button" className="action action-icon" aria-label="Perkecil lembar"
+            disabled={previewZoom <= 50} onClick={() => setPreviewZoom((zoom) => zoom - 25)}>−</button>
+          <output aria-label="Zoom relatif terhadap ukuran pas layar">{previewZoom}%</output>
+          <button type="button" className="action action-icon" aria-label="Perbesar lembar"
+            disabled={previewZoom >= 300} onClick={() => setPreviewZoom((zoom) => zoom + 25)}>+</button>
+          <button type="button" className="action" onClick={() => {
+            setPreviewZoom(100);
+            previewScroll.current?.scrollTo(0, 0);
+          }}>Pas ke Layar</button>
+        </div>
+        <div className="print-a4-scroll" ref={previewScroll} data-zoomed={previewZoom > 100} tabIndex={0} role="region" aria-label={`Lembar ${pageLabel(preview)}`}>
+          <FitPreview widthMm={preview.sheet.width} magnification={previewZoom / 100}>
             <PrintSheet cards={preview.pages[previewPage]} layout={preview} />
           </FitPreview>
         </div>

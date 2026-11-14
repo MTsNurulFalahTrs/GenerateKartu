@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
-export function FitPreview({ widthMm, children }: { widthMm: number; children: ReactNode }) {
+export function FitPreview({ widthMm, children, magnification = 1 }: { widthMm: number; children: ReactNode; magnification?: number }) {
   const frame = useRef<HTMLDivElement>(null);
   const [available, setAvailable] = useState<number>();
   const naturalWidth = widthMm * 96 / 25.4;
@@ -18,6 +18,6 @@ export function FitPreview({ widthMm, children }: { widthMm: number; children: R
 
   const scale = available && naturalWidth > 0 ? Math.min(1, available / naturalWidth) : 1;
   return <div className="fit-preview" ref={frame} style={{ maxWidth: `${widthMm}mm` }}>
-    <div style={{ width: `${widthMm}mm`, zoom: scale }}>{children}</div>
+    <div style={{ width: `${widthMm}mm`, zoom: scale * magnification }}>{children}</div>
   </div>;
 }
