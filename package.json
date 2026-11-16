@@ -16,7 +16,7 @@
     "smoke": "node tests/smoke.mjs"
   },
   "dependencies": {
-    "@neondatabase/serverless": "1.2.0",
+    "@neondatabase/serverless": "1.2.1",
     "next": "16.4.3",
     "pdf-lib": "1.17.1",
     "qrcode-terminal": "0.12.0",
